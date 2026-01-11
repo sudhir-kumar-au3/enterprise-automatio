@@ -55,11 +55,31 @@ The application presents a multi-layered enterprise architecture with interactiv
 - Success criteria: Comprehensive coverage of security and scalability across all services
 
 **Team Collaboration Hub**
-- Functionality: Task management with drag-and-drop reordering, priority-based sorting, calendar visualization of deadlines, calendar export to iCal/Google Calendar formats, comment threads, and team member activity tracking with context-aware collaboration on services and workflows
-- Purpose: Enable distributed teams to coordinate implementation, share feedback, track progress on specific architecture components, visualize task timelines, flexibly organize tasks by priority or custom order, and integrate task deadlines with external calendar applications
-- Trigger: Navigate to Team tab, access collaboration features from service detail dialogs, or export calendar from Calendar view or Roadmap view
-- Progression: View team overview → Create tasks with assignments and due dates → Sort by priority or enable drag-and-drop custom ordering → Drag tasks within status columns to reorder → View calendar to visualize task deadlines → Export tasks to iCal format or add single task to Google Calendar → Filter tasks by assignee and due date → Click calendar days to see tasks due → Comment on services/workflows → Track task status through kanban board → Monitor team activity and progress → Import calendar into Apple Calendar, Google Calendar, Outlook, or other iCal-compatible applications
-- Success criteria: All tasks and comments persist across sessions, assignees receive clear task visibility, context-aware discussions linked to specific services, task order persists across sessions, smooth drag-and-drop interactions with visual feedback, calendar displays all tasks with due dates, overdue tasks highlighted prominently, filtering by assignee and date works correctly, exported iCal files are valid and importable into standard calendar applications, Google Calendar integration creates events correctly with proper metadata
+- Functionality: Task management with drag-and-drop reordering, priority-based sorting, calendar visualization of deadlines, calendar export to iCal/Google Calendar formats, comment threads, team member activity tracking with context-aware collaboration on services and workflows, comprehensive role-based access control with four permission levels (Owner, Admin, Member, Viewer), granular permission management for team operations, task management, collaboration features, architecture modifications, and data access
+- Purpose: Enable distributed teams to coordinate implementation, share feedback, track progress on specific architecture components, visualize task timelines, flexibly organize tasks by priority or custom order, integrate task deadlines with external calendar applications, and maintain secure access control with appropriate permission boundaries for different team member roles
+- Trigger: Navigate to Team tab, access collaboration features from service detail dialogs, export calendar from Calendar view or Roadmap view, or manage team member permissions
+- Progression: View team overview with access level indicator → Review personal permissions and capabilities → Create tasks with assignments and due dates (if permitted) → Sort by priority or enable drag-and-drop custom ordering → Drag tasks within status columns to reorder → View calendar to visualize task deadlines → Export tasks to iCal format or add single task to Google Calendar → Filter tasks by assignee and due date → Click calendar days to see tasks due → Comment on services/workflows (if permitted) → Track task status through kanban board → Monitor team activity and progress → Add/edit team members with specific access levels (if permitted) → View detailed permission breakdowns for each team member → Manage roles and access control (owner/admin only) → Import calendar into Apple Calendar, Google Calendar, Outlook, or other iCal-compatible applications
+- Success criteria: All tasks and comments persist across sessions, assignees receive clear task visibility, context-aware discussions linked to specific services, task order persists across sessions, smooth drag-and-drop interactions with visual feedback, calendar displays all tasks with due dates, overdue tasks highlighted prominently, filtering by assignee and date works correctly, exported iCal files are valid and importable into standard calendar applications, Google Calendar integration creates events correctly with proper metadata, permissions are properly enforced on all actions, users cannot perform actions beyond their access level, permission violations show clear error messages, team members can view their own permissions, admins and owners can modify access levels, permission changes take effect immediately
+
+**Access Control & Permissions System**
+- Functionality: Four-tier access level system (Owner, Admin, Member, Viewer) with 14 granular permissions covering team management, task operations, collaboration features, architecture modifications, and data access
+- Purpose: Maintain secure boundaries for sensitive operations, prevent unauthorized modifications, enable flexible team structures with appropriate access levels for different roles, and provide transparency about permissions
+- Trigger: Set during team member creation/editing, displayed in team overview, enforced on all protected actions
+- Progression: Admin creates team member → Assigns access level → System grants associated permissions → Member attempts action → System checks permissions → Action allowed or denied with feedback → Member views own permissions in overview → Admin/owner views any member's detailed permissions → Access level modified → Permissions update immediately
+- Success criteria: All permission checks function correctly, no unauthorized actions possible, clear feedback on permission denials, permission viewing works for all users, permission editing restricted to admins/owners, access level changes reflected immediately, permission system documented and understandable
+
+**Access Levels:**
+- **Owner** (👑): Full system access including team management, role management, permission management, all task operations, all collaboration features, all architecture modifications, analytics access, and data export
+- **Admin** (⚡): Team management, all task operations, all collaboration features, all architecture modifications, analytics access, and data export (cannot modify owner permissions or access levels)
+- **Member** (✓): Create and assign tasks, create comments, view analytics, and export data (standard collaborative access)
+- **Viewer** (👁️): Create comments only (read-only access with ability to participate in discussions)
+
+**Permission Categories:**
+- Team Management: manage_team, manage_roles, manage_permissions
+- Task Management: create_tasks, assign_tasks, delete_tasks, edit_all_tasks
+- Collaboration: create_comments, delete_comments
+- Architecture: manage_services, manage_workflows, manage_roadmap
+- Data & Analytics: view_analytics, export_data
 
 ## Edge Case Handling
 
@@ -82,6 +102,12 @@ The application presents a multi-layered enterprise architecture with interactiv
 - **Invalid iCal Export**: Clear error messages with guidance if export fails or no tasks are available to export
 - **Large Task Lists**: Export process handles large task lists efficiently with progress feedback via toast notifications
 - **Roadmap Calendar Export**: Export implementation roadmap phases with estimated timelines to iCal format for team synchronization
+- **Permission Denied Actions**: Users attempting actions beyond their access level receive clear error messages explaining required permissions
+- **Access Level Changes**: When a team member's access level is changed, permissions take effect immediately without requiring re-login
+- **Self-Permission Editing**: Users can view but not modify their own access level (prevents accidental lockout)
+- **Last Owner Protection**: System prevents removing the last owner to ensure team management capability is maintained
+- **Custom Permission Conflicts**: Custom permissions can extend but not reduce base access level permissions
+- **Permission Viewing**: All team members can view other members' access levels and roles, but only admins/owners can modify them
 
 ## Design Direction
 
