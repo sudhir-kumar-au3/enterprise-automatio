@@ -80,11 +80,12 @@ const CollaborationView = () => {
   const [activeTab, setActiveTab] = useState('overview')
   const [comments, setComments] = useKV<Comment[]>('collaboration-comments', [])
   const [tasks, setTasks] = useKV<Task[]>('collaboration-tasks', [])
+  const [teamMembers, setTeamMembers] = useKV<TeamMember[]>('team-members', mockTeamMembers)
   const [newCommentText, setNewCommentText] = useState('')
   const [selectedContext, setSelectedContext] = useState<{ type: string; id: string } | null>(null)
   const [isCreatingTask, setIsCreatingTask] = useState(false)
 
-  const currentUser = mockTeamMembers[0]
+  const currentUser = (teamMembers || mockTeamMembers)[0]
 
   const addComment = (contextType: string, contextId: string) => {
     if (!newCommentText.trim()) return
@@ -115,7 +116,8 @@ const CollaborationView = () => {
     return (tasks || []).filter(t => t.contextType === contextType && t.contextId === contextId)
   }
 
-  const onlineMembers = mockTeamMembers.filter(m => m.isOnline)
+  const allMembers = teamMembers || mockTeamMembers
+  const onlineMembers = allMembers.filter(m => m.isOnline)
   const recentComments = (comments || []).slice(-5).reverse()
   const recentTasks = (tasks || [])
     .filter(t => t.status !== 'done')
@@ -147,6 +149,7 @@ const CollaborationView = () => {
                 toast.success('Task created')
               }}
               currentUser={currentUser}
+              teamMembers={allMembers}
             />
           </DialogContent>
         </Dialog>
@@ -172,7 +175,7 @@ const CollaborationView = () => {
           </TabsTrigger>
           <TabsTrigger value="team" className="gap-2">
             <Users size={18} />
-            Team ({mockTeamMembers.length})
+            Team ({allMembers.length})
           </TabsTrigger>
         </TabsList>
 
@@ -185,7 +188,7 @@ const CollaborationView = () => {
                   Team Online
                 </CardTitle>
                 <CardDescription>
-                  {onlineMembers.length} of {mockTeamMembers.length} members active
+                  {onlineMembers.length} of {allMembers.length} members active
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -231,7 +234,7 @@ const CollaborationView = () => {
                       </p>
                     ) : (
                       recentTasks.map(task => (
-                        <TaskCard key={task.id} task={task} onClick={() => {}} compact />
+                        <TaskCard key={task.id} task={task} onClick={() => {}} compact teamMembers={allMembers} />
                       ))
                     )}
                   </div>
@@ -256,7 +259,7 @@ const CollaborationView = () => {
                   </p>
                 ) : (
                   recentComments.map(comment => {
-                    const author = mockTeamMembers.find(m => m.id === comment.authorId)
+                    const author = allMembers.find(m => m.id === comment.authorId)
                     return (
                       <CommentCard key={comment.id} comment={comment} author={author} />
                     )
@@ -271,7 +274,7 @@ const CollaborationView = () => {
           <TasksView
             tasks={tasks || []}
             setTasks={setTasks}
-            teamMembers={mockTeamMembers}
+            teamMembers={allMembers}
             currentUser={currentUser}
           />
         </TabsContent>
@@ -279,7 +282,7 @@ const CollaborationView = () => {
         <TabsContent value="calendar" className="space-y-6">
           <CalendarView
             tasks={tasks || []}
-            teamMembers={mockTeamMembers}
+            teamMembers={allMembers}
           />
         </TabsContent>
 
@@ -287,13 +290,18 @@ const CollaborationView = () => {
           <CommentsView
             comments={comments || []}
             setComments={setComments}
-            teamMembers={mockTeamMembers}
+            teamMembers={allMembers}
             currentUser={currentUser}
           />
         </TabsContent>
 
         <TabsContent value="team" className="space-y-6">
-          <TeamView teamMembers={mockTeamMembers} tasks={tasks || []} comments={comments || []} />
+          <TeamView 
+            teamMembers={allMembers} 
+            setTeamMembers={setTeamMembers}
+            tasks={tasks || []} 
+            comments={comments || []} 
+          />
         </TabsContent>
       </Tabs>
     </div>
@@ -529,6 +537,7 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps
                           onClick={() => {}}
                           onStatusChange={(newStatus) => updateTaskStatus(task.id, newStatus)}
                           isDraggable={!sortByPriority}
+                          teamMembers={teamMembers}
                         />
                       ))}
                       {statusTasks.length === 0 && (
@@ -551,6 +560,7 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps
                 task={activeTask}
                 onClick={() => {}}
                 isDragging
+                teamMembers={teamMembers}
               />
             </div>
           ) : null}
@@ -690,64 +700,142 @@ const CommentsView = ({ comments, setComments, teamMembers, currentUser }: Comme
 
 interface TeamViewProps {
   teamMembers: TeamMember[]
+  setTeamMembers: (updater: (members: TeamMember[]) => TeamMember[]) => void
   tasks: Task[]
   comments: Comment[]
 }
 
-const TeamView = ({ teamMembers, tasks, comments }: TeamViewProps) => {
-  return (
-    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {teamMembers.map(member => {
-        const memberTasks = tasks.filter(t => t.assigneeId === member.id)
-        const memberComments = comments.filter(c => c.authorId === member.id)
-        const activeTasks = memberTasks.filter(t => t.status !== 'done')
+const TeamView = ({ teamMembers, setTeamMembers, tasks, comments }: TeamViewProps) => {
+  const [isAddingMember, setIsAddingMember] = useState(false)
+  const [editingMember, setEditingMember] = useState<TeamMember | null>(null)
 
-        return (
-          <Card key={member.id}>
-            <CardHeader className="pb-3">
-              <div className="flex items-start gap-3">
-                <div className="relative">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={member.avatarUrl} alt={member.name} />
-                    <AvatarFallback>{member.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                  </Avatar>
-                  {member.isOnline && (
-                    <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-card" />
-                  )}
+  const handleDeleteMember = (memberId: string) => {
+    setTeamMembers(current => current.filter(m => m.id !== memberId))
+    toast.success('Team member removed')
+  }
+
+  const handleToggleOnline = (memberId: string) => {
+    setTeamMembers(current =>
+      current.map(m => m.id === memberId ? { ...m, isOnline: !m.isOnline } : m)
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold">Team Members</h3>
+          <p className="text-sm text-muted-foreground">
+            Manage your team and assign roles
+          </p>
+        </div>
+        <Dialog open={isAddingMember} onOpenChange={setIsAddingMember}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus size={18} />
+              Add Member
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <AddEditMemberDialog
+              onClose={() => setIsAddingMember(false)}
+              onSave={(member) => {
+                setTeamMembers(current => [...current, member])
+                setIsAddingMember(false)
+                toast.success('Team member added')
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {teamMembers.map(member => {
+          const memberTasks = tasks.filter(t => t.assigneeId === member.id)
+          const memberComments = comments.filter(c => c.authorId === member.id)
+          const activeTasks = memberTasks.filter(t => t.status !== 'done')
+
+          return (
+            <Card key={member.id}>
+              <CardHeader className="pb-3">
+                <div className="flex items-start gap-3">
+                  <div className="relative">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={member.avatarUrl} alt={member.name} />
+                      <AvatarFallback>{member.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                    </Avatar>
+                    {member.isOnline && (
+                      <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-card" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-base">{member.name}</CardTitle>
+                    <CardDescription className="text-xs">{member.email}</CardDescription>
+                  </div>
+                  <Dialog open={editingMember?.id === member.id} onOpenChange={(open) => !open && setEditingMember(null)}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => setEditingMember(member)}
+                      >
+                        <DotsThree size={18} weight="bold" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <AddEditMemberDialog
+                        member={member}
+                        onClose={() => setEditingMember(null)}
+                        onSave={(updatedMember) => {
+                          setTeamMembers(current =>
+                            current.map(m => m.id === member.id ? updatedMember : m)
+                          )
+                          setEditingMember(null)
+                          toast.success('Team member updated')
+                        }}
+                        onDelete={() => {
+                          handleDeleteMember(member.id)
+                          setEditingMember(null)
+                        }}
+                      />
+                    </DialogContent>
+                  </Dialog>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <CardTitle className="text-base">{member.name}</CardTitle>
-                  <CardDescription className="text-xs">{member.email}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Badge variant="secondary" className={cn('w-full justify-center', roleColors[member.role])}>
+                  {member.role}
+                </Badge>
+                
+                <Separator />
+                
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Active Tasks</span>
+                    <span className="font-semibold">{activeTasks.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Comments</span>
+                    <span className="font-semibold">{memberComments.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Status</span>
+                    <Button
+                      variant={member.isOnline ? 'default' : 'secondary'}
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={() => handleToggleOnline(member.id)}
+                    >
+                      {member.isOnline ? 'Online' : 'Offline'}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Badge variant="secondary" className={cn('w-full justify-center', roleColors[member.role])}>
-                {member.role}
-              </Badge>
-              
-              <Separator />
-              
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Active Tasks</span>
-                  <span className="font-semibold">{activeTasks.length}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Comments</span>
-                  <span className="font-semibold">{memberComments.length}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Status</span>
-                  <Badge variant={member.isOnline ? 'default' : 'secondary'} className="text-xs">
-                    {member.isOnline ? 'Online' : 'Offline'}
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )
-      })}
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -759,10 +847,11 @@ interface TaskCardProps {
   onStatusChange?: (status: Task['status']) => void
   isDraggable?: boolean
   isDragging?: boolean
+  teamMembers?: TeamMember[]
 }
 
-const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable = false, isDragging = false }: TaskCardProps) => {
-  const assignee = mockTeamMembers.find(m => m.id === task.assigneeId)
+const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable = false, isDragging = false, teamMembers = mockTeamMembers }: TaskCardProps) => {
+  const assignee = teamMembers.find(m => m.id === task.assigneeId)
   
   const getDueDateInfo = () => {
     if (!task.dueDate) return null
@@ -874,9 +963,10 @@ interface SortableTaskCardProps {
   onClick: () => void
   onStatusChange?: (status: Task['status']) => void
   isDraggable?: boolean
+  teamMembers?: TeamMember[]
 }
 
-const SortableTaskCard = ({ task, onClick, onStatusChange, isDraggable = true }: SortableTaskCardProps) => {
+const SortableTaskCard = ({ task, onClick, onStatusChange, isDraggable = true, teamMembers }: SortableTaskCardProps) => {
   const {
     attributes,
     listeners,
@@ -899,6 +989,7 @@ const SortableTaskCard = ({ task, onClick, onStatusChange, isDraggable = true }:
         onStatusChange={onStatusChange}
         isDraggable={isDraggable}
         isDragging={isDragging}
+        teamMembers={teamMembers}
       />
     </div>
   )
@@ -944,9 +1035,10 @@ interface CreateTaskDialogProps {
   onClose: () => void
   onCreate: (task: Task) => void
   currentUser: TeamMember
+  teamMembers: TeamMember[]
 }
 
-const CreateTaskDialog = ({ onClose, onCreate, currentUser }: CreateTaskDialogProps) => {
+const CreateTaskDialog = ({ onClose, onCreate, currentUser, teamMembers }: CreateTaskDialogProps) => {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState<Task['priority']>('medium')
@@ -1036,7 +1128,7 @@ const CreateTaskDialog = ({ onClose, onCreate, currentUser }: CreateTaskDialogPr
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="unassigned">Unassigned</SelectItem>
-                {mockTeamMembers.map(member => (
+                {teamMembers.map(member => (
                   <SelectItem key={member.id} value={member.id}>
                     {member.name}
                   </SelectItem>
@@ -1081,6 +1173,146 @@ const CreateTaskDialog = ({ onClose, onCreate, currentUser }: CreateTaskDialogPr
           <Button onClick={handleCreate}>
             Create Task
           </Button>
+        </div>
+      </div>
+    </>
+  )
+}
+
+interface AddEditMemberDialogProps {
+  member?: TeamMember
+  onClose: () => void
+  onSave: (member: TeamMember) => void
+  onDelete?: () => void
+}
+
+const AddEditMemberDialog = ({ member, onClose, onSave, onDelete }: AddEditMemberDialogProps) => {
+  const [name, setName] = useState(member?.name || '')
+  const [email, setEmail] = useState(member?.email || '')
+  const [role, setRole] = useState<TeamMember['role']>(member?.role || 'developer')
+  const [avatarUrl, setAvatarUrl] = useState(member?.avatarUrl || '')
+  const [isOnline, setIsOnline] = useState(member?.isOnline ?? true)
+
+  const handleSave = () => {
+    if (!name.trim()) {
+      toast.error('Please enter a name')
+      return
+    }
+
+    if (!email.trim()) {
+      toast.error('Please enter an email')
+      return
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      toast.error('Please enter a valid email')
+      return
+    }
+
+    const memberData: TeamMember = {
+      id: member?.id || `user-${Date.now()}`,
+      name: name.trim(),
+      email: email.trim(),
+      role,
+      avatarUrl: avatarUrl.trim() || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
+      isOnline
+    }
+
+    onSave(memberData)
+  }
+
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete()
+    }
+  }
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>{member ? 'Edit Team Member' : 'Add Team Member'}</DialogTitle>
+        <DialogDescription>
+          {member ? 'Update team member information' : 'Add a new member to your team'}
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="space-y-4 mt-4">
+        <div>
+          <Label htmlFor="member-name">Name *</Label>
+          <Input
+            id="member-name"
+            placeholder="e.g., John Doe"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="member-email">Email *</Label>
+          <Input
+            id="member-email"
+            type="email"
+            placeholder="e.g., john.doe@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="member-role">Role *</Label>
+          <Select value={role} onValueChange={(val) => setRole(val as TeamMember['role'])}>
+            <SelectTrigger id="member-role">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="architect">Architect</SelectItem>
+              <SelectItem value="developer">Developer</SelectItem>
+              <SelectItem value="devops">DevOps</SelectItem>
+              <SelectItem value="product">Product</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label htmlFor="member-avatar">Avatar URL (Optional)</Label>
+          <Input
+            id="member-avatar"
+            type="url"
+            placeholder="https://example.com/avatar.jpg"
+            value={avatarUrl}
+            onChange={(e) => setAvatarUrl(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Leave empty to auto-generate an avatar
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Switch
+            id="member-online"
+            checked={isOnline}
+            onCheckedChange={setIsOnline}
+          />
+          <Label htmlFor="member-online" className="cursor-pointer">
+            Available / Online
+          </Label>
+        </div>
+
+        <div className="flex gap-2 justify-between pt-4">
+          {member && onDelete && (
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete Member
+            </Button>
+          )}
+          <div className="flex gap-2 ml-auto">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave}>
+              {member ? 'Update' : 'Add'} Member
+            </Button>
+          </div>
         </div>
       </div>
     </>
