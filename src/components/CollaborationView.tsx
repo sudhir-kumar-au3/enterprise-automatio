@@ -247,7 +247,7 @@ const CollaborationView = () => {
               <div className="flex flex-wrap gap-1.5">
                 {currentUser && currentUser.accessLevel && (ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel] || []).slice(0, 6).map(permission => (
                   <Badge key={permission} variant="outline" className="text-xs">
-                    {permission?.replace(/_/g, ' ') || permission}
+                    {permission ? permission.replace(/_/g, ' ') : ''}
                   </Badge>
                 ))}
                 {currentUser && currentUser.accessLevel && (ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel] || []).length > 6 && (
@@ -1535,7 +1535,7 @@ const AddEditMemberDialog = ({ member, onClose, onSave, onDelete }: AddEditMembe
               {(currentPermissions || []).map(permission => (
                 <div key={permission} className="flex items-center gap-2 text-xs">
                   <CheckCircle size={14} weight="fill" className="text-green-600" />
-                  <span className="text-muted-foreground">{permission?.replace(/_/g, ' ') || permission}</span>
+                  <span className="text-muted-foreground">{permission ? permission.replace(/_/g, ' ') : ''}</span>
                 </div>
               ))}
             </div>
@@ -1695,7 +1695,7 @@ const PermissionsDetailsDialog = ({ member, onClose }: PermissionsDetailsDialogP
                           "text-sm font-medium",
                           hasAccess ? "text-green-900" : "text-gray-500"
                         )}>
-                          {permission?.replace(/_/g, ' ') || permission}
+                          {permission ? permission.replace(/_/g, ' ') : ''}
                         </p>
                         <p className={cn(
                           "text-xs",
@@ -1723,7 +1723,7 @@ const PermissionsDetailsDialog = ({ member, onClose }: PermissionsDetailsDialogP
                 <div className="flex flex-wrap gap-2">
                   {(member.customPermissions || []).map(permission => (
                     <Badge key={permission} variant="secondary" className="text-xs">
-                      {permission?.replace(/_/g, ' ') || permission}
+                      {permission ? permission.replace(/_/g, ' ') : ''}
                     </Badge>
                   ))}
                 </div>
