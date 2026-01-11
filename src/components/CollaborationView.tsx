@@ -735,15 +735,17 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps
         </DragOverlay>
       </DndContext>
 
-      {dependenciesDialogTask && (
-        <TaskDependenciesDialog
-          task={dependenciesDialogTask}
-          allTasks={tasks}
-          teamMembers={teamMembers}
-          onUpdate={updateTaskDependencies}
-          onClose={() => setDependenciesDialogTask(null)}
-        />
-      )}
+      <Dialog open={!!dependenciesDialogTask} onOpenChange={(open) => !open && setDependenciesDialogTask(null)}>
+        {dependenciesDialogTask && (
+          <TaskDependenciesDialog
+            task={dependenciesDialogTask}
+            allTasks={tasks}
+            teamMembers={teamMembers}
+            onUpdate={updateTaskDependencies}
+            onClose={() => setDependenciesDialogTask(null)}
+          />
+        )}
+      </Dialog>
     </div>
   )
 }
