@@ -245,11 +245,13 @@ const CollaborationView = () => {
                 {currentUser.accessLevel === 'viewer' && 'You have read-only access with commenting ability.'}
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {currentUser && currentUser.accessLevel && (ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel] || []).slice(0, 6).filter(p => p).map(permission => (
-                  <Badge key={permission} variant="outline" className="text-xs">
-                    {permission ? permission.replace(/_/g, ' ') : ''}
-                  </Badge>
-                ))}
+                {currentUser && currentUser.accessLevel && (ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel] || []).slice(0, 6).map((permission, idx) => 
+                  permission ? (
+                    <Badge key={`${permission}-${idx}`} variant="outline" className="text-xs">
+                      {permission.replace(/_/g, ' ')}
+                    </Badge>
+                  ) : null
+                )}
                 {currentUser && currentUser.accessLevel && (ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel] || []).length > 6 && (
                   <Badge variant="outline" className="text-xs">
                     +{(ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel] || []).length - 6} more
@@ -1532,12 +1534,14 @@ const AddEditMemberDialog = ({ member, onClose, onSave, onDelete }: AddEditMembe
           <div className="border rounded-lg p-3 bg-muted/30">
             <p className="text-sm font-medium mb-2">Permissions for {accessLevel} access:</p>
             <div className="space-y-1">
-              {(currentPermissions || []).filter(p => p).map(permission => (
-                <div key={permission} className="flex items-center gap-2 text-xs">
-                  <CheckCircle size={14} weight="fill" className="text-green-600" />
-                  <span className="text-muted-foreground">{permission ? permission.replace(/_/g, ' ') : ''}</span>
-                </div>
-              ))}
+              {(currentPermissions || []).map((permission, idx) => 
+                permission ? (
+                  <div key={`${permission}-${idx}`} className="flex items-center gap-2 text-xs">
+                    <CheckCircle size={14} weight="fill" className="text-green-600" />
+                    <span className="text-muted-foreground">{permission.replace(/_/g, ' ')}</span>
+                  </div>
+                ) : null
+              )}
             </div>
           </div>
 
@@ -1673,11 +1677,11 @@ const PermissionsDetailsDialog = ({ member, onClose }: PermissionsDetailsDialogP
                 {category}
               </h4>
               <div className="space-y-2">
-                {permissions.map(permission => {
+                {permissions.map((permission, idx) => {
                   const hasAccess = hasPermission(member, permission)
                   return (
                     <div 
-                      key={permission}
+                      key={`${permission}-${idx}`}
                       className={cn(
                         "flex items-start gap-3 p-3 rounded-lg border",
                         hasAccess ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"
@@ -1695,7 +1699,7 @@ const PermissionsDetailsDialog = ({ member, onClose }: PermissionsDetailsDialogP
                           "text-sm font-medium",
                           hasAccess ? "text-green-900" : "text-gray-500"
                         )}>
-                          {permission ? permission.replace(/_/g, ' ') : ''}
+                          {permission.replace(/_/g, ' ')}
                         </p>
                         <p className={cn(
                           "text-xs",
@@ -1721,11 +1725,13 @@ const PermissionsDetailsDialog = ({ member, onClose }: PermissionsDetailsDialogP
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
-                  {(member.customPermissions || []).filter(p => p).map(permission => (
-                    <Badge key={permission} variant="secondary" className="text-xs">
-                      {permission ? permission.replace(/_/g, ' ') : ''}
-                    </Badge>
-                  ))}
+                  {(member.customPermissions || []).map((permission, idx) => 
+                    permission ? (
+                      <Badge key={`${permission}-${idx}`} variant="secondary" className="text-xs">
+                        {permission.replace(/_/g, ' ')}
+                      </Badge>
+                    ) : null
+                  )}
                 </div>
               </CardContent>
             </Card>
