@@ -106,23 +106,8 @@ const CollaborationView = () => {
   const [selectedContext, setSelectedContext] = useState<{ type: string; id: string } | null>(null)
   const [isCreatingTask, setIsCreatingTask] = useState(false)
 
-  const currentUser = (teamMembers && teamMembers.length > 0) ? teamMembers[0] : mockTeamMembers[0]
-
-  if (!currentUser || !currentUser.accessLevel) {
-    return (
-      <Card className="max-w-2xl mx-auto mt-8">
-        <CardHeader>
-          <CardTitle>Initialization Error</CardTitle>
-          <CardDescription>Unable to load user data</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Please refresh the page. If the problem persists, contact support.
-          </p>
-        </CardContent>
-      </Card>
-    )
-  }
+  const allMembers = teamMembers && teamMembers.length > 0 ? teamMembers : mockTeamMembers
+  const currentUser = allMembers[0]
 
   const addComment = (contextType: string, contextId: string) => {
     if (!newCommentText.trim()) return
@@ -158,7 +143,6 @@ const CollaborationView = () => {
     return (tasks || []).filter(t => t.contextType === contextType && t.contextId === contextId)
   }
 
-  const allMembers = teamMembers || mockTeamMembers
   const onlineMembers = allMembers.filter(m => m.isOnline)
   const recentComments = (comments || []).slice(-5).reverse()
   const recentTasks = (tasks || [])
