@@ -12,6 +12,13 @@ A focused task management and team coordination tool with kanban boards, calenda
 
 ## Essential Features
 
+**Theme Customization**
+- Functionality: Toggle between light and dark color schemes with persistent preference storage
+- Purpose: Provide visual comfort and accessibility for different lighting conditions and user preferences
+- Trigger: Click theme toggle button in header
+- Progression: User clicks Moon/Sun icon → Theme switches instantly → Colors transition smoothly (300ms) → Preference saved to KV storage → Theme persists across sessions
+- Success criteria: Smooth color transitions, no visual glitches, preference persists after reload, all components adapt correctly to theme
+
 **Task Management Kanban Board**
 - Functionality: Drag-and-drop kanban board with four status columns (To Do, In Progress, Review, Done), visual priority indicators, assignee avatars, due date badges, dependency tracking, and status updates
 - Purpose: Visual task organization and workflow management with flexible ordering
@@ -109,78 +116,84 @@ A focused task management and team coordination tool with kanban boards, calenda
 
 ## Design Direction
 
-The design should feel organized, welcoming, and empowering - a tool that helps teams work better together. Professional enough for enterprise use but approachable enough for small teams. Visual hierarchy makes dense information scannable, with clear status indicators and intuitive interactions. The interface should reduce cognitive load while providing powerful functionality.
+The design embraces Material Design principles with clean surfaces, meaningful elevation, and purposeful motion. The interface should feel modern, professional, and responsive, with smooth transitions between light and dark themes. Surfaces use subtle shadows to create depth hierarchy, while the color palette adjusts dynamically based on user preference. The design reduces cognitive load while providing powerful functionality through clear visual hierarchy and intuitive interactions.
 
 ## Color Selection
 
-Clean, professional palette with vibrant accents for status and interactive elements.
+Professional Material Design-inspired palette with vibrant purple-pink accents that work seamlessly in both light and dark modes.
 
-- **Primary Color**: Deep Navy Blue (oklch(0.35 0.05 250)) - Professional, trustworthy foundation for headers and primary actions
-- **Secondary Colors**: Steel Gray (oklch(0.55 0.02 250)) for supporting elements; Cool White (oklch(0.98 0.005 250)) for backgrounds
-- **Accent Color**: Electric Cyan (oklch(0.70 0.15 200)) - Modern, friendly highlight for interactive elements and active states
+- **Primary Color**: Deep Purple (oklch(0.50 0.24 264)) - Modern, trustworthy foundation that shifts to lighter purple in dark mode
+- **Secondary Colors**: Neutral grays that adapt to theme context; Light backgrounds in light mode, darker surfaces in dark mode
+- **Accent Color**: Vibrant Pink-Purple (oklch(0.55 0.20 330)) - Eye-catching gradient highlight for interactive elements and active states
 - **Foreground/Background Pairings**: 
-  - Background (Cool White oklch(0.98 0.005 250)): Dark Navy text (oklch(0.25 0.05 250)) - Ratio 11.2:1 ✓
-  - Primary (Deep Navy oklch(0.35 0.05 250)): White text (oklch(1 0 0)) - Ratio 8.7:1 ✓
-  - Accent (Electric Cyan oklch(0.70 0.15 200)): Dark Navy text (oklch(0.25 0.05 250)) - Ratio 6.8:1 ✓
-  - Card (Steel Gray oklch(0.55 0.02 250)): White text (oklch(1 0 0)) - Ratio 5.2:1 ✓
+  - Light Mode Background (Cool Gray oklch(0.98 0.005 264)): Dark text (oklch(0.20 0.015 264)) - Ratio 14.5:1 ✓
+  - Dark Mode Background (Deep Gray oklch(0.15 0.015 264)): Light text (oklch(0.95 0.005 264)) - Ratio 16.2:1 ✓
+  - Primary (Purple oklch(0.50 0.24 264)): White text (oklch(1 0 0)) - Ratio 8.1:1 ✓
+  - Accent (Pink-Purple oklch(0.55 0.20 330)): White text (oklch(1 0 0)) - Ratio 6.8:1 ✓
 
 ## Font Selection
 
-Readable, modern typography that balances personality with professionalism.
+Inter variable font family providing excellent readability and clean Material Design aesthetic across all screen sizes.
 
 - **Typographic Hierarchy**: 
-  - H1 (Page Title): Space Grotesk Bold / 28px / tight tracking - Main header
-  - H2 (Section Headers): Space Grotesk SemiBold / 24px / normal tracking - Tab content titles
-  - H3 (Card Titles): Space Grotesk Medium / 18px / normal tracking - Component headers
-  - Body Text: Inter Regular / 15px / relaxed line-height (1.6) - Maximum readability
-  - Labels: Inter Medium / 14px / normal tracking - Form labels, badges
-  - Captions: Inter Regular / 13px / wide tracking (0.01em) / text-muted-foreground - Timestamps, metadata
+  - H1 (App Title): Inter Bold / 28-32px / tight tracking (-0.025em) - Main header with gradient
+  - H2 (Section Headers): Inter SemiBold / 24-28px / tight tracking (-0.025em) - Tab content titles
+  - H3 (Card Titles): Inter SemiBold / 16-18px / normal tracking - Component headers
+  - Body Text: Inter Regular / 14-15px / relaxed line-height (1.5) - Maximum readability
+  - Labels: Inter Medium / 13-14px / normal tracking - Form labels, badges
+  - Captions: Inter Regular / 12-13px / normal tracking / text-muted-foreground - Timestamps, metadata
 
 ## Animations
 
-Purposeful motion that enhances understanding without distraction.
+Material Design motion principles with smooth, purposeful transitions that enhance understanding.
 
-Smooth card hover effects (subtle lift + shadow), drag-and-drop with visual feedback (ghost element + drop zone highlights), tab transitions (quick fade), dialog/drawer slide-in animations, status badge color transitions, and gentle pulse on new activity indicators. Keep durations fast (150-250ms) to maintain snappy feel.
+Elevation changes on hover (shadow expansion + subtle lift), smooth theme transitions (300ms ease for colors), card entry animations (fade + slide), dialog/drawer slide-in with backdrop fade, status badge color transitions, pulse effects on new activity, and drag-and-drop with visual feedback. All animations use cubic-bezier easing for natural feel. Keep durations fast (150-300ms) to maintain snappy responsiveness.
 
 ## Component Selection
 
 - **Components**: 
-  - Card: Primary container for tasks, team members, activity with hover states
-  - Tabs: Main navigation (Overview, Tasks, Calendar, Comments, Team)
-  - Dialog: Task creation, member management, permissions viewing
-  - Badge: Priority levels, status indicators, access levels, roles
-  - Tooltip: Contextual help and additional information
-  - ScrollArea: Long lists of tasks, comments, team members
-  - Select: Filters, assignee selection, status updates
-  - Switch: Priority sort toggle, online status
-  - Textarea: Comment composition, task descriptions
-  - Avatar: Team member identification throughout UI
-  - Button: Actions with clear hierarchy (primary, secondary, ghost)
+  - Card: Primary container with Material Design elevation (shadow-lg hover states)
+  - Tabs: Main navigation with rounded pill design and active indicators
+  - Dialog: Modal overlays with backdrop blur and slide-in animation
+  - Badge: Status indicators with shadows and semantic colors
+  - Tooltip: Contextual help with subtle animations
+  - ScrollArea: Smooth scrolling for long content lists
+  - Select: Dropdown with shadow and smooth open/close
+  - Switch: Toggle for settings with smooth animation
+  - Textarea: Multi-line input with focus ring
+  - Avatar: Profile images with ring borders and online indicators
+  - Button: Actions with elevation changes on hover/active
+  - Motion: Framer Motion for smooth page transitions and micro-interactions
   
 - **Customizations**: 
-  - Sortable task cards with drag handles using @dnd-kit
+  - Sortable task cards with drag handles and elevation feedback
   - Custom calendar grid with multi-task day indicators
   - Permission breakdown displays with category grouping
-  - Activity feed with timestamp formatting
+  - Activity feed with staggered entry animations
+  - Theme toggle button with icon transitions
+  - Gradient backgrounds on hero sections and cards
   
 - **States**: 
-  - Buttons: Scale on hover, darker on active, disabled with reduced opacity
-  - Task Cards: Lift on hover, shadow increase, border highlight when blocked
-  - Drag-and-drop: Ghost element during drag, drop zone highlights, smooth reordering
+  - Buttons: Scale 1.05 on hover, 0.95 on tap, shadow expansion, disabled with reduced opacity
+  - Task Cards: Translate up + shadow increase on hover, scale during drag
+  - Drag-and-drop: Opacity reduction during drag, drop zone highlights, smooth reordering
+  - Theme Transition: 300ms smooth color transitions across all components
   
 - **Icon Selection**: 
-  - @phosphor-icons/react: Users, CheckSquare, ChatCircleDots, CalendarBlank, ShieldCheck, FlagBanner, GitBranch, Plus, DotsThree, CheckCircle, Clock, Lock, Tag, DotsSixVertical
-  - Use duotone weight for feature icons in headers, regular for inline usage
+  - @phosphor-icons/react with duotone weight for headers, regular for inline
+  - Moon/Sun for theme toggle
+  - Users, CheckSquare, ChatCircleDots, CalendarBlank, ShieldCheck, FlagBanner, GitBranch, Plus, DotsThree, CheckCircle, Clock, Lock, Tag, DotsSixVertical, Database
   
 - **Spacing**: 
   - Consistent gap-6 between sections, gap-4 for card grids, gap-2 for inline elements
   - Card padding: p-6 for main cards, p-4 for compact cards, p-3 for nested content
-  - Page margins: max-w-7xl mx-auto
+  - Page margins: max-w-7xl mx-auto with responsive px-4 sm:px-6
   
 - **Mobile**: 
   - Single column task board (stacked status columns)
-  - Tabs convert to full-width stacked buttons
+  - Tabs convert to 3-column grid on mobile with icons + badges
   - Calendar switches to week view on mobile
-  - Dialogs become full-screen sheets
-  - Team grid becomes single column
+  - Dialogs maintain responsive sizing
+  - Team grid becomes single column below sm breakpoint
   - Touch-friendly drag handles and buttons (min 44px)
+  - Responsive text sizing (text-2xl sm:text-3xl)

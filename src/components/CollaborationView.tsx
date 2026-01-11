@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
+import { motion } from 'framer-motion'
 import { 
   Users, 
   ChatCircleDots, 
@@ -158,22 +159,31 @@ const CollaborationView = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="flex items-start justify-between gap-4"
+      >
         <div>
-          <h2 className="text-3xl font-bold mb-2">Team Collaboration</h2>
-          <p className="text-muted-foreground text-lg">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            Team Collaboration
+          </h2>
+          <p className="text-muted-foreground text-base sm:text-lg">
             Coordinate tasks, share feedback, and track progress across the architecture
           </p>
         </div>
         <Dialog open={isCreatingTask} onOpenChange={setIsCreatingTask}>
           <DialogTrigger asChild>
-            <Button 
-              className="gap-2"
-              disabled={!hasPermission(currentUser, 'create_tasks')}
-            >
-              <Plus size={18} />
-              Create Task
-            </Button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button 
+                className="gap-2 shadow-lg hover:shadow-xl transition-all"
+                disabled={!hasPermission(currentUser, 'create_tasks')}
+              >
+                <Plus size={18} weight="bold" />
+                <span className="hidden sm:inline">Create Task</span>
+              </Button>
+            </motion.div>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <CreateTaskDialog
@@ -188,175 +198,218 @@ const CollaborationView = () => {
             />
           </DialogContent>
         </Dialog>
-      </div>
+      </motion.div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-6 w-full max-w-4xl">
-          <TabsTrigger value="overview" className="gap-2">
-            <Users size={18} />
-            Overview
+        <TabsList className="grid grid-cols-3 sm:grid-cols-6 w-full max-w-4xl h-auto gap-2 bg-muted/50 p-1 rounded-xl">
+          <TabsTrigger value="overview" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md rounded-lg">
+            <Users size={18} weight="duotone" />
+            <span className="hidden sm:inline">Overview</span>
           </TabsTrigger>
-          <TabsTrigger value="tasks" className="gap-2">
-            <CheckSquare size={18} />
-            Tasks ({(tasks || []).filter(t => t.status !== 'done').length})
+          <TabsTrigger value="tasks" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md rounded-lg">
+            <CheckSquare size={18} weight="duotone" />
+            <span className="hidden sm:inline">Tasks</span>
+            <Badge variant="secondary" className="ml-1 text-xs">
+              {(tasks || []).filter(t => t.status !== 'done').length}
+            </Badge>
           </TabsTrigger>
-          <TabsTrigger value="calendar" className="gap-2">
-            <CalendarBlank size={18} />
-            Calendar
+          <TabsTrigger value="calendar" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md rounded-lg">
+            <CalendarBlank size={18} weight="duotone" />
+            <span className="hidden sm:inline">Calendar</span>
           </TabsTrigger>
-          <TabsTrigger value="comments" className="gap-2">
-            <ChatCircleDots size={18} />
-            Comments ({(comments || []).length})
+          <TabsTrigger value="comments" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md rounded-lg">
+            <ChatCircleDots size={18} weight="duotone" />
+            <span className="hidden sm:inline">Comments</span>
+            <Badge variant="secondary" className="ml-1 text-xs">
+              {(comments || []).length}
+            </Badge>
           </TabsTrigger>
-          <TabsTrigger value="team" className="gap-2">
-            <Users size={18} />
-            Team ({allMembers.length})
+          <TabsTrigger value="team" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md rounded-lg">
+            <Users size={18} weight="duotone" />
+            <span className="hidden sm:inline">Team</span>
+            <Badge variant="secondary" className="ml-1 text-xs">
+              {allMembers.length}
+            </Badge>
           </TabsTrigger>
-          <TabsTrigger value="data" className="gap-2">
-            <Database size={18} />
-            Data
+          <TabsTrigger value="data" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md rounded-lg">
+            <Database size={18} weight="duotone" />
+            <span className="hidden sm:inline">Data</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
-          <Card className="border-accent/50 bg-gradient-to-br from-accent/5 to-transparent">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ShieldCheck size={20} weight="duotone" className="text-accent" />
-                Your Access Level
-              </CardTitle>
-              <CardDescription>
-                You are logged in as {currentUser.name}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4 mb-3">
-                <Badge className={cn('text-sm px-3 py-1', accessLevelColors[currentUser.accessLevel])}>
-                  {accessLevelIcons[currentUser.accessLevel]} {currentUser.accessLevel}
-                </Badge>
-                <Badge variant="secondary" className={cn('text-sm px-3 py-1', roleColors[currentUser.role])}>
-                  {currentUser.role}
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground mb-3">
-                {currentUser.accessLevel === 'owner' && 'You have full system access with all permissions enabled.'}
-                {currentUser.accessLevel === 'admin' && 'You have administrative access to manage team and content.'}
-                {currentUser.accessLevel === 'member' && 'You have standard member access to create and collaborate.'}
-                {currentUser.accessLevel === 'viewer' && 'You have read-only access with commenting ability.'}
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {currentUser && currentUser.accessLevel && (ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel] || []).slice(0, 6).map((permission, idx) => 
-                  permission ? (
-                    <Badge key={`${permission}-${idx}`} variant="outline" className="text-xs">
-                      {permission.replace(/_/g, ' ')}
-                    </Badge>
-                  ) : null
-                )}
-                {currentUser && currentUser.accessLevel && (ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel] || []).length > 6 && (
-                  <Badge variant="outline" className="text-xs">
-                    +{(ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel] || []).length - 6} more
-                  </Badge>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="grid lg:grid-cols-2 gap-6">
-            <Card>
+        <TabsContent value="overview" className="space-y-6 mt-6">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <Card className="border-primary/30 bg-gradient-to-br from-primary/5 via-accent/5 to-transparent shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Users size={20} weight="duotone" className="text-accent" />
-                  Team Online
+                  <ShieldCheck size={20} weight="duotone" className="text-primary" />
+                  Your Access Level
                 </CardTitle>
                 <CardDescription>
-                  {onlineMembers.length} of {allMembers.length} members active
+                  You are logged in as {currentUser.name}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {onlineMembers.map(member => (
-                    <div key={member.id} className="flex items-center gap-3">
-                      <div className="relative">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={member.avatarUrl} alt={member.name} />
-                          <AvatarFallback>{member.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                        </Avatar>
-                        <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-card" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <p className="font-medium text-sm">{member.name}</p>
-                          <span className="text-xs">{accessLevelIcons[member.accessLevel]}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">{member.email}</p>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <Badge variant="secondary" className={cn('text-xs', roleColors[member.role])}>
-                          {member.role}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs capitalize">
-                          {member.accessLevel}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center gap-4 mb-3">
+                  <Badge className={cn('text-sm px-3 py-1 shadow-md', accessLevelColors[currentUser.accessLevel])}>
+                    {accessLevelIcons[currentUser.accessLevel]} {currentUser.accessLevel}
+                  </Badge>
+                  <Badge variant="secondary" className={cn('text-sm px-3 py-1 shadow-sm', roleColors[currentUser.role])}>
+                    {currentUser.role}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  {currentUser.accessLevel === 'owner' && 'You have full system access with all permissions enabled.'}
+                  {currentUser.accessLevel === 'admin' && 'You have administrative access to manage team and content.'}
+                  {currentUser.accessLevel === 'member' && 'You have standard member access to create and collaborate.'}
+                  {currentUser.accessLevel === 'viewer' && 'You have read-only access with commenting ability.'}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {currentUser && currentUser.accessLevel && (ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel] || []).slice(0, 6).map((permission, idx) => 
+                    permission ? (
+                      <Badge key={`${permission}-${idx}`} variant="outline" className="text-xs">
+                        {permission.replace(/_/g, ' ')}
+                      </Badge>
+                    ) : null
+                  )}
+                  {currentUser && currentUser.accessLevel && (ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel] || []).length > 6 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{(ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel] || []).length - 6} more
+                    </Badge>
+                  )}
                 </div>
               </CardContent>
             </Card>
+          </motion.div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckSquare size={20} weight="duotone" className="text-accent" />
-                  Active Tasks
-                </CardTitle>
-                <CardDescription>
-                  {(tasks || []).filter(t => t.status === 'in-progress').length} in progress
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[280px]">
+          <div className="grid lg:grid-cols-2 gap-6">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+            >
+              <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users size={20} weight="duotone" className="text-primary" />
+                    Team Online
+                  </CardTitle>
+                  <CardDescription>
+                    {onlineMembers.length} of {allMembers.length} members active
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
                   <div className="space-y-3">
-                    {recentTasks.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-8 text-center">
-                        No active tasks yet
-                      </p>
-                    ) : (
-                      recentTasks.map(task => (
-                        <TaskCard key={task.id} task={task} onClick={() => {}} compact teamMembers={allMembers} />
-                      ))
-                    )}
+                    {onlineMembers.map(member => (
+                      <motion.div 
+                        key={member.id} 
+                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                        whileHover={{ scale: 1.02 }}
+                      >
+                        <div className="relative">
+                          <Avatar className="h-10 w-10 ring-2 ring-background">
+                            <AvatarImage src={member.avatarUrl} alt={member.name} />
+                            <AvatarFallback>{member.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                          </Avatar>
+                          <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-card shadow-sm" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-medium text-sm">{member.name}</p>
+                            <span className="text-xs">{accessLevelIcons[member.accessLevel]}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <Badge variant="secondary" className={cn('text-xs', roleColors[member.role])}>
+                            {member.role}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs capitalize">
+                            {member.accessLevel}
+                          </Badge>
+                        </div>
+                      </motion.div>
+                    ))}
                   </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+            >
+              <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CheckSquare size={20} weight="duotone" className="text-accent" />
+                    Active Tasks
+                  </CardTitle>
+                  <CardDescription>
+                    {(tasks || []).filter(t => t.status === 'in-progress').length} in progress
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[280px]">
+                    <div className="space-y-3">
+                      {recentTasks.length === 0 ? (
+                        <div className="py-12 text-center">
+                          <CheckSquare size={48} className="mx-auto text-muted-foreground/50 mb-2" weight="duotone" />
+                          <p className="text-sm text-muted-foreground">
+                            No active tasks yet
+                          </p>
+                        </div>
+                      ) : (
+                        recentTasks.map(task => (
+                          <TaskCard key={task.id} task={task} onClick={() => {}} compact teamMembers={allMembers} />
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ChatCircleDots size={20} weight="duotone" className="text-accent" />
-                Recent Activity
-              </CardTitle>
-              <CardDescription>Latest comments and discussions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentComments.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-8 text-center">
-                    No comments yet. Start a discussion!
-                  </p>
-                ) : (
-                  recentComments.map(comment => {
-                    const author = allMembers.find(m => m.id === comment.authorId)
-                    return (
-                      <CommentCard key={comment.id} comment={comment} author={author} />
-                    )
-                  })
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+          >
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ChatCircleDots size={20} weight="duotone" className="text-accent" />
+                  Recent Activity
+                </CardTitle>
+                <CardDescription>Latest comments and discussions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {recentComments.length === 0 ? (
+                    <div className="py-12 text-center">
+                      <ChatCircleDots size={48} className="mx-auto text-muted-foreground/50 mb-2" weight="duotone" />
+                      <p className="text-sm text-muted-foreground">
+                        No comments yet. Start a discussion!
+                      </p>
+                    </div>
+                  ) : (
+                    recentComments.map(comment => {
+                      const author = allMembers.find(m => m.id === comment.authorId)
+                      return (
+                        <CommentCard key={comment.id} comment={comment} author={author} />
+                      )
+                    })
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         </TabsContent>
 
         <TabsContent value="tasks" className="space-y-6">
@@ -912,109 +965,117 @@ const TeamView = ({ teamMembers, setTeamMembers, tasks, comments }: TeamViewProp
           const activeTasks = memberTasks.filter(t => t.status !== 'done')
 
           return (
-            <Card key={member.id} className="relative overflow-hidden">
-              <div className={cn(
-                "absolute top-0 right-0 w-24 h-24 opacity-10 blur-2xl rounded-full",
-                member.accessLevel === 'owner' && "bg-purple-500",
-                member.accessLevel === 'admin' && "bg-blue-500",
-                member.accessLevel === 'member' && "bg-green-500",
-                member.accessLevel === 'viewer' && "bg-gray-500"
-              )} />
-              <CardHeader className="pb-3">
-                <div className="flex items-start gap-3">
-                  <div className="relative">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={member.avatarUrl} alt={member.name} />
-                      <AvatarFallback>{member.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                    </Avatar>
-                    {member.isOnline && (
-                      <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-card" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-base">{member.name}</CardTitle>
-                      <span className="text-sm">{accessLevelIcons[member.accessLevel]}</span>
+            <motion.div
+              key={member.id}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+              whileHover={{ scale: 1.02 }}
+            >
+              <Card className="relative overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
+                <div className={cn(
+                  "absolute top-0 right-0 w-32 h-32 opacity-10 blur-3xl rounded-full",
+                  member.accessLevel === 'owner' && "bg-purple-500",
+                  member.accessLevel === 'admin' && "bg-blue-500",
+                  member.accessLevel === 'member' && "bg-green-500",
+                  member.accessLevel === 'viewer' && "bg-gray-500"
+                )} />
+                <CardHeader className="pb-3">
+                  <div className="flex items-start gap-3">
+                    <div className="relative">
+                      <Avatar className="h-12 w-12 ring-2 ring-background shadow-md">
+                        <AvatarImage src={member.avatarUrl} alt={member.name} />
+                        <AvatarFallback>{member.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                      </Avatar>
+                      {member.isOnline && (
+                        <div className="absolute bottom-0 right-0 h-3.5 w-3.5 bg-green-500 rounded-full border-2 border-card shadow-sm" />
+                      )}
                     </div>
-                    <CardDescription className="text-xs">{member.email}</CardDescription>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-base">{member.name}</CardTitle>
+                        <span className="text-sm">{accessLevelIcons[member.accessLevel]}</span>
+                      </div>
+                      <CardDescription className="text-xs truncate">{member.email}</CardDescription>
+                    </div>
+                    <Dialog open={editingMember?.id === member.id} onOpenChange={(open) => !open && setEditingMember(null)}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 hover:bg-muted/50 transition-colors"
+                          onClick={() => setEditingMember(member)}
+                          disabled={!canManageTeam(currentUser) && currentUser.id !== member.id}
+                        >
+                          <DotsThree size={18} weight="bold" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-xl">
+                        <AddEditMemberDialog
+                          member={member}
+                          onClose={() => setEditingMember(null)}
+                          onSave={(updatedMember) => {
+                            setTeamMembers(current =>
+                              current.map(m => m.id === member.id ? updatedMember : m)
+                            )
+                            setEditingMember(null)
+                            toast.success('Team member updated')
+                          }}
+                          onDelete={() => {
+                            handleDeleteMember(member.id)
+                            setEditingMember(null)
+                          }}
+                        />
+                      </DialogContent>
+                    </Dialog>
                   </div>
-                  <Dialog open={editingMember?.id === member.id} onOpenChange={(open) => !open && setEditingMember(null)}>
-                    <DialogTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8"
-                        onClick={() => setEditingMember(member)}
-                        disabled={!canManageTeam(currentUser) && currentUser.id !== member.id}
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex gap-2">
+                    <Badge variant="secondary" className={cn('flex-1 justify-center shadow-sm', roleColors[member.role])}>
+                      {member.role}
+                    </Badge>
+                    <Badge className={cn('flex-1 justify-center shadow-md', accessLevelColors[member.accessLevel])}>
+                      {member.accessLevel}
+                    </Badge>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Active Tasks</span>
+                      <Badge variant="outline" className="font-semibold shadow-sm">{activeTasks.length}</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Comments</span>
+                      <Badge variant="outline" className="font-semibold shadow-sm">{memberComments.length}</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Status</span>
+                      <Button
+                        variant={member.isOnline ? 'default' : 'secondary'}
+                        size="sm"
+                        className="h-6 text-xs shadow-sm"
+                        onClick={() => handleToggleOnline(member.id)}
                       >
-                        <DotsThree size={18} weight="bold" />
+                        {member.isOnline ? 'Online' : 'Offline'}
                       </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-xl">
-                      <AddEditMemberDialog
-                        member={member}
-                        onClose={() => setEditingMember(null)}
-                        onSave={(updatedMember) => {
-                          setTeamMembers(current =>
-                            current.map(m => m.id === member.id ? updatedMember : m)
-                          )
-                          setEditingMember(null)
-                          toast.success('Team member updated')
-                        }}
-                        onDelete={() => {
-                          handleDeleteMember(member.id)
-                          setEditingMember(null)
-                        }}
-                      />
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex gap-2">
-                  <Badge variant="secondary" className={cn('flex-1 justify-center', roleColors[member.role])}>
-                    {member.role}
-                  </Badge>
-                  <Badge className={cn('flex-1 justify-center', accessLevelColors[member.accessLevel])}>
-                    {member.accessLevel}
-                  </Badge>
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Active Tasks</span>
-                    <span className="font-semibold">{activeTasks.length}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Comments</span>
-                    <span className="font-semibold">{memberComments.length}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Status</span>
-                    <Button
-                      variant={member.isOnline ? 'default' : 'secondary'}
-                      size="sm"
-                      className="h-6 text-xs"
-                      onClick={() => handleToggleOnline(member.id)}
-                    >
-                      {member.isOnline ? 'Online' : 'Offline'}
-                    </Button>
-                  </div>
-                </div>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full gap-2"
-                  onClick={() => setSelectedMember(member)}
-                >
-                  <ShieldCheck size={16} />
-                  View Permissions
-                </Button>
-              </CardContent>
-            </Card>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-2 shadow-sm hover:shadow-md transition-shadow"
+                    onClick={() => setSelectedMember(member)}
+                  >
+                    <ShieldCheck size={16} weight="duotone" />
+                    View Permissions
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
           )
         })}
       </div>
@@ -1068,9 +1129,9 @@ const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable 
   return (
     <Card 
       className={cn(
-        "cursor-pointer hover:shadow-md transition-shadow",
-        isDragging && "opacity-50 cursor-grabbing",
-        blockedByIncomplete && "border-orange-500/50"
+        "cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5",
+        isDragging && "opacity-50 cursor-grabbing shadow-2xl",
+        blockedByIncomplete && "border-orange-500/50 bg-orange-50/5"
       )} 
       onClick={onClick}
     >
@@ -1079,18 +1140,18 @@ const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable 
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-start gap-2 flex-1 min-w-0">
               {isDraggable && (
-                <DotsSixVertical size={16} weight="bold" className="text-muted-foreground mt-0.5 cursor-grab flex-shrink-0" />
+                <DotsSixVertical size={16} weight="bold" className="text-muted-foreground mt-0.5 cursor-grab flex-shrink-0 hover:text-foreground transition-colors" />
               )}
-              <h4 className="font-medium text-sm line-clamp-2">{task.title}</h4>
+              <h4 className="font-semibold text-sm line-clamp-2">{task.title}</h4>
             </div>
             <div className="flex items-center gap-1">
               {dependencies > 0 && (
-                <Badge variant="outline" className="text-xs gap-1">
-                  <GitBranch size={12} />
+                <Badge variant="outline" className="text-xs gap-1 shadow-sm">
+                  <GitBranch size={12} weight="bold" />
                   {dependencies}
                 </Badge>
               )}
-              <FlagBanner size={16} weight="fill" className={cn(priorityColors[task.priority], "flex-shrink-0")} />
+              <FlagBanner size={18} weight="fill" className={cn(priorityColors[task.priority], "flex-shrink-0 drop-shadow-sm")} />
             </div>
           </div>
           
@@ -1099,18 +1160,18 @@ const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable 
           )}
 
           {blockedByIncomplete && (
-            <div className="flex items-center gap-1 text-xs text-orange-600">
+            <div className="flex items-center gap-1 text-xs text-orange-600 bg-orange-100/50 dark:bg-orange-900/20 px-2 py-1 rounded-md">
               <GitBranch size={12} weight="bold" />
-              <span>Blocked by dependencies</span>
+              <span className="font-medium">Blocked by dependencies</span>
             </div>
           )}
           
           {dueDateInfo && (
             <div className={cn(
-              "flex items-center gap-1 text-xs",
-              dueDateInfo.isOverdue ? "text-red-600" : 
-              dueDateInfo.daysUntilDue <= 1 ? "text-orange-600" : 
-              dueDateInfo.daysUntilDue <= 3 ? "text-yellow-600" : "text-muted-foreground"
+              "flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md w-fit",
+              dueDateInfo.isOverdue ? "text-red-600 bg-red-100/50 dark:bg-red-900/20" : 
+              dueDateInfo.daysUntilDue <= 1 ? "text-orange-600 bg-orange-100/50 dark:bg-orange-900/20" : 
+              dueDateInfo.daysUntilDue <= 3 ? "text-yellow-600 bg-yellow-100/50 dark:bg-yellow-900/20" : "text-muted-foreground"
             )}>
               <CalendarBlank size={14} weight="bold" />
               <span>
@@ -1126,16 +1187,16 @@ const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable 
           <div className="flex items-center justify-between gap-2">
             {assignee ? (
               <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6">
+                <Avatar className="h-6 w-6 ring-2 ring-background">
                   <AvatarImage src={assignee.avatarUrl} alt={assignee.name} />
                   <AvatarFallback className="text-xs">
                     {assignee.name.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-xs text-muted-foreground">{assignee.name.split(' ')[0]}</span>
+                <span className="text-xs font-medium text-muted-foreground">{assignee.name.split(' ')[0]}</span>
               </div>
             ) : (
-              <span className="text-xs text-muted-foreground">Unassigned</span>
+              <span className="text-xs text-muted-foreground font-medium">Unassigned</span>
             )}
             
             {onStatusChange && (
@@ -1145,7 +1206,7 @@ const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable 
                   onStatusChange(val as Task['status'])
                 }}
               >
-                <SelectTrigger className="h-7 w-28 text-xs" onClick={(e) => e.stopPropagation()}>
+                <SelectTrigger className="h-7 w-28 text-xs shadow-sm" onClick={(e) => e.stopPropagation()}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1161,7 +1222,7 @@ const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable 
           {(task.tags || []).length > 0 && (
             <div className="flex flex-wrap gap-1">
               {(task.tags || []).map(tag => (
-                <Badge key={tag} variant="outline" className="text-xs">
+                <Badge key={tag} variant="outline" className="text-xs shadow-sm">
                   {tag}
                 </Badge>
               ))}
@@ -1221,8 +1282,13 @@ const CommentCard = ({ comment, author }: CommentCardProps) => {
   const service = (services || []).find(s => s.id === comment.contextId)
   
   return (
-    <div className="flex gap-3 p-3 rounded-lg border bg-card/50">
-      <Avatar className="h-8 w-8">
+    <motion.div 
+      className="flex gap-3 p-3 rounded-lg border bg-card shadow-sm hover:shadow-md transition-all duration-300"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ scale: 1.01 }}
+    >
+      <Avatar className="h-8 w-8 ring-2 ring-background shadow-sm">
         <AvatarImage src={author?.avatarUrl} alt={author?.name} />
         <AvatarFallback className="text-xs">
           {author?.name.split(' ').map(n => n[0]).join('') || 'U'}
@@ -1230,7 +1296,7 @@ const CommentCard = ({ comment, author }: CommentCardProps) => {
       </Avatar>
       <div className="flex-1 min-w-0 space-y-1">
         <div className="flex items-center gap-2">
-          <p className="font-medium text-sm">{author?.name || 'Unknown'}</p>
+          <p className="font-semibold text-sm">{author?.name || 'Unknown'}</p>
           <span className="text-xs text-muted-foreground">·</span>
           <p className="text-xs text-muted-foreground">
             {new Date(comment.timestamp).toLocaleTimeString()}
@@ -1238,13 +1304,13 @@ const CommentCard = ({ comment, author }: CommentCardProps) => {
           {service && (
             <>
               <span className="text-xs text-muted-foreground">·</span>
-              <Badge variant="outline" className="text-xs">{service.name}</Badge>
+              <Badge variant="outline" className="text-xs shadow-sm">{service.name}</Badge>
             </>
           )}
         </div>
-        <p className="text-sm text-muted-foreground line-clamp-2">{comment.content}</p>
+        <p className="text-sm text-foreground line-clamp-2">{comment.content}</p>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
