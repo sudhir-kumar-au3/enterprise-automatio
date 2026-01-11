@@ -171,6 +171,6 @@ export const getGoogleCalendarUrl = (tasks: Task[]): string => {
 
 export const exportTasksToICal = (tasks: Task[], calendarName?: string) => {
   const icalContent = generateICalFromTasks(tasks, calendarName)
-  const filename = `${calendarName?.toLowerCase().replace(/\s+/g, '-') || 'tasks'}-${Date.now()}.ics`
+  const filename = `${(calendarName || 'tasks').toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.ics`
   downloadICalFile(icalContent, filename)
 }
