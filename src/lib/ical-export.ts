@@ -22,7 +22,8 @@ const formatICalDate = (date: Date): string => {
   return `${year}${month}${day}T${hours}${minutes}${seconds}Z`
 }
 
-const escapeICalText = (text: string): string => {
+const escapeICalText = (text: string | undefined): string => {
+  if (!text) return ''
   return text
     .replace(/\\/g, '\\\\')
     .replace(/;/g, '\\;')
@@ -172,6 +173,6 @@ export const getGoogleCalendarUrl = (tasks: Task[]): string => {
 export const exportTasksToICal = (tasks: Task[], calendarName?: string) => {
   const safeName = calendarName || 'tasks'
   const icalContent = generateICalFromTasks(tasks, safeName)
-  const filename = `${safeName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.ics`
+  const filename = `${(safeName || 'tasks').toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.ics`
   downloadICalFile(icalContent, filename)
 }
