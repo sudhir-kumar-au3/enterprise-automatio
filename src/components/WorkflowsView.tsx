@@ -55,17 +55,17 @@ const WorkflowsView = () => {
               <CardContent>
                 <div className="space-y-3">
                   <div>
-                    <p className="text-xs text-muted-foreground mb-2">Workflow Steps: {workflow.steps.length}</p>
+                    <p className="text-xs text-muted-foreground mb-2">Workflow Steps: {(workflow.steps || []).length}</p>
                     <div className="space-y-1">
-                      {workflow.steps.slice(0, 3).map((step, idx) => (
+                      {(workflow.steps || []).slice(0, 3).map((step, idx) => (
                         <div key={step.id} className="flex items-center gap-2 text-sm">
                           <span className="text-xs text-muted-foreground font-mono">{idx + 1}.</span>
                           <span className="truncate">{step.name}</span>
                         </div>
                       ))}
-                      {workflow.steps.length > 3 && (
+                      {(workflow.steps || []).length > 3 && (
                         <p className="text-xs text-muted-foreground">
-                          +{workflow.steps.length - 3} more steps
+                          +{(workflow.steps || []).length - 3} more steps
                         </p>
                       )}
                     </div>
@@ -108,14 +108,14 @@ const WorkflowsView = () => {
                     Workflow Steps
                   </h4>
                   <div className="space-y-3">
-                    {selectedWorkflow.steps.map((step, idx) => (
+                    {(selectedWorkflow.steps || []).map((step, idx) => (
                       <div key={step.id} className="relative">
                         <div className="flex gap-4">
                           <div className="flex flex-col items-center">
                             <div className="w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center font-semibold text-sm">
                               {idx + 1}
                             </div>
-                            {idx < selectedWorkflow.steps.length - 1 && (
+                            {idx < (selectedWorkflow.steps || []).length - 1 && (
                               <div className="w-0.5 h-full min-h-12 bg-border" />
                             )}
                           </div>
@@ -149,7 +149,7 @@ const WorkflowsView = () => {
                 <div>
                   <h4 className="font-semibold mb-2">Affected Services</h4>
                   <div className="flex flex-wrap gap-2">
-                    {selectedWorkflow.affectedServices.map(service => (
+                    {(selectedWorkflow.affectedServices || []).map(service => (
                       <Badge key={service} variant="outline" className="font-mono">
                         {service}
                       </Badge>

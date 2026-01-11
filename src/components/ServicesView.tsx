@@ -113,14 +113,14 @@ const ServicesView = () => {
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Tech Stack</p>
                         <div className="flex flex-wrap gap-1">
-                          {service.techStack.slice(0, 3).map(tech => (
+                          {(service.techStack || []).slice(0, 3).map(tech => (
                             <Badge key={tech} variant="secondary" className="text-xs font-mono">
                               {tech}
                             </Badge>
                           ))}
-                          {service.techStack.length > 3 && (
+                          {(service.techStack || []).length > 3 && (
                             <Badge variant="secondary" className="text-xs">
-                              +{service.techStack.length - 3}
+                              +{(service.techStack || []).length - 3}
                             </Badge>
                           )}
                         </div>
@@ -170,7 +170,7 @@ const ServicesView = () => {
                   <div>
                     <h4 className="font-semibold mb-2">Tech Stack</h4>
                     <div className="flex flex-wrap gap-2">
-                      {selectedService.techStack.map(tech => (
+                      {(selectedService.techStack || []).map(tech => (
                         <Badge key={tech} variant="secondary" className="font-mono">
                           {tech}
                         </Badge>
@@ -207,7 +207,7 @@ const ServicesView = () => {
                   <div>
                     <h4 className="font-semibold mb-2">Cloud Services</h4>
                     <div className="flex flex-wrap gap-2">
-                      {selectedService.cloudServices.map(cloud => (
+                      {(selectedService.cloudServices || []).map(cloud => (
                         <Badge key={cloud} variant="outline">
                           {cloud}
                         </Badge>
@@ -215,11 +215,11 @@ const ServicesView = () => {
                     </div>
                   </div>
 
-                  {selectedService.dependencies.length > 0 && (
+                  {(selectedService.dependencies || []).length > 0 && (
                     <div>
                       <h4 className="font-semibold mb-2">Dependencies</h4>
                       <div className="flex flex-wrap gap-2">
-                        {selectedService.dependencies.map(dep => {
+                        {(selectedService.dependencies || []).map(dep => {
                           const depService = services.find(s => s.id === dep)
                           return (
                             <Badge key={dep} variant="outline" className="cursor-pointer hover:bg-accent/20">

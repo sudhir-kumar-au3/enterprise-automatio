@@ -230,14 +230,14 @@ const CollaborationView = () => {
                 {currentUser.accessLevel === 'viewer' && 'You have read-only access with commenting ability.'}
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel].slice(0, 6).map(permission => (
+                {(ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel] || []).slice(0, 6).map(permission => (
                   <Badge key={permission} variant="outline" className="text-xs">
                     {permission.replace(/_/g, ' ')}
                   </Badge>
                 ))}
-                {ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel].length > 6 && (
+                {(ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel] || []).length > 6 && (
                   <Badge variant="outline" className="text-xs">
-                    +{ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel].length - 6} more
+                    +{(ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel] || []).length - 6} more
                   </Badge>
                 )}
               </div>
@@ -1081,9 +1081,9 @@ const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable 
             )}
           </div>
           
-          {task.tags.length > 0 && (
+          {(task.tags || []).length > 0 && (
             <div className="flex flex-wrap gap-1">
-              {task.tags.map(tag => (
+              {(task.tags || []).map(tag => (
                 <Badge key={tag} variant="outline" className="text-xs">
                   {tag}
                 </Badge>
@@ -1455,7 +1455,7 @@ const AddEditMemberDialog = ({ member, onClose, onSave, onDelete }: AddEditMembe
           <div className="border rounded-lg p-3 bg-muted/30">
             <p className="text-sm font-medium mb-2">Permissions for {accessLevel} access:</p>
             <div className="space-y-1">
-              {currentPermissions.map(permission => (
+              {(currentPermissions || []).map(permission => (
                 <div key={permission} className="flex items-center gap-2 text-xs">
                   <CheckCircle size={14} weight="fill" className="text-green-600" />
                   <span className="text-muted-foreground">{permission.replace(/_/g, ' ')}</span>
@@ -1634,7 +1634,7 @@ const PermissionsDetailsDialog = ({ member, onClose }: PermissionsDetailsDialogP
             </div>
           ))}
 
-          {member.customPermissions && member.customPermissions.length > 0 && (
+          {(member.customPermissions || []).length > 0 && (
             <Card className="border-accent">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
@@ -1644,7 +1644,7 @@ const PermissionsDetailsDialog = ({ member, onClose }: PermissionsDetailsDialogP
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
-                  {member.customPermissions.map(permission => (
+                  {(member.customPermissions || []).map(permission => (
                     <Badge key={permission} variant="secondary" className="text-xs">
                       {permission.replace(/_/g, ' ')}
                     </Badge>

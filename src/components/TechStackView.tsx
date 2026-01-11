@@ -106,11 +106,11 @@ const TechStackView = () => {
                             </p>
                           </div>
 
-                          {tech.alternatives.length > 0 && (
+                          {(tech.alternatives || []).length > 0 && (
                             <div>
                               <p className="text-sm font-medium mb-2">Alternatives Considered</p>
                               <div className="flex flex-wrap gap-2">
-                                {tech.alternatives.map(alt => (
+                                {(tech.alternatives || []).map(alt => (
                                   <Badge key={alt} variant="outline" className="text-xs">
                                     {alt}
                                   </Badge>
@@ -119,11 +119,11 @@ const TechStackView = () => {
                             </div>
                           )}
 
-                          {tech.considerations.length > 0 && (
+                          {(tech.considerations || []).length > 0 && (
                             <div>
                               <p className="text-sm font-medium mb-2">⚠️ Important Considerations</p>
                               <ul className="space-y-1">
-                                {tech.considerations.map((consideration, idx) => (
+                                {(tech.considerations || []).map((consideration, idx) => (
                                   <li key={idx} className="text-sm text-muted-foreground flex gap-2">
                                     <span className="text-accent">•</span>
                                     <span>{consideration}</span>

@@ -37,6 +37,7 @@ const statusColors = {
 
 const RoadmapView = () => {
   const calculateProgress = (tasks: typeof roadmap[0]['tasks']) => {
+    if (!tasks || tasks.length === 0) return 0
     const completed = tasks.filter(t => t.status === 'completed').length
     return Math.round((completed / tasks.length) * 100)
   }
@@ -154,7 +155,7 @@ const RoadmapView = () => {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">
-                      {phase.tasks.filter(t => t.status === 'completed').length} of {phase.tasks.length} tasks completed
+                      {(phase.tasks || []).filter(t => t.status === 'completed').length} of {(phase.tasks || []).length} tasks completed
                     </p>
                   </div>
                 </div>
@@ -216,11 +217,11 @@ const RoadmapView = () => {
                         </Button>
                       </div>
 
-                      {phase.dependencies.length > 0 && (
+                      {(phase.dependencies || []).length > 0 && (
                         <div>
                           <h5 className="text-sm font-semibold mb-2">Dependencies</h5>
                           <div className="flex flex-wrap gap-2">
-                            {phase.dependencies.map(dep => (
+                            {(phase.dependencies || []).map(dep => (
                               <Badge key={dep} variant="outline" className="text-xs">
                                 {dep}
                               </Badge>
@@ -232,10 +233,10 @@ const RoadmapView = () => {
                       <div>
                         <h5 className="text-sm font-semibold mb-3 flex items-center gap-2">
                           <TrendUp size={16} />
-                          Tasks ({phase.tasks.length})
+                          Tasks ({(phase.tasks || []).length})
                         </h5>
                         <div className="space-y-2">
-                          {phase.tasks.map(task => {
+                          {(phase.tasks || []).map(task => {
                             const StatusIcon = statusIcons[task.status]
                             return (
                               <div 
@@ -281,7 +282,7 @@ const RoadmapView = () => {
                       <div>
                         <h5 className="text-sm font-semibold mb-2">Expected Outcomes</h5>
                         <ul className="space-y-1">
-                          {phase.outcomes.map((outcome, idx) => (
+                          {(phase.outcomes || []).map((outcome, idx) => (
                             <li key={idx} className="text-sm text-muted-foreground flex gap-2">
                               <CheckCircle size={16} weight="fill" className="text-green-600 shrink-0 mt-0.5" />
                               <span>{outcome}</span>

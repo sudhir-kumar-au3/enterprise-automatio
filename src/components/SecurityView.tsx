@@ -94,7 +94,7 @@ const SecurityView = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {securityPatterns.map(pattern => (
+                {(securityPatterns || []).map(pattern => (
                   <div key={pattern.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
                     <div className="flex items-start justify-between gap-4 mb-2">
                       <h4 className="font-semibold text-lg">{pattern.name}</h4>
@@ -105,7 +105,7 @@ const SecurityView = () => {
                       <p className="text-sm font-mono">{pattern.implementation}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {pattern.services.map(service => (
+                      {(pattern.services || []).map(service => (
                         <Badge key={service} variant="outline" className="text-xs">
                           {service}
                         </Badge>
@@ -261,7 +261,7 @@ const SecurityView = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {scalabilityPatterns.map(pattern => (
+                {(scalabilityPatterns || []).map(pattern => (
                   <div key={pattern.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
                     <div className="flex items-start justify-between gap-4 mb-2">
                       <h4 className="font-semibold text-lg">{pattern.name}</h4>
@@ -272,7 +272,7 @@ const SecurityView = () => {
                       <p className="text-sm font-mono">{pattern.implementation}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {pattern.services.map(service => (
+                      {(pattern.services || []).map(service => (
                         <Badge key={service} variant="outline" className="text-xs">
                           {service}
                         </Badge>
