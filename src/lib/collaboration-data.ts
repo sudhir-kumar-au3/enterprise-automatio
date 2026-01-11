@@ -167,5 +167,104 @@ export const mockTeamMembers: TeamMember[] = [
     accessLevel: 'viewer',
     avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=James',
     isOnline: true
+  },
+  {
+    id: 'user-5',
+    name: 'Elena Rodriguez',
+    email: 'elena.rodriguez@example.com',
+    role: 'developer',
+    accessLevel: 'member',
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Elena',
+    isOnline: true
+  },
+  {
+    id: 'user-6',
+    name: 'David Kim',
+    email: 'david.kim@example.com',
+    role: 'developer',
+    accessLevel: 'member',
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=David',
+    isOnline: true
+  },
+  {
+    id: 'user-7',
+    name: 'Aisha Mohammed',
+    email: 'aisha.mohammed@example.com',
+    role: 'devops',
+    accessLevel: 'admin',
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aisha',
+    isOnline: true
+  },
+  {
+    id: 'user-8',
+    name: 'Lucas Silva',
+    email: 'lucas.silva@example.com',
+    role: 'developer',
+    accessLevel: 'member',
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lucas',
+    isOnline: false
+  },
+  {
+    id: 'user-9',
+    name: 'Olivia Johnson',
+    email: 'olivia.johnson@example.com',
+    role: 'product',
+    accessLevel: 'admin',
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Olivia',
+    isOnline: true
+  },
+  {
+    id: 'user-10',
+    name: 'Raj Sharma',
+    email: 'raj.sharma@example.com',
+    role: 'architect',
+    accessLevel: 'member',
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Raj',
+    isOnline: false
+  },
+  {
+    id: 'user-11',
+    name: 'Sophie Martin',
+    email: 'sophie.martin@example.com',
+    role: 'product',
+    accessLevel: 'member',
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sophie',
+    isOnline: true
+  },
+  {
+    id: 'user-12',
+    name: 'Alex Thompson',
+    email: 'alex.thompson@example.com',
+    role: 'devops',
+    accessLevel: 'member',
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex',
+    isOnline: true
+  },
+  {
+    id: 'user-13',
+    name: 'Maria Garcia',
+    email: 'maria.garcia@example.com',
+    role: 'developer',
+    accessLevel: 'member',
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maria',
+    isOnline: false
+  },
+  {
+    id: 'user-14',
+    name: 'Chen Wei',
+    email: 'chen.wei@example.com',
+    role: 'architect',
+    accessLevel: 'admin',
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ChenWei',
+    isOnline: true
+  },
+  {
+    id: 'user-15',
+    name: 'Emma Brown',
+    email: 'emma.brown@example.com',
+    role: 'product',
+    accessLevel: 'viewer',
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma',
+    isOnline: false
   }
 ]
