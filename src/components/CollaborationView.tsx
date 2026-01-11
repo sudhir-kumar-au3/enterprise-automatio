@@ -31,12 +31,15 @@ import {
   DotsSixVertical,
   ShieldCheck,
   Lock,
-  GitBranch
+  GitBranch,
+  Database
 } from '@phosphor-icons/react'
 import { mockTeamMembers, Comment, Task, TeamMember, hasPermission, canManageTeam, canEditTask, AccessLevel, ACCESS_LEVEL_PERMISSIONS, Permission } from '@/lib/collaboration-data'
 import { services } from '@/lib/architecture-data'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { DataExport } from '@/lib/data-service'
+import { DataManagement } from '@/components/DataManagement'
 import {
   DndContext,
   closestCenter,
@@ -147,6 +150,12 @@ const CollaborationView = () => {
     .sort((a, b) => b.createdAt - a.createdAt)
     .slice(0, 5)
 
+  const handleDataRestore = (data: DataExport) => {
+    setTasks(() => data.tasks)
+    setComments(() => data.comments)
+    setTeamMembers(() => data.teamMembers)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
@@ -182,7 +191,7 @@ const CollaborationView = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-5 w-full max-w-3xl">
+        <TabsList className="grid grid-cols-6 w-full max-w-4xl">
           <TabsTrigger value="overview" className="gap-2">
             <Users size={18} />
             Overview
@@ -202,6 +211,10 @@ const CollaborationView = () => {
           <TabsTrigger value="team" className="gap-2">
             <Users size={18} />
             Team ({allMembers.length})
+          </TabsTrigger>
+          <TabsTrigger value="data" className="gap-2">
+            <Database size={18} />
+            Data
           </TabsTrigger>
         </TabsList>
 
@@ -375,6 +388,15 @@ const CollaborationView = () => {
             setTeamMembers={setTeamMembers}
             tasks={tasks || []} 
             comments={comments || []} 
+          />
+        </TabsContent>
+
+        <TabsContent value="data" className="space-y-6">
+          <DataManagement
+            tasks={tasks || []}
+            comments={comments || []}
+            teamMembers={allMembers}
+            onDataRestore={handleDataRestore}
           />
         </TabsContent>
       </Tabs>

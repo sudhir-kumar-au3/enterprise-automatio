@@ -1,14 +1,14 @@
 # Planning Guide
 
-A comprehensive team collaboration and task management platform for distributed teams to coordinate work, track progress, manage permissions, and maintain clear communication.
+A comprehensive team collaboration and task management platform for distributed teams to coordinate work, track progress, manage permissions, maintain clear communication, and ensure robust data integrity.
 
 **Experience Qualities**:
 1. **Organized** - Clear task hierarchies, intuitive navigation, and structured team views that make complex project management feel simple
 2. **Collaborative** - Real-time activity tracking, contextual comments, and team visibility features that foster coordination
-3. **Empowering** - Flexible access controls, customizable workflows, and powerful features that adapt to different team structures and needs
+3. **Reliable** - Robust data validation, backup/restore capabilities, and comprehensive statistics ensure data integrity and trustworthiness
 
-**Complexity Level**: Light Application (multiple features with basic state)
-A focused task management and team coordination tool with kanban boards, calendar views, commenting system, and role-based permissions. Users manage tasks through drag-and-drop, track deadlines via calendar, collaborate via comments, and control access through a permission system.
+**Complexity Level**: Light Application (multiple features with persistent state)
+A focused task management and team coordination tool with kanban boards, calendar views, commenting system, role-based permissions, and robust data management. Users manage tasks through drag-and-drop, track deadlines via calendar, collaborate via comments, control access through a permission system, and maintain data integrity with validation and export/import features.
 
 ## Essential Features
 
@@ -48,18 +48,25 @@ A focused task management and team coordination tool with kanban boards, calenda
 - Success criteria: Comments persist, activity feed updates, context filtering works, resolve functionality works
 
 **Team Member Management**
-- Functionality: Add/edit/remove team members with roles (Architect, Developer, DevOps, Product), access levels (Owner, Admin, Member, Viewer), and online status tracking
-- Purpose: Maintain team roster with appropriate access controls and clear role definitions
-- Trigger: Navigate to Team tab, click Add Member or edit existing member
-- Progression: Admin opens add dialog → Enter name/email → Select role → Choose access level → System shows granted permissions → Save → Member appears in team grid → Stats track (tasks, comments) → Toggle online status → Edit permissions later as needed
-- Success criteria: CRUD operations work, permission system enforces access, stats calculate correctly
+- Functionality: Add, edit, and remove team members with customizable roles (architect, developer, devops, product), access levels (owner, admin, member, viewer), and detailed permission controls. Track online/offline status, view member activity statistics, and manage profile information.
+- Purpose: Control team access and collaboration privileges with granular permission management
+- Trigger: Navigate to Team tab or click Add Member button
+- Progression: View team grid → Click Add Member → Fill form (name, email, role, access level) → Select avatar or auto-generate → Toggle online status → Review permissions preview → Save → Member appears in grid → Edit via overflow menu → Update fields or delete → View permissions detail dialog → See categorized permissions with granted/denied status
+- Success criteria: Members persist, permissions enforce correctly, activity stats accurate, avatar generation works
 
-**Role-Based Access Control**
-- Functionality: Four-tier permission system with 14 granular permissions across team management, tasks, comments, architecture, and data access
-- Purpose: Secure operations and provide appropriate access for different team member roles
-- Trigger: Set on member creation, checked on all protected actions, viewable in permission dialogs
-- Progression: User attempts action → System checks access level and permissions → Allow or deny with feedback → User views own permissions in overview → Admin views any member permissions → Admin modifies access level → Permissions update immediately
-- Success criteria: All permission checks enforce correctly, clear denial feedback, permission viewing works, no unauthorized actions possible
+**Robust Data Management System**
+- Functionality: Comprehensive data validation, export/import with JSON format, detailed statistics dashboard, health monitoring, integrity checks, backup/restore capabilities, and circular dependency detection
+- Purpose: Ensure data reliability, enable backup workflows, provide insights into data health, and maintain system integrity
+- Trigger: Navigate to Data tab
+- Progression: View storage statistics (total items, breakdown by type) → See health status (validation results, errors, warnings) → Review detailed statistics (tasks by status/priority, overdue/due soon counts, comment resolution rates, team member distribution) → Click Validate Data to run integrity checks → See validation results with categorized errors/warnings → Export Data to download JSON backup → Import Data to restore from backup file → System validates imported data → Restore confirmed or show errors
+- Success criteria: Statistics accurate in real-time, validation catches data issues, export/import preserves all data, circular dependencies detected, error messages actionable
+
+**Access Control & Permissions**
+- Functionality: Four-tier access control (Owner, Admin, Member, Viewer) with 14 granular permissions covering team management, task operations, content moderation, and analytics access. Permission inheritance with custom overrides, permission preview during member creation, and detailed permission breakdown dialogs.
+- Purpose: Secure the platform with appropriate access controls for different user roles
+- Trigger: Set during member creation/editing, enforced throughout application
+- Progression: Admin creates/edits member → Selects access level → Sees permission preview → Saves → Permissions enforce on all actions (create tasks, edit tasks, delete members, etc.) → User attempts unauthorized action → System blocks with toast error → Member views own permissions via detail dialog → Sees categorized permissions with descriptions
+- Success criteria: All permissions enforce correctly, unauthorized actions blocked, permission UI accurate, custom permissions work
 
 **Access Levels:**
 - **Owner** (👑): Full system access - all 14 permissions
@@ -76,22 +83,28 @@ A focused task management and team coordination tool with kanban boards, calenda
 
 ## Edge Case Handling
 
+- **Empty States**: All views show helpful empty state messages with guidance when no data exists
+- **Circular Dependencies**: Validation system detects and prevents circular task dependencies
+- **Invalid Data Import**: Import process validates all data, shows detailed errors, and prevents corrupt data from loading
+- **Missing References**: System handles deleted team members referenced in tasks/comments gracefully with "Unknown" placeholders
+- **Duplicate IDs**: Data sanitization removes duplicates from arrays (tags, dependencies, permissions)
+- **Invalid Dates**: Validation catches negative timestamps and malformed date values
+- **Self-Referencing Tasks**: Prevents tasks from depending on themselves during creation and validation
+- **Permission Conflicts**: Permission system uses allowlist approach - no permission means no access
+- **Malformed Email**: Email validation regex prevents invalid email formats during member creation
+- **Orphaned Dependencies**: Validation warns about dependencies referencing non-existent tasks
+- **Network Interruption**: All data stored locally, no network dependency for core functionality
+- **Large Datasets**: Scroll areas implemented for large lists, pagination not needed at expected scale
+- **Browser Storage Limits**: Export feature enables offloading data if storage approaches limits
 - **Unassigned Tasks**: Tasks without assignees display "Unassigned" and are visible in assignee filter
 - **Tasks Without Due Dates**: Calendar view shows these in "Upcoming Tasks" sidebar
 - **Overdue Tasks**: Prominently highlighted in red across all views
 - **Drag-and-Drop Conflicts**: Dragging disabled when priority sort enabled with clear feedback
 - **Task Order Persistence**: Custom order saved per status column in KV storage
-- **Empty States**: Helpful CTAs when no tasks, comments, or team members exist
-- **Circular Dependencies**: Validation prevents circular references with error feedback
 - **Blocked Tasks**: Visual indicators when dependencies incomplete
 - **Dependency Deletion**: Removing a task updates all dependency references
-- **Permission Denials**: Clear error messages explaining required permissions
 - **Access Level Changes**: Take effect immediately without re-login
 - **Self-Permission Editing**: Users can view but not modify their own access level
-- **Last Owner Protection**: Cannot remove last owner to prevent lockout
-- **Large Task Lists**: Calendar export handles large datasets with progress feedback
-- **Invalid Exports**: Clear error messages when export fails
-- **Offline Members**: Display offline status while preserving task/comment history
 - **Mobile Layout**: Responsive cards, stacked columns, touch-friendly targets
 
 ## Design Direction
