@@ -39,7 +39,7 @@ import {
 } from '@phosphor-icons/react'
 import { mockTeamMembers, Comment, Task, TeamMember, hasPermission, canManageTeam, canEditTask, AccessLevel, ACCESS_LEVEL_PERMISSIONS, Permission } from '@/lib/collaboration-data'
 import { services } from '@/lib/architecture-data'
-import { taskTemplates } from '@/lib/task-templates'
+import { taskTemplates, getAutoAssignedMember } from '@/lib/task-templates'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { DataExport } from '@/lib/data-service'
@@ -1404,8 +1404,16 @@ const CreateTaskDialog = ({ onClose, onCreate, currentUser, teamMembers }: Creat
       dueDate.setDate(dueDate.getDate() + template.suggestedDueDays)
       setDueDate(dueDate.toISOString().split('T')[0])
     }
+
+    const autoAssignedMember = getAutoAssignedMember(template, teamMembers)
+    if (autoAssignedMember) {
+      setAssignee(autoAssignedMember.id)
+      toast.success(`Applied "${template.name}" template - Auto-assigned to ${autoAssignedMember.name}`)
+    } else {
+      toast.success(`Applied "${template.name}" template`)
+    }
+    
     setShowTemplates(false)
-    toast.success(`Applied "${template.name}" template`)
   }
 
   const handleStartFromScratch = () => {
@@ -1484,6 +1492,7 @@ const CreateTaskDialog = ({ onClose, onCreate, currentUser, teamMembers }: Creat
             <div className="grid sm:grid-cols-2 gap-3">
               {filteredTemplates.map(template => {
                 const Icon = template.icon
+                const autoAssignedMember = template.autoAssignRoles ? getAutoAssignedMember(template, teamMembers) : undefined
                 return (
                   <motion.div
                     key={template.id}
@@ -1503,10 +1512,16 @@ const CreateTaskDialog = ({ onClose, onCreate, currentUser, teamMembers }: Creat
                           </div>
                           <div className="flex-1 min-w-0">
                             <h4 className="font-semibold text-sm mb-1">{template.name}</h4>
-                            <p className="text-xs text-muted-foreground line-clamp-2">
+                            <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
                               {template.description}
                             </p>
-                            <div className="flex flex-wrap gap-1 mt-2">
+                            {autoAssignedMember && (
+                              <div className="flex items-center gap-1.5 mb-2 text-xs text-primary">
+                                <Users size={12} weight="bold" />
+                                <span>Auto-assigns to {autoAssignedMember.name}</span>
+                              </div>
+                            )}
+                            <div className="flex flex-wrap gap-1">
                               {template.defaultTags.slice(0, 2).map(tag => (
                                 <Badge key={tag} variant="secondary" className="text-xs">
                                   {tag}
@@ -1539,11 +1554,19 @@ const CreateTaskDialog = ({ onClose, onCreate, currentUser, teamMembers }: Creat
           <ScrollArea className="max-h-[60vh] pr-4">
             <div className="space-y-5 mt-2">
               {selectedTemplate && (
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex items-center gap-2">
-                  <Sparkle size={16} weight="fill" className="text-primary" />
-                  <span className="text-sm font-medium text-primary">
-                    Using "{taskTemplates.find(t => t.id === selectedTemplate)?.name}" template
-                  </span>
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkle size={16} weight="fill" className="text-primary" />
+                    <span className="text-sm font-medium text-primary">
+                      Using "{taskTemplates.find(t => t.id === selectedTemplate)?.name}" template
+                    </span>
+                  </div>
+                  {assignee !== 'unassigned' && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Users size={12} weight="bold" />
+                      <span>Auto-assigned based on role matching</span>
+                    </div>
+                  )}
                 </div>
               )}
 

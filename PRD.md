@@ -13,11 +13,11 @@ A focused task management and team coordination tool with kanban boards, calenda
 ## Essential Features
 
 **Task Templates for Common Workflows**
-- Functionality: Pre-configured task templates for common workflows including Bug Fix, Feature Development, Code Review, Documentation, DevOps, Security, Testing, UI/UX Design, Database, and Release. Each template provides structured descriptions, pre-filled priority, suggested tags, and recommended due dates. Templates organized by category (Development, Operations, Design, Documentation) with filtering.
-- Purpose: Speed up task creation by providing structured templates with best practices, ensuring consistency and completeness across similar task types
+- Functionality: Pre-configured task templates for common workflows including Bug Fix, Feature Development, Code Review, Documentation, DevOps, Security, Testing, UI/UX Design, Database, and Release. Each template provides structured descriptions, pre-filled priority, suggested tags, and recommended due dates. Templates organized by category (Development, Operations, Design, Documentation) with filtering. **Templates now auto-assign tasks to team members based on role matching** - Bug Fix → Developers, DevOps → DevOps Engineers, Design → Product team, etc. System intelligently selects online team members with matching roles, preferring those with fewer active tasks.
+- Purpose: Speed up task creation by providing structured templates with best practices, ensuring consistency and completeness across similar task types, and automatically routing work to the right team members
 - Trigger: Click Create Task button in header
-- Progression: Click Create Task → Template selection screen appears with category filters → Browse templates in grid with icons and descriptions → Click template card → Form pre-fills with template title prefix, structured description with markdown checklists, priority, tags, and suggested due date → User customizes fields → Or click "Start from Scratch" for blank form → Click "Templates" button to return to template selection → Complete form → Create task
-- Success criteria: 10 templates available across 4 categories, templates pre-fill all fields correctly, category filtering works, smooth transitions between template view and form, "Start from Scratch" bypasses templates, back button returns to template selection, templates include structured markdown formatting
+- Progression: Click Create Task → Template selection screen appears with category filters → Browse templates in grid with icons and descriptions showing which team member will be auto-assigned → Click template card → Form pre-fills with template title prefix, structured description with markdown checklists, priority, tags, suggested due date, and **auto-selected assignee based on role** → Toast notification confirms auto-assignment → Template info banner shows auto-assignment indicator → User can change assignee if needed → Or click "Start from Scratch" for blank form with manual assignment → Click "Templates" button to return to template selection → Complete form → Create task
+- Success criteria: 10 templates available across 4 categories with role assignments configured, templates pre-fill all fields correctly including assignee, category filtering works, auto-assignment selects appropriate team members, online members preferred over offline, template cards preview who will be assigned, toast confirms auto-assignment, smooth transitions between template view and form, "Start from Scratch" bypasses templates, back button returns to template selection, templates include structured markdown formatting
 
 **Enhanced Task Creation Form**
 - Functionality: Modern, comprehensive task creation dialog with visual priority indicators, assignee selection with avatars, tag support, date preview, and rich formatting. Supports both template-based and scratch creation.
@@ -113,6 +113,9 @@ A focused task management and team coordination tool with kanban boards, calenda
 
 - **Empty States**: All views show helpful empty state messages with guidance when no data exists
 - **Template Selection**: Users can navigate back to templates from form, templates can be reset mid-creation without losing work when explicitly choosing to go back
+- **Auto-Assignment Fallback**: When no online members match template role, system falls back to any member with matching role; if no role match exists, task remains unassigned
+- **Multiple Role Matches**: System prefers online members and distributes work among available matching roles (future: load balancing by active task count)
+- **Role Changes**: Auto-assignment uses member's role at task creation time; changing member role doesn't affect existing assignments
 - **Circular Dependencies**: Validation system detects and prevents circular task dependencies
 - **Invalid Data Import**: Import process validates all data, shows detailed errors, and prevents corrupt data from loading
 - **Missing References**: System handles deleted team members referenced in tasks/comments gracefully with "Unknown" placeholders
