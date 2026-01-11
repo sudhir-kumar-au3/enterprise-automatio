@@ -106,7 +106,23 @@ const CollaborationView = () => {
   const [selectedContext, setSelectedContext] = useState<{ type: string; id: string } | null>(null)
   const [isCreatingTask, setIsCreatingTask] = useState(false)
 
-  const currentUser = (teamMembers || mockTeamMembers)[0]
+  const currentUser = (teamMembers && teamMembers.length > 0) ? teamMembers[0] : mockTeamMembers[0]
+
+  if (!currentUser || !currentUser.accessLevel) {
+    return (
+      <Card className="max-w-2xl mx-auto mt-8">
+        <CardHeader>
+          <CardTitle>Initialization Error</CardTitle>
+          <CardDescription>Unable to load user data</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Please refresh the page. If the problem persists, contact support.
+          </p>
+        </CardContent>
+      </Card>
+    )
+  }
 
   const addComment = (contextType: string, contextId: string) => {
     if (!newCommentText.trim()) return
@@ -245,12 +261,12 @@ const CollaborationView = () => {
                 {currentUser.accessLevel === 'viewer' && 'You have read-only access with commenting ability.'}
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {(ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel] || []).slice(0, 6).map(permission => (
+                {currentUser && currentUser.accessLevel && (ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel] || []).slice(0, 6).map(permission => (
                   <Badge key={permission} variant="outline" className="text-xs">
-                    {permission.replace(/_/g, ' ')}
+                    {permission?.replace(/_/g, ' ') || permission}
                   </Badge>
                 ))}
-                {(ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel] || []).length > 6 && (
+                {currentUser && currentUser.accessLevel && (ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel] || []).length > 6 && (
                   <Badge variant="outline" className="text-xs">
                     +{(ACCESS_LEVEL_PERMISSIONS[currentUser.accessLevel] || []).length - 6} more
                   </Badge>
@@ -757,7 +773,7 @@ const CommentsView = ({ comments, setComments, teamMembers, currentUser }: Comme
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="general">General Discussion</SelectItem>
-                {services.map(service => (
+                {(services || []).map(service => (
                   <SelectItem key={service.id} value={service.id}>
                     {service.name}
                   </SelectItem>
@@ -789,7 +805,7 @@ const CommentsView = ({ comments, setComments, teamMembers, currentUser }: Comme
         ) : (
           [...comments].reverse().map(comment => {
             const author = teamMembers.find(m => m.id === comment.authorId)
-            const service = services.find(s => s.id === comment.contextId)
+            const service = (services || []).find(s => s.id === comment.contextId)
             
             return (
               <Card key={comment.id} className={comment.isResolved ? 'opacity-60' : ''}>
@@ -844,7 +860,17 @@ const TeamView = ({ teamMembers, setTeamMembers, tasks, comments }: TeamViewProp
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null)
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
 
-  const currentUser = teamMembers[0]
+  const currentUser = teamMembers && teamMembers.length > 0 ? teamMembers[0] : mockTeamMembers[0]
+
+  if (!currentUser) {
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <p className="text-center text-muted-foreground">Unable to load team data</p>
+        </CardContent>
+      </Card>
+    )
+  }
 
   const handleDeleteMember = (memberId: string) => {
     if (!canManageTeam(currentUser)) {
@@ -1206,7 +1232,7 @@ interface CommentCardProps {
 }
 
 const CommentCard = ({ comment, author }: CommentCardProps) => {
-  const service = services.find(s => s.id === comment.contextId)
+  const service = (services || []).find(s => s.id === comment.contextId)
   
   return (
     <div className="flex gap-3 p-3 rounded-lg border bg-card/50">
@@ -1362,7 +1388,7 @@ const CreateTaskDialog = ({ onClose, onCreate, currentUser, teamMembers }: Creat
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="general">General</SelectItem>
-              {services.map(service => (
+              {(services || []).map(service => (
                 <SelectItem key={service.id} value={service.id}>
                   {service.name}
                 </SelectItem>
@@ -1525,7 +1551,7 @@ const AddEditMemberDialog = ({ member, onClose, onSave, onDelete }: AddEditMembe
               {(currentPermissions || []).map(permission => (
                 <div key={permission} className="flex items-center gap-2 text-xs">
                   <CheckCircle size={14} weight="fill" className="text-green-600" />
-                  <span className="text-muted-foreground">{permission.replace(/_/g, ' ')}</span>
+                  <span className="text-muted-foreground">{permission?.replace(/_/g, ' ') || permission}</span>
                 </div>
               ))}
             </div>
@@ -1685,7 +1711,7 @@ const PermissionsDetailsDialog = ({ member, onClose }: PermissionsDetailsDialogP
                           "text-sm font-medium",
                           hasAccess ? "text-green-900" : "text-gray-500"
                         )}>
-                          {permission.replace(/_/g, ' ')}
+                          {permission?.replace(/_/g, ' ') || permission}
                         </p>
                         <p className={cn(
                           "text-xs",
@@ -1713,7 +1739,7 @@ const PermissionsDetailsDialog = ({ member, onClose }: PermissionsDetailsDialogP
                 <div className="flex flex-wrap gap-2">
                   {(member.customPermissions || []).map(permission => (
                     <Badge key={permission} variant="secondary" className="text-xs">
-                      {permission.replace(/_/g, ' ')}
+                      {permission?.replace(/_/g, ' ') || permission}
                     </Badge>
                   ))}
                 </div>
