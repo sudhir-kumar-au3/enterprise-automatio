@@ -55,11 +55,11 @@ The application presents a multi-layered enterprise architecture with interactiv
 - Success criteria: Comprehensive coverage of security and scalability across all services
 
 **Team Collaboration Hub**
-- Functionality: Task management with drag-and-drop reordering, priority-based sorting, comment threads, and team member activity tracking with context-aware collaboration on services and workflows
-- Purpose: Enable distributed teams to coordinate implementation, share feedback, track progress on specific architecture components, and flexibly organize tasks by priority or custom order
+- Functionality: Task management with drag-and-drop reordering, priority-based sorting, calendar visualization of deadlines, comment threads, and team member activity tracking with context-aware collaboration on services and workflows
+- Purpose: Enable distributed teams to coordinate implementation, share feedback, track progress on specific architecture components, visualize task timelines, and flexibly organize tasks by priority or custom order
 - Trigger: Navigate to Team tab or access collaboration features from service detail dialogs
-- Progression: View team overview → Create tasks with assignments → Sort by priority or enable drag-and-drop custom ordering → Drag tasks within status columns to reorder → Comment on services/workflows → Track task status through kanban board → Monitor team activity and progress
-- Success criteria: All tasks and comments persist across sessions, assignees receive clear task visibility, context-aware discussions linked to specific services, task order persists across sessions, smooth drag-and-drop interactions with visual feedback
+- Progression: View team overview → Create tasks with assignments and due dates → Sort by priority or enable drag-and-drop custom ordering → Drag tasks within status columns to reorder → View calendar to visualize task deadlines → Filter tasks by assignee and due date → Click calendar days to see tasks due → Comment on services/workflows → Track task status through kanban board → Monitor team activity and progress
+- Success criteria: All tasks and comments persist across sessions, assignees receive clear task visibility, context-aware discussions linked to specific services, task order persists across sessions, smooth drag-and-drop interactions with visual feedback, calendar displays all tasks with due dates, overdue tasks highlighted prominently, filtering by assignee and date works correctly
 
 ## Edge Case Handling
 
@@ -73,6 +73,10 @@ The application presents a multi-layered enterprise architecture with interactiv
 - **Empty Collaboration States**: Provide helpful prompts and CTAs when no comments or tasks exist yet
 - **Drag-and-Drop Conflicts**: Prevent dragging when priority sort is enabled, provide clear visual indicators and toast feedback when switching between sort modes
 - **Task Reordering Persistence**: Custom task order persists per status column across sessions using KV storage
+- **Tasks Without Due Dates**: Calendar view gracefully handles tasks without due dates by showing them in an "Upcoming Tasks" sidebar
+- **Overdue Task Visibility**: Overdue tasks are prominently highlighted with red indicators in calendar view and shown in a dedicated alert section
+- **Calendar Month Navigation**: Users can navigate between months while maintaining filter state and selected day context
+- **Multiple Tasks on Same Day**: Calendar cells display visual indicators for multiple tasks with tooltips showing count
 
 ## Design Direction
 

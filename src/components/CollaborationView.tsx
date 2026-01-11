@@ -53,6 +53,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import CalendarView from '@/components/CalendarView'
 
 const priorityColors = {
   low: 'text-blue-600',
@@ -152,7 +153,7 @@ const CollaborationView = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4 w-full max-w-2xl">
+        <TabsList className="grid grid-cols-5 w-full max-w-3xl">
           <TabsTrigger value="overview" className="gap-2">
             <Users size={18} />
             Overview
@@ -160,6 +161,10 @@ const CollaborationView = () => {
           <TabsTrigger value="tasks" className="gap-2">
             <CheckSquare size={18} />
             Tasks ({(tasks || []).filter(t => t.status !== 'done').length})
+          </TabsTrigger>
+          <TabsTrigger value="calendar" className="gap-2">
+            <CalendarBlank size={18} />
+            Calendar
           </TabsTrigger>
           <TabsTrigger value="comments" className="gap-2">
             <ChatCircleDots size={18} />
@@ -268,6 +273,13 @@ const CollaborationView = () => {
             setTasks={setTasks}
             teamMembers={mockTeamMembers}
             currentUser={currentUser}
+          />
+        </TabsContent>
+
+        <TabsContent value="calendar" className="space-y-6">
+          <CalendarView
+            tasks={tasks || []}
+            teamMembers={mockTeamMembers}
           />
         </TabsContent>
 
