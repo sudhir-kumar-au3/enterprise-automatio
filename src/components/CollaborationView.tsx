@@ -66,6 +66,7 @@ import { CSS } from '@dnd-kit/utilities'
 import CalendarView from '@/components/CalendarView'
 import TaskDependenciesDialog from '@/components/TaskDependenciesDialog'
 import ActivityTimeline from '@/components/ActivityTimeline'
+import WorkloadBalancing from '@/components/WorkloadBalancing'
 
 const priorityColors = {
   low: 'text-blue-600',
@@ -226,7 +227,7 @@ const CollaborationView = () => {
       </motion.div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-3 sm:grid-cols-6 w-full max-w-4xl h-auto gap-2 bg-muted/50 backdrop-blur-sm p-1.5 rounded-xl shadow-inner">
+        <TabsList className="grid grid-cols-3 sm:grid-cols-7 w-full max-w-5xl h-auto gap-2 bg-muted/50 backdrop-blur-sm p-1.5 rounded-xl shadow-inner">
           <TabsTrigger value="overview" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-lg data-[state=active]:scale-105 rounded-lg transition-all">
             <Users size={18} weight="duotone" />
             <span className="hidden sm:inline">Overview</span>
@@ -237,6 +238,10 @@ const CollaborationView = () => {
             <Badge variant="secondary" className="ml-1 text-xs shadow-sm">
               {(tasks || []).filter(t => t.status !== 'done').length}
             </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="workload" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-lg data-[state=active]:scale-105 rounded-lg transition-all">
+            <ArrowsDownUp size={18} weight="duotone" />
+            <span className="hidden sm:inline">Workload</span>
           </TabsTrigger>
           <TabsTrigger value="calendar" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-lg data-[state=active]:scale-105 rounded-lg transition-all">
             <CalendarBlank size={18} weight="duotone" />
@@ -421,6 +426,18 @@ const CollaborationView = () => {
             setTasks={setTasks}
             teamMembers={allMembers}
             currentUser={currentUser}
+          />
+        </TabsContent>
+
+        <TabsContent value="workload" className="space-y-6">
+          <WorkloadBalancing
+            tasks={tasks || []}
+            teamMembers={allMembers}
+            onReassignTask={(taskId, newAssigneeId) => {
+              setTasks(current =>
+                (current || []).map(t => t.id === taskId ? { ...t, assigneeId: newAssigneeId, updatedAt: Date.now() } : t)
+              )
+            }}
           />
         </TabsContent>
 
