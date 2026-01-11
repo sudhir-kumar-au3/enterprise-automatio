@@ -30,7 +30,8 @@ import {
   ArrowsDownUp,
   DotsSixVertical,
   ShieldCheck,
-  Lock
+  Lock,
+  GitBranch
 } from '@phosphor-icons/react'
 import { mockTeamMembers, Comment, Task, TeamMember, hasPermission, canManageTeam, canEditTask, AccessLevel, ACCESS_LEVEL_PERMISSIONS, Permission } from '@/lib/collaboration-data'
 import { services } from '@/lib/architecture-data'
@@ -56,6 +57,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import CalendarView from '@/components/CalendarView'
+import TaskDependenciesDialog from '@/components/TaskDependenciesDialog'
 
 const priorityColors = {
   low: 'text-blue-600',
@@ -397,6 +399,7 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps
   const [sortByPriority, setSortByPriority] = useKV<boolean>('tasks-sort-by-priority', false)
   const [taskOrder, setTaskOrder] = useKV<Record<string, string[]>>('tasks-custom-order', {})
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [dependenciesDialogTask, setDependenciesDialogTask] = useState<Task | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -466,6 +469,12 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps
       current.map(t => t.id === taskId ? { ...t, status: newStatus, updatedAt: Date.now() } : t)
     )
     toast.success('Task updated')
+  }
+
+  const updateTaskDependencies = (taskId: string, dependencies: string[]) => {
+    setTasks(current =>
+      current.map(t => t.id === taskId ? { ...t, dependencies, updatedAt: Date.now() } : t)
+    )
   }
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -614,10 +623,11 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps
                         <SortableTaskCard
                           key={task.id}
                           task={task}
-                          onClick={() => {}}
+                          onClick={() => setDependenciesDialogTask(task)}
                           onStatusChange={(newStatus) => updateTaskStatus(task.id, newStatus)}
                           isDraggable={!sortByPriority}
                           teamMembers={teamMembers}
+                          allTasks={tasks}
                         />
                       ))}
                       {statusTasks.length === 0 && (
@@ -641,11 +651,22 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps
                 onClick={() => {}}
                 isDragging
                 teamMembers={teamMembers}
+                allTasks={tasks}
               />
             </div>
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {dependenciesDialogTask && (
+        <TaskDependenciesDialog
+          task={dependenciesDialogTask}
+          allTasks={tasks}
+          teamMembers={teamMembers}
+          onUpdate={updateTaskDependencies}
+          onClose={() => setDependenciesDialogTask(null)}
+        />
+      )}
     </div>
   )
 }
@@ -986,9 +1007,10 @@ interface TaskCardProps {
   isDraggable?: boolean
   isDragging?: boolean
   teamMembers?: TeamMember[]
+  allTasks?: Task[]
 }
 
-const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable = false, isDragging = false, teamMembers = mockTeamMembers }: TaskCardProps) => {
+const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable = false, isDragging = false, teamMembers = mockTeamMembers, allTasks = [] }: TaskCardProps) => {
   const assignee = teamMembers.find(m => m.id === task.assigneeId)
   
   const getDueDateInfo = () => {
@@ -1004,11 +1026,17 @@ const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable 
   
   const dueDateInfo = getDueDateInfo()
 
+  const dependencies = (task.dependencies || []).length
+  const blockedByIncomplete = allTasks
+    .filter(t => (task.dependencies || []).includes(t.id))
+    .some(t => t.status !== 'done')
+
   return (
     <Card 
       className={cn(
         "cursor-pointer hover:shadow-md transition-shadow",
-        isDragging && "opacity-50 cursor-grabbing"
+        isDragging && "opacity-50 cursor-grabbing",
+        blockedByIncomplete && "border-orange-500/50"
       )} 
       onClick={onClick}
     >
@@ -1021,11 +1049,26 @@ const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable 
               )}
               <h4 className="font-medium text-sm line-clamp-2">{task.title}</h4>
             </div>
-            <FlagBanner size={16} weight="fill" className={cn(priorityColors[task.priority], "flex-shrink-0")} />
+            <div className="flex items-center gap-1">
+              {dependencies > 0 && (
+                <Badge variant="outline" className="text-xs gap-1">
+                  <GitBranch size={12} />
+                  {dependencies}
+                </Badge>
+              )}
+              <FlagBanner size={16} weight="fill" className={cn(priorityColors[task.priority], "flex-shrink-0")} />
+            </div>
           </div>
           
           {!compact && task.description && (
             <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
+          )}
+
+          {blockedByIncomplete && (
+            <div className="flex items-center gap-1 text-xs text-orange-600">
+              <GitBranch size={12} weight="bold" />
+              <span>Blocked by dependencies</span>
+            </div>
           )}
           
           {dueDateInfo && (
@@ -1102,9 +1145,10 @@ interface SortableTaskCardProps {
   onStatusChange?: (status: Task['status']) => void
   isDraggable?: boolean
   teamMembers?: TeamMember[]
+  allTasks?: Task[]
 }
 
-const SortableTaskCard = ({ task, onClick, onStatusChange, isDraggable = true, teamMembers }: SortableTaskCardProps) => {
+const SortableTaskCard = ({ task, onClick, onStatusChange, isDraggable = true, teamMembers, allTasks = [] }: SortableTaskCardProps) => {
   const {
     attributes,
     listeners,
@@ -1128,6 +1172,7 @@ const SortableTaskCard = ({ task, onClick, onStatusChange, isDraggable = true, t
         isDraggable={isDraggable}
         isDragging={isDragging}
         teamMembers={teamMembers}
+        allTasks={allTasks}
       />
     </div>
   )

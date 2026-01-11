@@ -3,8 +3,9 @@ import { Badge } from '@/components/ui/badge'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { roadmap } from '@/lib/architecture-data'
-import { Calendar, Lightning, TrendUp, CheckCircle, Circle, Clock, Export, GoogleLogo } from '@phosphor-icons/react'
+import { Calendar, Lightning, TrendUp, CheckCircle, Circle, Clock, Export, GoogleLogo, ChartLine, ListBullets } from '@phosphor-icons/react'
 import { exportTasksToICal } from '@/lib/ical-export'
 import { Task } from '@/lib/collaboration-data'
 import { toast } from 'sonner'
@@ -16,6 +17,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel
 } from '@/components/ui/dropdown-menu'
+import GanttChart from '@/components/GanttChart'
+import { useState } from 'react'
 
 const priorityColors = {
   critical: 'bg-red-500/10 text-red-700 border-red-500/20',
@@ -36,6 +39,8 @@ const statusColors = {
 }
 
 const RoadmapView = () => {
+  const [viewMode, setViewMode] = useState<'list' | 'gantt'>('list')
+
   const calculateProgress = (tasks: typeof roadmap[0]['tasks']) => {
     if (!tasks || tasks.length === 0) return 0
     const completed = tasks.filter(t => t.status === 'completed').length
@@ -99,32 +104,51 @@ const RoadmapView = () => {
           </p>
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <Export size={18} />
-              Export Roadmap
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Export to iCal</DropdownMenuLabel>
-            <DropdownMenuItem onClick={handleExportRoadmap}>
-              <Calendar size={16} className="mr-2" />
-              Complete Roadmap
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel>Export by Phase</DropdownMenuLabel>
-            {roadmap.map(phase => (
-              <DropdownMenuItem key={phase.id} onClick={() => handleExportPhase(phase)}>
+        <div className="flex gap-2">
+          <Tabs value={viewMode} onValueChange={(val) => setViewMode(val as 'list' | 'gantt')}>
+            <TabsList>
+              <TabsTrigger value="list" className="gap-2">
+                <ListBullets size={18} />
+                List View
+              </TabsTrigger>
+              <TabsTrigger value="gantt" className="gap-2">
+                <ChartLine size={18} />
+                Gantt Chart
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Export size={18} />
+                Export Roadmap
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Export to iCal</DropdownMenuLabel>
+              <DropdownMenuItem onClick={handleExportRoadmap}>
                 <Calendar size={16} className="mr-2" />
-                Phase {phase.phase}: {phase.name}
+                Complete Roadmap
               </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Export by Phase</DropdownMenuLabel>
+              {roadmap.map(phase => (
+                <DropdownMenuItem key={phase.id} onClick={() => handleExportPhase(phase)}>
+                  <Calendar size={16} className="mr-2" />
+                  Phase {phase.phase}: {phase.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-4">
+      {viewMode === 'gantt' ? (
+        <GanttChart phases={roadmap} />
+      ) : (
+        <>
+          <div className="grid md:grid-cols-3 gap-4">
         {roadmap.map(phase => {
           const progress = calculateProgress(phase.tasks)
           return (
@@ -298,6 +322,8 @@ const RoadmapView = () => {
           </Accordion>
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   )
 }

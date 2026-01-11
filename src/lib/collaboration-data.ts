@@ -103,6 +103,7 @@ export interface Task {
   updatedAt: number
   tags: string[]
   comments: string[]
+  dependencies?: string[]
 }
 
 export interface Activity {
