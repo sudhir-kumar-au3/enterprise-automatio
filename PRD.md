@@ -12,12 +12,19 @@ A focused task management and team coordination tool with kanban boards, calenda
 
 ## Essential Features
 
-**Enhanced Task Creation Form**
-- Functionality: Modern, comprehensive task creation dialog with visual priority indicators, assignee selection with avatars, tag support, date preview, and rich formatting
-- Purpose: Streamline task creation with all necessary information in an intuitive, visually appealing form
+**Task Templates for Common Workflows**
+- Functionality: Pre-configured task templates for common workflows including Bug Fix, Feature Development, Code Review, Documentation, DevOps, Security, Testing, UI/UX Design, Database, and Release. Each template provides structured descriptions, pre-filled priority, suggested tags, and recommended due dates. Templates organized by category (Development, Operations, Design, Documentation) with filtering.
+- Purpose: Speed up task creation by providing structured templates with best practices, ensuring consistency and completeness across similar task types
 - Trigger: Click Create Task button in header
-- Progression: Click Create button → Modal opens with gradient header and icon → Enter task title (autofocused) → Add description in resizable textarea → Select priority with color-coded flag icons → Choose assignee with avatar preview → Set due date with formatted preview → Add comma-separated tags with live preview → Select related context → Review form → Click Create with gradient button → Task appears in board
-- Success criteria: Form validates required fields, priority icons display correctly, assignee selection shows avatars, tags parse and display properly, date preview formats correctly, smooth animations, data persists
+- Progression: Click Create Task → Template selection screen appears with category filters → Browse templates in grid with icons and descriptions → Click template card → Form pre-fills with template title prefix, structured description with markdown checklists, priority, tags, and suggested due date → User customizes fields → Or click "Start from Scratch" for blank form → Click "Templates" button to return to template selection → Complete form → Create task
+- Success criteria: 10 templates available across 4 categories, templates pre-fill all fields correctly, category filtering works, smooth transitions between template view and form, "Start from Scratch" bypasses templates, back button returns to template selection, templates include structured markdown formatting
+
+**Enhanced Task Creation Form**
+- Functionality: Modern, comprehensive task creation dialog with visual priority indicators, assignee selection with avatars, tag support, date preview, and rich formatting. Supports both template-based and scratch creation.
+- Purpose: Streamline task creation with all necessary information in an intuitive, visually appealing form
+- Trigger: Click Create Task button in header, select template or start from scratch
+- Progression: Template selected or scratch mode → Enter task title (autofocused) → Add description in monospace textarea → Select priority with color-coded flag icons → Choose assignee with avatar preview → Set due date with formatted preview → Add comma-separated tags with live preview → Select related context → Review form → Click Create with gradient button → Task appears in board
+- Success criteria: Form validates required fields, priority icons display correctly, assignee selection shows avatars, tags parse and display properly, date preview formats correctly, smooth animations, data persists, template indicator shows when using template
 
 **Team Activity Timeline**
 - Functionality: Chronological timeline of all team activities including task creation, task updates, task completions, comments, and status changes with user avatars, action icons, and relative timestamps
@@ -105,6 +112,7 @@ A focused task management and team coordination tool with kanban boards, calenda
 ## Edge Case Handling
 
 - **Empty States**: All views show helpful empty state messages with guidance when no data exists
+- **Template Selection**: Users can navigate back to templates from form, templates can be reset mid-creation without losing work when explicitly choosing to go back
 - **Circular Dependencies**: Validation system detects and prevents circular task dependencies
 - **Invalid Data Import**: Import process validates all data, shows detailed errors, and prevents corrupt data from loading
 - **Missing References**: System handles deleted team members referenced in tasks/comments gracefully with "Unknown" placeholders

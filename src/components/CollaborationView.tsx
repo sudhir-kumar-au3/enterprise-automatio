@@ -33,10 +33,13 @@ import {
   ShieldCheck,
   Lock,
   GitBranch,
-  Database
+  Database,
+  Sparkle,
+  ArrowCounterClockwise
 } from '@phosphor-icons/react'
 import { mockTeamMembers, Comment, Task, TeamMember, hasPermission, canManageTeam, canEditTask, AccessLevel, ACCESS_LEVEL_PERMISSIONS, Permission } from '@/lib/collaboration-data'
 import { services } from '@/lib/architecture-data'
+import { taskTemplates } from '@/lib/task-templates'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { DataExport } from '@/lib/data-service'
@@ -1349,6 +1352,8 @@ interface CreateTaskDialogProps {
 }
 
 const CreateTaskDialog = ({ onClose, onCreate, currentUser, teamMembers }: CreateTaskDialogProps) => {
+  const [showTemplates, setShowTemplates] = useState(true)
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState<Task['priority']>('medium')
@@ -1357,6 +1362,7 @@ const CreateTaskDialog = ({ onClose, onCreate, currentUser, teamMembers }: Creat
   const [contextId, setContextId] = useState<string>('general')
   const [dueDate, setDueDate] = useState<string>('')
   const [tags, setTags] = useState<string>('')
+  const [templateCategory, setTemplateCategory] = useState('all')
 
   const handleCreate = () => {
     if (!title.trim()) {
@@ -1384,6 +1390,42 @@ const CreateTaskDialog = ({ onClose, onCreate, currentUser, teamMembers }: Creat
     onCreate(newTask)
   }
 
+  const handleTemplateSelect = (templateId: string) => {
+    const template = taskTemplates.find(t => t.id === templateId)
+    if (!template) return
+
+    setSelectedTemplate(templateId)
+    setTitle(template.defaultTitle)
+    setDescription(template.defaultDescription)
+    setPriority(template.defaultPriority)
+    setTags(template.defaultTags.join(', '))
+    if (template.suggestedDueDays) {
+      const dueDate = new Date()
+      dueDate.setDate(dueDate.getDate() + template.suggestedDueDays)
+      setDueDate(dueDate.toISOString().split('T')[0])
+    }
+    setShowTemplates(false)
+    toast.success(`Applied "${template.name}" template`)
+  }
+
+  const handleStartFromScratch = () => {
+    setShowTemplates(false)
+  }
+
+  const handleResetTemplate = () => {
+    setShowTemplates(true)
+    setSelectedTemplate(null)
+    setTitle('')
+    setDescription('')
+    setPriority('medium')
+    setTags('')
+    setDueDate('')
+  }
+
+  const filteredTemplates = taskTemplates.filter(t => 
+    templateCategory === 'all' || t.category === templateCategory
+  )
+
   const selectedAssignee = teamMembers.find(m => m.id === assignee)
 
   const priorityIcons = {
@@ -1396,210 +1438,306 @@ const CreateTaskDialog = ({ onClose, onCreate, currentUser, teamMembers }: Creat
   return (
     <>
       <DialogHeader className="space-y-3 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-gradient-to-br from-primary to-accent rounded-xl">
-            <Plus size={24} weight="bold" className="text-white" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-gradient-to-br from-primary to-accent rounded-xl">
+              <Plus size={24} weight="bold" className="text-white" />
+            </div>
+            <div>
+              <DialogTitle className="text-2xl">Create New Task</DialogTitle>
+              <DialogDescription className="text-base mt-1">
+                {showTemplates ? 'Choose a template or start from scratch' : 'Assign work and track progress across your team'}
+              </DialogDescription>
+            </div>
           </div>
-          <div>
-            <DialogTitle className="text-2xl">Create New Task</DialogTitle>
-            <DialogDescription className="text-base mt-1">
-              Assign work and track progress across your team
-            </DialogDescription>
-          </div>
+          {!showTemplates && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleResetTemplate}
+              className="gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <ArrowCounterClockwise size={16} />
+              Templates
+            </Button>
+          )}
         </div>
       </DialogHeader>
 
-      <ScrollArea className="max-h-[60vh] pr-4">
-        <div className="space-y-5 mt-2">
-          <div className="space-y-2">
-            <Label htmlFor="title" className="text-sm font-semibold">Task Title *</Label>
-            <Input
-              id="title"
-              placeholder="e.g., Implement user authentication"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="h-11 text-base"
-              autoFocus
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description" className="text-sm font-semibold">Description</Label>
-            <Textarea
-              id="description"
-              placeholder="Add details, requirements, or context about this task..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-              className="resize-none text-base"
-            />
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="priority" className="text-sm font-semibold flex items-center gap-2">
-                <FlagBanner size={14} weight="duotone" />
-                Priority
-              </Label>
-              <Select value={priority} onValueChange={(val) => setPriority(val as Task['priority'])}>
-                <SelectTrigger id="priority" className="h-11">
-                  <div className="flex items-center gap-2">
-                    {priorityIcons[priority]}
-                    <SelectValue />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">
-                    <div className="flex items-center gap-2">
-                      <FlagBanner size={16} weight="fill" className="text-blue-500" />
-                      <span>Low Priority</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="medium">
-                    <div className="flex items-center gap-2">
-                      <FlagBanner size={16} weight="fill" className="text-yellow-500" />
-                      <span>Medium Priority</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="high">
-                    <div className="flex items-center gap-2">
-                      <FlagBanner size={16} weight="fill" className="text-orange-500" />
-                      <span>High Priority</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="critical">
-                    <div className="flex items-center gap-2">
-                      <FlagBanner size={16} weight="fill" className="text-red-500" />
-                      <span>Critical Priority</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+      {showTemplates ? (
+        <ScrollArea className="max-h-[65vh] pr-4">
+          <div className="space-y-4 mt-2">
+            <div className="flex gap-2 flex-wrap">
+              {['all', 'development', 'operations', 'design', 'documentation'].map(cat => (
+                <Button
+                  key={cat}
+                  variant={templateCategory === cat ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setTemplateCategory(cat)}
+                  className="capitalize"
+                >
+                  {cat === 'all' ? 'All' : cat}
+                </Button>
+              ))}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="assignee" className="text-sm font-semibold flex items-center gap-2">
-                <Users size={14} weight="duotone" />
-                Assign To
-              </Label>
-              <Select value={assignee} onValueChange={setAssignee}>
-                <SelectTrigger id="assignee" className="h-11">
-                  <div className="flex items-center gap-2">
-                    {selectedAssignee ? (
-                      <>
-                        <Avatar className="h-5 w-5 ring-1 ring-background">
-                          <AvatarImage src={selectedAssignee.avatarUrl} alt={selectedAssignee.name} />
-                          <AvatarFallback className="text-xs">
-                            {selectedAssignee.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span>{selectedAssignee.name}</span>
-                      </>
-                    ) : (
-                      <SelectValue placeholder="Unassigned" />
-                    )}
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unassigned">
-                    <div className="flex items-center gap-2">
-                      <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center">
-                        <Users size={12} className="text-muted-foreground" />
-                      </div>
-                      <span>Unassigned</span>
-                    </div>
-                  </SelectItem>
-                  {teamMembers.map(member => (
-                    <SelectItem key={member.id} value={member.id}>
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-5 w-5 ring-1 ring-background">
-                          <AvatarImage src={member.avatarUrl} alt={member.name} />
-                          <AvatarFallback className="text-xs">
-                            {member.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span>{member.name}</span>
-                        <Badge variant="outline" className="text-xs ml-auto">{member.role}</Badge>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {filteredTemplates.map(template => {
+                const Icon = template.icon
+                return (
+                  <motion.div
+                    key={template.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Card
+                      className="cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all duration-200"
+                      onClick={() => handleTemplateSelect(template.id)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <Icon size={24} weight="duotone" className="text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-sm mb-1">{template.name}</h4>
+                            <p className="text-xs text-muted-foreground line-clamp-2">
+                              {template.description}
+                            </p>
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {template.defaultTags.slice(0, 2).map(tag => (
+                                <Badge key={tag} variant="secondary" className="text-xs">
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )
+              })}
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="due-date" className="text-sm font-semibold flex items-center gap-2">
-              <CalendarBlank size={14} weight="duotone" />
-              Due Date
-            </Label>
-            <Input
-              id="due-date"
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              min={new Date().toISOString().split('T')[0]}
-              className="h-11"
-            />
-            {dueDate && (
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Clock size={12} />
-                Due {new Date(dueDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-              </p>
-            )}
-          </div>
+            <Separator />
 
-          <div className="space-y-2">
-            <Label htmlFor="tags" className="text-sm font-semibold flex items-center gap-2">
-              <Tag size={14} weight="duotone" />
-              Tags
-            </Label>
-            <Input
-              id="tags"
-              placeholder="e.g., backend, urgent, bug-fix (comma separated)"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              className="h-11"
-            />
-            {tags && (
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {tags.split(',').map(t => t.trim()).filter(Boolean).map((tag, idx) => (
-                  <Badge key={idx} variant="secondary" className="text-xs">
-                    {tag}
-                  </Badge>
-                ))}
+            <Button
+              variant="outline"
+              className="w-full h-14 gap-2 text-base"
+              onClick={handleStartFromScratch}
+            >
+              <Plus size={20} weight="bold" />
+              Start from Scratch
+            </Button>
+          </div>
+        </ScrollArea>
+      ) : (
+        <>
+          <ScrollArea className="max-h-[60vh] pr-4">
+            <div className="space-y-5 mt-2">
+              {selectedTemplate && (
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex items-center gap-2">
+                  <Sparkle size={16} weight="fill" className="text-primary" />
+                  <span className="text-sm font-medium text-primary">
+                    Using "{taskTemplates.find(t => t.id === selectedTemplate)?.name}" template
+                  </span>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="title" className="text-sm font-semibold">Task Title *</Label>
+                <Input
+                  id="title"
+                  placeholder="e.g., Implement user authentication"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="h-11 text-base"
+                  autoFocus
+                />
               </div>
-            )}
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="context" className="text-sm font-semibold">Related To</Label>
-            <Select value={contextId} onValueChange={setContextId}>
-              <SelectTrigger id="context" className="h-11">
-                <SelectValue placeholder="General task" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="general">General Task</SelectItem>
-                {(services || []).map(service => (
-                  <SelectItem key={service.id} value={service.id}>
-                    {service.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </ScrollArea>
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-sm font-semibold">Description</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Add details, requirements, or context about this task..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={6}
+                  className="resize-none text-base font-mono text-sm"
+                />
+              </div>
 
-      <div className="flex gap-3 justify-end pt-6 border-t mt-6">
-        <Button variant="outline" onClick={onClose} className="h-11 px-6">
-          Cancel
-        </Button>
-        <Button onClick={handleCreate} className="h-11 px-6 gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-lg">
-          <CheckCircle size={18} weight="bold" />
-          Create Task
-        </Button>
-      </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="priority" className="text-sm font-semibold flex items-center gap-2">
+                    <FlagBanner size={14} weight="duotone" />
+                    Priority
+                  </Label>
+                  <Select value={priority} onValueChange={(val) => setPriority(val as Task['priority'])}>
+                    <SelectTrigger id="priority" className="h-11">
+                      <div className="flex items-center gap-2">
+                        {priorityIcons[priority]}
+                        <SelectValue />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">
+                        <div className="flex items-center gap-2">
+                          <FlagBanner size={16} weight="fill" className="text-blue-500" />
+                          <span>Low Priority</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="medium">
+                        <div className="flex items-center gap-2">
+                          <FlagBanner size={16} weight="fill" className="text-yellow-500" />
+                          <span>Medium Priority</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="high">
+                        <div className="flex items-center gap-2">
+                          <FlagBanner size={16} weight="fill" className="text-orange-500" />
+                          <span>High Priority</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="critical">
+                        <div className="flex items-center gap-2">
+                          <FlagBanner size={16} weight="fill" className="text-red-500" />
+                          <span>Critical Priority</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="assignee" className="text-sm font-semibold flex items-center gap-2">
+                    <Users size={14} weight="duotone" />
+                    Assign To
+                  </Label>
+                  <Select value={assignee} onValueChange={setAssignee}>
+                    <SelectTrigger id="assignee" className="h-11">
+                      <div className="flex items-center gap-2">
+                        {selectedAssignee ? (
+                          <>
+                            <Avatar className="h-5 w-5 ring-1 ring-background">
+                              <AvatarImage src={selectedAssignee.avatarUrl} alt={selectedAssignee.name} />
+                              <AvatarFallback className="text-xs">
+                                {selectedAssignee.name.split(' ').map(n => n[0]).join('')}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{selectedAssignee.name}</span>
+                          </>
+                        ) : (
+                          <SelectValue placeholder="Unassigned" />
+                        )}
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">
+                        <div className="flex items-center gap-2">
+                          <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center">
+                            <Users size={12} className="text-muted-foreground" />
+                          </div>
+                          <span>Unassigned</span>
+                        </div>
+                      </SelectItem>
+                      {teamMembers.map(member => (
+                        <SelectItem key={member.id} value={member.id}>
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-5 w-5 ring-1 ring-background">
+                              <AvatarImage src={member.avatarUrl} alt={member.name} />
+                              <AvatarFallback className="text-xs">
+                                {member.name.split(' ').map(n => n[0]).join('')}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{member.name}</span>
+                            <Badge variant="outline" className="text-xs ml-auto">{member.role}</Badge>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="due-date" className="text-sm font-semibold flex items-center gap-2">
+                  <CalendarBlank size={14} weight="duotone" />
+                  Due Date
+                </Label>
+                <Input
+                  id="due-date"
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="h-11"
+                />
+                {dueDate && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock size={12} />
+                    Due {new Date(dueDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tags" className="text-sm font-semibold flex items-center gap-2">
+                  <Tag size={14} weight="duotone" />
+                  Tags
+                </Label>
+                <Input
+                  id="tags"
+                  placeholder="e.g., backend, urgent, bug-fix (comma separated)"
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                  className="h-11"
+                />
+                {tags && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {tags.split(',').map(t => t.trim()).filter(Boolean).map((tag, idx) => (
+                      <Badge key={idx} variant="secondary" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="context" className="text-sm font-semibold">Related To</Label>
+                <Select value={contextId} onValueChange={setContextId}>
+                  <SelectTrigger id="context" className="h-11">
+                    <SelectValue placeholder="General task" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">General Task</SelectItem>
+                    {(services || []).map(service => (
+                      <SelectItem key={service.id} value={service.id}>
+                        {service.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </ScrollArea>
+
+          <div className="flex gap-3 justify-end pt-6 border-t mt-6">
+            <Button variant="outline" onClick={onClose} className="h-11 px-6">
+              Cancel
+            </Button>
+            <Button onClick={handleCreate} className="h-11 px-6 gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-lg">
+              <CheckCircle size={18} weight="bold" />
+              Create Task
+            </Button>
+          </div>
+        </>
+      )}
     </>
   )
 }
