@@ -1,78 +1,71 @@
 # Planning Guide
 
-An interactive system architecture visualization and automation planning dashboard for a MERN-stack startup building end-to-end organizational automation across LMS, ERP, DevOps, and communication systems.
+A comprehensive team collaboration and task management platform for distributed teams to coordinate work, track progress, manage permissions, and maintain clear communication.
 
 **Experience Qualities**:
-1. **Professional** - Enterprise-grade interface that conveys technical depth and architectural rigor, suitable for presenting to stakeholders and technical teams
-2. **Comprehensive** - Deep exploration of complex distributed systems with drill-down capabilities into services, workflows, and implementation details
-3. **Actionable** - Clear implementation roadmap with phased rollout, technology justifications, and concrete next steps
+1. **Organized** - Clear task hierarchies, intuitive navigation, and structured team views that make complex project management feel simple
+2. **Collaborative** - Real-time activity tracking, contextual comments, and team visibility features that foster coordination
+3. **Empowering** - Flexible access controls, customizable workflows, and powerful features that adapt to different team structures and needs
 
-**Complexity Level**: Complex Application (advanced functionality, likely with multiple views)
-The application presents a multi-layered enterprise architecture with interactive service diagrams, workflow visualizations, technology selection matrices, security considerations, and a phased implementation roadmap. Users navigate between architectural views, explore service relationships, and drill into detailed specifications.
+**Complexity Level**: Light Application (multiple features with basic state)
+A focused task management and team coordination tool with kanban boards, calendar views, commenting system, and role-based permissions. Users manage tasks through drag-and-drop, track deadlines via calendar, collaborate via comments, and control access through a permission system.
 
 ## Essential Features
 
-**Architecture Visualization Dashboard**
-- Functionality: Interactive visual representation of the entire system architecture showing microservices, data flows, cloud services (AWS/Azure), databases, and integration points
-- Purpose: Provides immediate understanding of system complexity and component relationships
-- Trigger: Default landing view
-- Progression: Load dashboard → View high-level architecture diagram → Hover/click services to highlight dependencies → Toggle between logical/physical views → Export architecture diagrams
-- Success criteria: All major system components visible, dependencies clearly shown, responsive interactions
+**Task Management Kanban Board**
+- Functionality: Drag-and-drop kanban board with four status columns (To Do, In Progress, Review, Done), visual priority indicators, assignee avatars, due date badges, dependency tracking, and status updates
+- Purpose: Visual task organization and workflow management with flexible ordering
+- Trigger: Navigate to Tasks tab or default view
+- Progression: View tasks organized by status → Filter by assignee/priority/due date → Drag tasks to reorder within columns → Click task to view/edit dependencies → Update task status via dropdown → Add new tasks via Create button
+- Success criteria: Tasks persist across sessions, drag-and-drop smooth and responsive, filters work correctly, blocked tasks clearly indicated
 
-**Service Catalog Browser**
-- Functionality: Detailed breakdown of each microservice/module including purpose, tech stack, API contracts, dependencies, and deployment specs
-- Purpose: Technical reference for implementation teams and architectural decision documentation
-- Trigger: Click on any service in architecture diagram or navigate to Services tab
-- Progression: Select service category (LMS/ERP/DevOps/Communication) → Browse service cards → Click service → View detailed specs (endpoints, data models, tech stack, scalability considerations) → View related services
-- Success criteria: All services documented with clear technical specifications and relationships
+**Task Priority & Custom Ordering**
+- Functionality: Toggle between automatic priority sorting (Critical > High > Medium > Low) and manual drag-and-drop custom ordering with per-status persistence
+- Purpose: Enable teams to organize tasks by urgency or by custom workflow needs
+- Trigger: Priority sort toggle switch in Tasks view
+- Progression: View tasks in default order → Enable priority sorting to auto-sort by urgency → Disable to enable drag-and-drop → Manually reorder within status columns → Order persists per status across sessions
+- Success criteria: Toggle works smoothly with feedback, custom order saves per column, priority sorting accurate
 
-**Workflow Explorer**
-- Functionality: Step-by-step visualization of automated workflows (e.g., student enrollment, payroll processing, CI/CD pipeline)
-- Purpose: Documents business process automation and system behavior for stakeholders
-- Trigger: Navigate to Workflows tab or click workflow link from service detail
-- Progression: Select workflow type → View sequential flow diagram → Click steps to see technical implementation → View data transformations → See notification triggers → Export workflow documentation
-- Success criteria: Critical workflows visualized with technical and business context
+**Task Dependencies & Gantt Chart**
+- Functionality: Define dependencies between tasks, detect circular references, visualize project timeline in Gantt chart with dependency arrows and critical path highlighting
+- Purpose: Manage complex project workflows and identify task relationships that affect scheduling
+- Trigger: Click task card to open dependencies dialog, or view Gantt chart in Roadmap
+- Progression: Open task → Add dependencies from task list → System validates (no circular refs) → See blocked indicators on dependent tasks → View Gantt chart → See dependency arrows → Identify critical path → Zoom timeline → Export to calendar
+- Success criteria: Dependency validation works, blocked tasks show indicators, Gantt chart renders correctly, dependency arrows display, critical path identifiable
 
-**Technology Stack Matrix**
-- Functionality: Comparison table and justification for all technology choices (Node.js, MongoDB, Redis, AWS services, Azure services, messaging systems)
-- Purpose: Document architectural decisions and provide rationale for technology selection
-- Trigger: Navigate to Tech Stack tab
-- Progression: View technology categories → See chosen solutions vs alternatives → Read justifications → View integration patterns → Filter by concern (security/scalability/cost)
-- Success criteria: Clear technology justifications with trade-offs documented
-
-**Implementation Roadmap**
-- Functionality: Phased rollout plan (Phase 1-3) with milestones, priorities, dependencies, effort estimates, Gantt chart visualization, and calendar export to iCal format for integration with external calendar applications
-- Purpose: Provides actionable implementation plan for development teams with visual timeline representation and the ability to sync deadlines to personal/team calendars
-- Trigger: Navigate to Roadmap tab
-- Progression: View timeline visualization → Toggle between list and Gantt chart views → Expand phases → See task breakdown → View dependencies in Gantt chart → Analyze critical path → Mark tasks as in-progress/complete → Export complete roadmap or individual phases to iCal format → Import into calendar application of choice → Receive calendar reminders for upcoming milestones → Switch between phases/tasks/combined views in Gantt chart → Zoom in/out on timeline
-- Success criteria: Clear phase breakdown with dependencies and effort estimates, valid iCal files that import correctly into Apple Calendar, Google Calendar, Outlook, and other calendar applications, exported tasks maintain priority and status information, Gantt chart displays all phases and tasks with accurate timeline positioning, dependency arrows visible between linked tasks, critical path highlighted, interactive tooltips showing task details
-
-**Security & Scalability Dashboard**
-- Functionality: Consolidated view of security patterns (OAuth/JWT/SSO, API Gateway auth, encryption), scalability strategies (horizontal scaling, caching, load balancing), and fault-tolerance mechanisms
-- Purpose: Ensures non-functional requirements are addressed systematically
-- Trigger: Navigate to Security/Scalability tab or click concern badge from any service
-- Progression: Select concern type → View patterns and implementations → See service-specific applications → View monitoring/alerting setup → Export compliance report
-- Success criteria: Comprehensive coverage of security and scalability across all services
+**Calendar View & Export**
+- Functionality: Month/week calendar visualization of task deadlines with color coding, overdue indicators, multi-task day badges, and export to iCal/Google Calendar
+- Purpose: Visualize project timeline and integrate with external calendar applications
+- Trigger: Navigate to Calendar tab
+- Progression: View current month → Navigate months → Click date to see tasks → Filter by assignee → Export full calendar or single day → Download iCal file → Import to Apple Calendar/Outlook → Or quick-add to Google Calendar
+- Success criteria: Calendar displays correctly, filters work, exports generate valid iCal files, Google Calendar integration works
 
 **Team Collaboration Hub**
-- Functionality: Task management with drag-and-drop reordering, priority-based sorting, task dependencies management, calendar visualization of deadlines, calendar export to iCal/Google Calendar formats, comment threads, team member activity tracking with context-aware collaboration on services and workflows, comprehensive role-based access control with four permission levels (Owner, Admin, Member, Viewer), granular permission management for team operations, task management, collaboration features, architecture modifications, and data access
-- Purpose: Enable distributed teams to coordinate implementation, share feedback, track progress on specific architecture components, visualize task timelines, flexibly organize tasks by priority or custom order, manage task dependencies and critical paths, integrate task deadlines with external calendar applications, and maintain secure access control with appropriate permission boundaries for different team member roles
-- Trigger: Navigate to Team tab, access collaboration features from service detail dialogs, export calendar from Calendar view or Roadmap view, manage task dependencies from task cards, or manage team member permissions
-- Progression: View team overview with access level indicator → Review personal permissions and capabilities → Create tasks with assignments and due dates (if permitted) → Sort by priority or enable drag-and-drop custom ordering → Drag tasks within status columns to reorder → Click task card to open dependencies dialog → View current dependencies and blocking tasks → Add/remove task dependencies with cycle detection → See blocked task indicators → View calendar to visualize task deadlines → Export tasks to iCal format or add single task to Google Calendar → Filter tasks by assignee and due date → Click calendar days to see tasks due → Comment on services/workflows (if permitted) → Track task status through kanban board → Monitor team activity and progress → Add/edit team members with specific access levels (if permitted) → View detailed permission breakdowns for each team member → Manage roles and access control (owner/admin only) → Import calendar into Apple Calendar, Google Calendar, Outlook, or other iCal-compatible applications → Visualize project timeline in Gantt chart with dependencies → Identify critical path
-- Success criteria: All tasks and comments persist across sessions, assignees receive clear task visibility, context-aware discussions linked to specific services, task order persists across sessions, smooth drag-and-drop interactions with visual feedback, calendar displays all tasks with due dates, overdue tasks highlighted prominently, filtering by assignee and date works correctly, exported iCal files are valid and importable into standard calendar applications, Google Calendar integration creates events correctly with proper metadata, permissions are properly enforced on all actions, users cannot perform actions beyond their access level, permission violations show clear error messages, team members can view their own permissions, admins and owners can modify access levels, permission changes take effect immediately, dependencies system prevents circular references, blocked tasks visually indicated, dependency arrows display in Gantt chart, critical path analysis available
+- Functionality: Comment threads with context (general or service-related), activity feeds, team member status tracking, and comment resolution
+- Purpose: Enable discussion and feedback tracking across the project
+- Trigger: Navigate to Comments tab or Overview activity feed
+- Progression: Select context → Write comment → Post → Comments appear in activity feed → Other members view and respond → Mark as resolved when addressed
+- Success criteria: Comments persist, activity feed updates, context filtering works, resolve functionality works
 
-**Access Control & Permissions System**
-- Functionality: Four-tier access level system (Owner, Admin, Member, Viewer) with 14 granular permissions covering team management, task operations, collaboration features, architecture modifications, and data access
-- Purpose: Maintain secure boundaries for sensitive operations, prevent unauthorized modifications, enable flexible team structures with appropriate access levels for different roles, and provide transparency about permissions
-- Trigger: Set during team member creation/editing, displayed in team overview, enforced on all protected actions
-- Progression: Admin creates team member → Assigns access level → System grants associated permissions → Member attempts action → System checks permissions → Action allowed or denied with feedback → Member views own permissions in overview → Admin/owner views any member's detailed permissions → Access level modified → Permissions update immediately
-- Success criteria: All permission checks function correctly, no unauthorized actions possible, clear feedback on permission denials, permission viewing works for all users, permission editing restricted to admins/owners, access level changes reflected immediately, permission system documented and understandable
+**Team Member Management**
+- Functionality: Add/edit/remove team members with roles (Architect, Developer, DevOps, Product), access levels (Owner, Admin, Member, Viewer), and online status tracking
+- Purpose: Maintain team roster with appropriate access controls and clear role definitions
+- Trigger: Navigate to Team tab, click Add Member or edit existing member
+- Progression: Admin opens add dialog → Enter name/email → Select role → Choose access level → System shows granted permissions → Save → Member appears in team grid → Stats track (tasks, comments) → Toggle online status → Edit permissions later as needed
+- Success criteria: CRUD operations work, permission system enforces access, stats calculate correctly
+
+**Role-Based Access Control**
+- Functionality: Four-tier permission system with 14 granular permissions across team management, tasks, comments, architecture, and data access
+- Purpose: Secure operations and provide appropriate access for different team member roles
+- Trigger: Set on member creation, checked on all protected actions, viewable in permission dialogs
+- Progression: User attempts action → System checks access level and permissions → Allow or deny with feedback → User views own permissions in overview → Admin views any member permissions → Admin modifies access level → Permissions update immediately
+- Success criteria: All permission checks enforce correctly, clear denial feedback, permission viewing works, no unauthorized actions possible
 
 **Access Levels:**
-- **Owner** (👑): Full system access including team management, role management, permission management, all task operations, all collaboration features, all architecture modifications, analytics access, and data export
-- **Admin** (⚡): Team management, all task operations, all collaboration features, all architecture modifications, analytics access, and data export (cannot modify owner permissions or access levels)
-- **Member** (✓): Create and assign tasks, create comments, view analytics, and export data (standard collaborative access)
-- **Viewer** (👁️): Create comments only (read-only access with ability to participate in discussions)
+- **Owner** (👑): Full system access - all 14 permissions
+- **Admin** (⚡): Team and content management - 13 permissions (cannot modify owner access levels)
+- **Member** (✓): Standard collaboration - create/assign tasks, comment, view analytics, export data
+- **Viewer** (👁️): Read-only - can only create comments
 
 **Permission Categories:**
 - Team Management: manage_team, manage_roles, manage_permissions
@@ -83,51 +76,35 @@ The application presents a multi-layered enterprise architecture with interactiv
 
 ## Edge Case Handling
 
-- **Large Architecture Complexity**: Use collapsible sections, zoom controls, and filtering to manage visual complexity in architecture diagrams
-- **Mobile/Tablet Viewing**: Responsive layout with stacked cards and simplified diagrams for smaller screens
-- **Export/Sharing**: Generate PDF reports and shareable URLs for stakeholder presentations
-- **Incomplete Data**: Graceful handling of missing specifications with placeholder states and "Coming Soon" indicators
-- **Deep Linking**: Support direct URLs to specific services, workflows, or roadmap phases
-- **Unassigned Tasks**: Allow tasks without assignees to be created and displayed prominently for team visibility
-- **Offline Team Members**: Display offline status clearly while maintaining access to their task history and contributions
-- **Empty Collaboration States**: Provide helpful prompts and CTAs when no comments or tasks exist yet
-- **Drag-and-Drop Conflicts**: Prevent dragging when priority sort is enabled, provide clear visual indicators and toast feedback when switching between sort modes
-- **Task Reordering Persistence**: Custom task order persists per status column across sessions using KV storage
-- **Tasks Without Due Dates**: Calendar view gracefully handles tasks without due dates by showing them in an "Upcoming Tasks" sidebar
-- **Overdue Task Visibility**: Overdue tasks are prominently highlighted with red indicators in calendar view and shown in a dedicated alert section
-- **Calendar Month Navigation**: Users can navigate between months while maintaining filter state and selected day context
-- **Multiple Tasks on Same Day**: Calendar cells display visual indicators for multiple tasks with tooltips showing count
-- **Calendar Export Features**: Users can export task calendars in iCal format for import into external applications, with options to export all tasks, current month only, or selected day's tasks
-- **Calendar Integration Options**: Direct Google Calendar quick-add link for single tasks, while full iCal export supports Apple Calendar, Outlook, and other calendar applications
-- **Invalid iCal Export**: Clear error messages with guidance if export fails or no tasks are available to export
-- **Large Task Lists**: Export process handles large task lists efficiently with progress feedback via toast notifications
-- **Roadmap Calendar Export**: Export implementation roadmap phases with estimated timelines to iCal format for team synchronization
-- **Permission Denied Actions**: Users attempting actions beyond their access level receive clear error messages explaining required permissions
-- **Access Level Changes**: When a team member's access level is changed, permissions take effect immediately without requiring re-login
-- **Self-Permission Editing**: Users can view but not modify their own access level (prevents accidental lockout)
-- **Last Owner Protection**: System prevents removing the last owner to ensure team management capability is maintained
-- **Custom Permission Conflicts**: Custom permissions can extend but not reduce base access level permissions
-- **Permission Viewing**: All team members can view other members' access levels and roles, but only admins/owners can modify them
-- **Circular Dependencies**: Task dependency system validates and prevents circular references when adding dependencies
-- **Task Blocking Indicators**: Tasks with incomplete dependencies are visually marked as blocked with clear indicators
-- **Dependency Deletion**: When a task is deleted, it is automatically removed from other tasks' dependency lists
-- **Gantt Chart Overflow**: Very long timelines (>52 weeks) use horizontal scrolling with sticky headers
-- **Gantt Chart View Modes**: Users can toggle between viewing only phases, only tasks, or a combined hierarchical view
-- **Dependency Lines**: Gantt chart draws dependency arrows between related tasks, handling overlapping lines gracefully
-- **Critical Path**: System can identify and optionally highlight the critical path through the project timeline
-- **Timeline Zoom**: Gantt chart supports zooming in/out to view weeks or months as the time unit
+- **Unassigned Tasks**: Tasks without assignees display "Unassigned" and are visible in assignee filter
+- **Tasks Without Due Dates**: Calendar view shows these in "Upcoming Tasks" sidebar
+- **Overdue Tasks**: Prominently highlighted in red across all views
+- **Drag-and-Drop Conflicts**: Dragging disabled when priority sort enabled with clear feedback
+- **Task Order Persistence**: Custom order saved per status column in KV storage
+- **Empty States**: Helpful CTAs when no tasks, comments, or team members exist
+- **Circular Dependencies**: Validation prevents circular references with error feedback
+- **Blocked Tasks**: Visual indicators when dependencies incomplete
+- **Dependency Deletion**: Removing a task updates all dependency references
+- **Permission Denials**: Clear error messages explaining required permissions
+- **Access Level Changes**: Take effect immediately without re-login
+- **Self-Permission Editing**: Users can view but not modify their own access level
+- **Last Owner Protection**: Cannot remove last owner to prevent lockout
+- **Large Task Lists**: Calendar export handles large datasets with progress feedback
+- **Invalid Exports**: Clear error messages when export fails
+- **Offline Members**: Display offline status while preserving task/comment history
+- **Mobile Layout**: Responsive cards, stacked columns, touch-friendly targets
 
 ## Design Direction
 
-The design should evoke confidence, technical sophistication, and clarity. Think enterprise SaaS dashboard meets technical documentation - clean, data-dense but organized, with subtle tech aesthetics. The interface should feel like a professional tool used by senior engineers and architects to plan production systems. Visual hierarchy guides users through complex information without overwhelming them.
+The design should feel organized, welcoming, and empowering - a tool that helps teams work better together. Professional enough for enterprise use but approachable enough for small teams. Visual hierarchy makes dense information scannable, with clear status indicators and intuitive interactions. The interface should reduce cognitive load while providing powerful functionality.
 
 ## Color Selection
 
-Technical, professional palette with vibrant accents for interactive elements and status indicators.
+Clean, professional palette with vibrant accents for status and interactive elements.
 
-- **Primary Color**: Deep Navy Blue (oklch(0.35 0.05 250)) - Conveys professionalism, technical depth, and stability; used for primary navigation, headers, and key CTAs
-- **Secondary Colors**: Steel Gray (oklch(0.55 0.02 250)) for secondary elements and backgrounds; Cool White (oklch(0.98 0.005 250)) for cards and surfaces
-- **Accent Color**: Electric Cyan (oklch(0.70 0.15 200)) - Modern, tech-forward highlight for interactive elements, status indicators, and data visualization; draws attention without overwhelming
+- **Primary Color**: Deep Navy Blue (oklch(0.35 0.05 250)) - Professional, trustworthy foundation for headers and primary actions
+- **Secondary Colors**: Steel Gray (oklch(0.55 0.02 250)) for supporting elements; Cool White (oklch(0.98 0.005 250)) for backgrounds
+- **Accent Color**: Electric Cyan (oklch(0.70 0.15 200)) - Modern, friendly highlight for interactive elements and active states
 - **Foreground/Background Pairings**: 
   - Background (Cool White oklch(0.98 0.005 250)): Dark Navy text (oklch(0.25 0.05 250)) - Ratio 11.2:1 ✓
   - Primary (Deep Navy oklch(0.35 0.05 250)): White text (oklch(1 0 0)) - Ratio 8.7:1 ✓
@@ -136,60 +113,61 @@ Technical, professional palette with vibrant accents for interactive elements an
 
 ## Font Selection
 
-Typography should balance technical precision with readability - geometric sans-serif for UI elements, monospace for code/technical specs.
+Readable, modern typography that balances personality with professionalism.
 
 - **Typographic Hierarchy**: 
-  - H1 (Page Titles): Space Grotesk Bold / 32px / tight tracking (-0.02em) - Strong presence for main sections
-  - H2 (Section Headers): Space Grotesk SemiBold / 24px / normal tracking - Clear hierarchy
-  - H3 (Component Titles): Space Grotesk Medium / 18px / normal tracking - Subsection organization
-  - Body Text: Inter Regular / 15px / relaxed line-height (1.6) - Maximum readability for dense content
-  - Technical Labels: JetBrains Mono Regular / 13px / normal tracking - Code, IDs, tech stack items
-  - Captions/Metadata: Inter Regular / 13px / wide tracking (0.01em) / text-muted-foreground - Timestamps, tags, helper text
+  - H1 (Page Title): Space Grotesk Bold / 28px / tight tracking - Main header
+  - H2 (Section Headers): Space Grotesk SemiBold / 24px / normal tracking - Tab content titles
+  - H3 (Card Titles): Space Grotesk Medium / 18px / normal tracking - Component headers
+  - Body Text: Inter Regular / 15px / relaxed line-height (1.6) - Maximum readability
+  - Labels: Inter Medium / 14px / normal tracking - Form labels, badges
+  - Captions: Inter Regular / 13px / wide tracking (0.01em) / text-muted-foreground - Timestamps, metadata
 
 ## Animations
 
-Animations should enhance understanding of system flows and relationships without distracting from technical content. Prioritize purposeful motion that reveals information hierarchy and guides attention.
+Purposeful motion that enhances understanding without distraction.
 
-Subtle micro-interactions for hover states (service cards scale slightly, connection lines highlight), smooth transitions between views (fade + slight translate), animated data flow indicators along connection lines showing directionality, accordion-style expansion for detailed specifications, and gentle pulse effects on status indicators. Keep durations fast (150-250ms) to maintain professional feel.
+Smooth card hover effects (subtle lift + shadow), drag-and-drop with visual feedback (ghost element + drop zone highlights), tab transitions (quick fade), dialog/drawer slide-in animations, status badge color transitions, and gentle pulse on new activity indicators. Keep durations fast (150-250ms) to maintain snappy feel.
 
 ## Component Selection
 
 - **Components**: 
-  - Card: Primary container for services, workflows, tech stack items with hover effects to reveal actions
-  - Tabs: Main navigation between Architecture/Services/Workflows/Tech Stack/Roadmap/Security sections
-  - Accordion: Expand/collapse detailed specifications within service details and roadmap phases
-  - Dialog: Full-screen or large modal for deep-dive service specifications and workflow details
-  - Badge: Technology tags, status indicators (deployed/planned/deprecated), priority levels
-  - Tooltip: Contextual help for technical terms and abbreviations
-  - Scroll Area: Manage long lists of services and specifications
-  - Separator: Visual breaks between logical sections
-  - Button: Primary actions (Export, View Details, Mark Complete) with distinct variants
-  - Table: Technology comparison matrix and roadmap task lists
+  - Card: Primary container for tasks, team members, activity with hover states
+  - Tabs: Main navigation (Overview, Tasks, Calendar, Comments, Team)
+  - Dialog: Task creation, member management, permissions viewing
+  - Badge: Priority levels, status indicators, access levels, roles
+  - Tooltip: Contextual help and additional information
+  - ScrollArea: Long lists of tasks, comments, team members
+  - Select: Filters, assignee selection, status updates
+  - Switch: Priority sort toggle, online status
+  - Textarea: Comment composition, task descriptions
+  - Avatar: Team member identification throughout UI
+  - Button: Actions with clear hierarchy (primary, secondary, ghost)
   
 - **Customizations**: 
-  - Custom architecture diagram component using SVG with interactive nodes and animated connection lines
-  - Custom workflow visualizer with step-by-step progression and branching logic
-  - Custom timeline component for roadmap with dependency indicators
-  - Service cards with custom hover states showing quick stats and key metrics
+  - Sortable task cards with drag handles using @dnd-kit
+  - Custom calendar grid with multi-task day indicators
+  - Permission breakdown displays with category grouping
+  - Activity feed with timestamp formatting
   
 - **States**: 
-  - Buttons: Subtle scale on hover, darker shade on active, gradient shift for primary actions
-  - Cards: Lift effect on hover with shadow increase, border highlight on selection, disabled state with reduced opacity
-  - Interactive diagram nodes: Glow effect on hover, pulsing border for selected state, dimmed for inactive/dependent services
+  - Buttons: Scale on hover, darker on active, disabled with reduced opacity
+  - Task Cards: Lift on hover, shadow increase, border highlight when blocked
+  - Drag-and-drop: Ghost element during drag, drop zone highlights, smooth reordering
   
 - **Icon Selection**: 
-  - @phosphor-icons/react: Database, CloudArrowUp, GitBranch, Bell, Lock, ChartLine, Workflow, CirclesThree (microservices), Lightning (automation), Shield, Calendar, Users, Code
-  - Use duotone weight for primary feature icons, regular weight for inline/secondary icons
+  - @phosphor-icons/react: Users, CheckSquare, ChatCircleDots, CalendarBlank, ShieldCheck, FlagBanner, GitBranch, Plus, DotsThree, CheckCircle, Clock, Lock, Tag, DotsSixVertical
+  - Use duotone weight for feature icons in headers, regular for inline usage
   
 - **Spacing**: 
-  - Consistent gap-6 between major sections, gap-4 for card grids, gap-2 for inline elements
-  - Section padding: p-8 for main content areas, p-6 for cards, p-4 for nested containers
-  - Page margins: max-w-7xl mx-auto for content constraint
+  - Consistent gap-6 between sections, gap-4 for card grids, gap-2 for inline elements
+  - Card padding: p-6 for main cards, p-4 for compact cards, p-3 for nested content
+  - Page margins: max-w-7xl mx-auto
   
 - **Mobile**: 
-  - Single column layout for all card grids on <768px
-  - Tabs convert to vertical stack or dropdown select on mobile
-  - Architecture diagrams switch to simplified tree view or collapsible list on mobile
-  - Service details open as full-screen sheet instead of dialog
-  - Sticky header with hamburger menu for navigation
-  - Touch-friendly hit targets (min 44px) for all interactive elements
+  - Single column task board (stacked status columns)
+  - Tabs convert to full-width stacked buttons
+  - Calendar switches to week view on mobile
+  - Dialogs become full-screen sheets
+  - Team grid becomes single column
+  - Touch-friendly drag handles and buttons (min 44px)
