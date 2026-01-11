@@ -675,9 +675,9 @@ const CreateTaskDialog = ({ onClose, onCreate, currentUser }: CreateTaskDialogPr
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState<Task['priority']>('medium')
-  const [assignee, setAssignee] = useState<string>('')
+  const [assignee, setAssignee] = useState<string>('unassigned')
   const [contextType, setContextType] = useState<'service' | 'workflow' | 'general'>('general')
-  const [contextId, setContextId] = useState<string>('')
+  const [contextId, setContextId] = useState<string>('general')
 
   const handleCreate = () => {
     if (!title.trim()) {
@@ -691,10 +691,10 @@ const CreateTaskDialog = ({ onClose, onCreate, currentUser }: CreateTaskDialogPr
       description,
       status: 'todo',
       priority,
-      assigneeId: assignee || undefined,
+      assigneeId: assignee === 'unassigned' ? undefined : assignee,
       creatorId: currentUser.id,
       contextType,
-      contextId: contextId || undefined,
+      contextId: contextId === 'general' ? undefined : contextId,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       tags: [],
@@ -758,7 +758,7 @@ const CreateTaskDialog = ({ onClose, onCreate, currentUser }: CreateTaskDialogPr
                 <SelectValue placeholder="Unassigned" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Unassigned</SelectItem>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
                 {mockTeamMembers.map(member => (
                   <SelectItem key={member.id} value={member.id}>
                     {member.name}
@@ -776,7 +776,7 @@ const CreateTaskDialog = ({ onClose, onCreate, currentUser }: CreateTaskDialogPr
               <SelectValue placeholder="General task" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">General</SelectItem>
+              <SelectItem value="general">General</SelectItem>
               {services.map(service => (
                 <SelectItem key={service.id} value={service.id}>
                   {service.name}
