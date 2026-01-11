@@ -107,7 +107,28 @@ const CollaborationView = () => {
   const [selectedContext, setSelectedContext] = useState<{ type: string; id: string } | null>(null)
   const [isCreatingTask, setIsCreatingTask] = useState(false)
 
-  const allMembers = teamMembers && teamMembers.length > 0 ? teamMembers : mockTeamMembers
+  const fixTeamMembersData = (members: TeamMember[]): TeamMember[] => {
+    let hasFixed = false
+    const fixed = members.map(member => {
+      if (!member.accessLevel) {
+        hasFixed = true
+        return {
+          ...member,
+          accessLevel: 'member' as AccessLevel
+        }
+      }
+      return member
+    })
+    
+    if (hasFixed) {
+      setTeamMembers(() => fixed)
+      toast.info('Fixed team member data with missing access levels')
+    }
+    
+    return fixed
+  }
+
+  const allMembers = teamMembers && teamMembers.length > 0 ? fixTeamMembersData(teamMembers) : mockTeamMembers
   const currentUser = allMembers[0]
 
   const addComment = (contextType: string, contextId: string) => {
