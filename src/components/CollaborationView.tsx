@@ -62,6 +62,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import CalendarView from '@/components/CalendarView'
 import TaskDependenciesDialog from '@/components/TaskDependenciesDialog'
+import ActivityTimeline from '@/components/ActivityTimeline'
 
 const priorityColors = {
   low: 'text-blue-600',
@@ -222,37 +223,37 @@ const CollaborationView = () => {
       </motion.div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-3 sm:grid-cols-6 w-full max-w-4xl h-auto gap-2 bg-muted/50 p-1 rounded-xl">
-          <TabsTrigger value="overview" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md rounded-lg">
+        <TabsList className="grid grid-cols-3 sm:grid-cols-6 w-full max-w-4xl h-auto gap-2 bg-muted/50 backdrop-blur-sm p-1.5 rounded-xl shadow-inner">
+          <TabsTrigger value="overview" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-lg data-[state=active]:scale-105 rounded-lg transition-all">
             <Users size={18} weight="duotone" />
             <span className="hidden sm:inline">Overview</span>
           </TabsTrigger>
-          <TabsTrigger value="tasks" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md rounded-lg">
+          <TabsTrigger value="tasks" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-lg data-[state=active]:scale-105 rounded-lg transition-all">
             <CheckSquare size={18} weight="duotone" />
             <span className="hidden sm:inline">Tasks</span>
-            <Badge variant="secondary" className="ml-1 text-xs">
+            <Badge variant="secondary" className="ml-1 text-xs shadow-sm">
               {(tasks || []).filter(t => t.status !== 'done').length}
             </Badge>
           </TabsTrigger>
-          <TabsTrigger value="calendar" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md rounded-lg">
+          <TabsTrigger value="calendar" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-lg data-[state=active]:scale-105 rounded-lg transition-all">
             <CalendarBlank size={18} weight="duotone" />
             <span className="hidden sm:inline">Calendar</span>
           </TabsTrigger>
-          <TabsTrigger value="comments" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md rounded-lg">
+          <TabsTrigger value="comments" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-lg data-[state=active]:scale-105 rounded-lg transition-all">
             <ChatCircleDots size={18} weight="duotone" />
             <span className="hidden sm:inline">Comments</span>
-            <Badge variant="secondary" className="ml-1 text-xs">
+            <Badge variant="secondary" className="ml-1 text-xs shadow-sm">
               {(comments || []).length}
             </Badge>
           </TabsTrigger>
-          <TabsTrigger value="team" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md rounded-lg">
+          <TabsTrigger value="team" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-lg data-[state=active]:scale-105 rounded-lg transition-all">
             <Users size={18} weight="duotone" />
             <span className="hidden sm:inline">Team</span>
-            <Badge variant="secondary" className="ml-1 text-xs">
+            <Badge variant="secondary" className="ml-1 text-xs shadow-sm">
               {allMembers.length}
             </Badge>
           </TabsTrigger>
-          <TabsTrigger value="data" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-md rounded-lg">
+          <TabsTrigger value="data" className="gap-2 data-[state=active]:bg-card data-[state=active]:shadow-lg data-[state=active]:scale-105 rounded-lg transition-all">
             <Database size={18} weight="duotone" />
             <span className="hidden sm:inline">Data</span>
           </TabsTrigger>
@@ -264,7 +265,7 @@ const CollaborationView = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <Card className="border-primary/30 bg-gradient-to-br from-primary/5 via-accent/5 to-transparent shadow-lg">
+            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-accent/5 to-transparent shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <ShieldCheck size={20} weight="duotone" className="text-primary" />
@@ -276,10 +277,10 @@ const CollaborationView = () => {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-4 mb-3">
-                  <Badge className={cn('text-sm px-3 py-1 shadow-md', accessLevelColors[currentUser.accessLevel])}>
+                  <Badge className={cn('text-sm px-3 py-1.5 shadow-md', accessLevelColors[currentUser.accessLevel])}>
                     {accessLevelIcons[currentUser.accessLevel]} {currentUser.accessLevel}
                   </Badge>
-                  <Badge variant="secondary" className={cn('text-sm px-3 py-1 shadow-sm', roleColors[currentUser.role])}>
+                  <Badge variant="secondary" className={cn('text-sm px-3 py-1.5 shadow-sm', roleColors[currentUser.role])}>
                     {currentUser.role}
                   </Badge>
                 </div>
@@ -311,7 +312,7 @@ const CollaborationView = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
             >
-              <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 h-full">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Users size={20} weight="duotone" className="text-primary" />
@@ -322,38 +323,41 @@ const CollaborationView = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {onlineMembers.map(member => (
-                      <motion.div 
-                        key={member.id} 
-                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
-                        whileHover={{ scale: 1.02 }}
-                      >
-                        <div className="relative">
-                          <Avatar className="h-10 w-10 ring-2 ring-background">
-                            <AvatarImage src={member.avatarUrl} alt={member.name} />
-                            <AvatarFallback>{member.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                          </Avatar>
-                          <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-card shadow-sm" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <p className="font-medium text-sm">{member.name}</p>
-                            <span className="text-xs">{accessLevelIcons[member.accessLevel]}</span>
+                  <ScrollArea className="h-[280px]">
+                    <div className="space-y-3 pr-4">
+                      {onlineMembers.map(member => (
+                        <motion.div 
+                          key={member.id} 
+                          className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors border border-transparent hover:border-border"
+                          whileHover={{ scale: 1.02, x: 4 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <div className="relative">
+                            <Avatar className="h-10 w-10 ring-2 ring-background shadow-sm">
+                              <AvatarImage src={member.avatarUrl} alt={member.name} />
+                              <AvatarFallback>{member.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                            </Avatar>
+                            <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-card shadow-sm animate-pulse" />
                           </div>
-                          <p className="text-xs text-muted-foreground truncate">{member.email}</p>
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <Badge variant="secondary" className={cn('text-xs', roleColors[member.role])}>
-                            {member.role}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs capitalize">
-                            {member.accessLevel}
-                          </Badge>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-medium text-sm">{member.name}</p>
+                              <span className="text-xs">{accessLevelIcons[member.accessLevel]}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge variant="secondary" className={cn('text-xs', roleColors[member.role])}>
+                              {member.role}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs capitalize">
+                              {member.accessLevel}
+                            </Badge>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 </CardContent>
               </Card>
             </motion.div>
@@ -363,7 +367,7 @@ const CollaborationView = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.2 }}
             >
-              <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 h-full">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <CheckSquare size={20} weight="duotone" className="text-accent" />
@@ -375,7 +379,7 @@ const CollaborationView = () => {
                 </CardHeader>
                 <CardContent>
                   <ScrollArea className="h-[280px]">
-                    <div className="space-y-3">
+                    <div className="space-y-3 pr-4">
                       {recentTasks.length === 0 ? (
                         <div className="py-12 text-center">
                           <CheckSquare size={48} className="mx-auto text-muted-foreground/50 mb-2" weight="duotone" />
@@ -400,34 +404,11 @@ const CollaborationView = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.3 }}
           >
-            <Card className="shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ChatCircleDots size={20} weight="duotone" className="text-accent" />
-                  Recent Activity
-                </CardTitle>
-                <CardDescription>Latest comments and discussions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {recentComments.length === 0 ? (
-                    <div className="py-12 text-center">
-                      <ChatCircleDots size={48} className="mx-auto text-muted-foreground/50 mb-2" weight="duotone" />
-                      <p className="text-sm text-muted-foreground">
-                        No comments yet. Start a discussion!
-                      </p>
-                    </div>
-                  ) : (
-                    recentComments.map(comment => {
-                      const author = allMembers.find(m => m.id === comment.authorId)
-                      return (
-                        <CommentCard key={comment.id} comment={comment} author={author} />
-                      )
-                    })
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <ActivityTimeline 
+              tasks={tasks || []} 
+              comments={comments || []} 
+              teamMembers={allMembers} 
+            />
           </motion.div>
         </TabsContent>
 
@@ -615,9 +596,9 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-3 p-4 bg-muted/30 rounded-xl shadow-inner">
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-40 shadow-sm hover:shadow-md transition-shadow">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -630,7 +611,7 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps
         </Select>
 
         <Select value={filterPriority} onValueChange={setFilterPriority}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-40 shadow-sm hover:shadow-md transition-shadow">
             <SelectValue placeholder="Priority" />
           </SelectTrigger>
           <SelectContent>
@@ -643,7 +624,7 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps
         </Select>
 
         <Select value={filterAssignee} onValueChange={setFilterAssignee}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-40 shadow-sm hover:shadow-md transition-shadow">
             <SelectValue placeholder="Assignee" />
           </SelectTrigger>
           <SelectContent>
@@ -658,7 +639,7 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps
         </Select>
 
         <Select value={filterDueDate} onValueChange={setFilterDueDate}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-40 shadow-sm hover:shadow-md transition-shadow">
             <SelectValue placeholder="Due Date" />
           </SelectTrigger>
           <SelectContent>
@@ -670,9 +651,9 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps
           </SelectContent>
         </Select>
 
-        <div className="flex items-center gap-2 ml-auto border rounded-lg px-3 py-2 bg-card">
+        <div className="flex items-center gap-2 ml-auto border rounded-lg px-4 py-2.5 bg-card shadow-sm hover:shadow-md transition-shadow">
           <ArrowsDownUp size={16} className="text-muted-foreground" />
-          <Label htmlFor="priority-sort" className="text-sm cursor-pointer">
+          <Label htmlFor="priority-sort" className="text-sm cursor-pointer font-medium">
             Sort by Priority
           </Label>
           <Switch
@@ -698,11 +679,17 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps
       >
         <div className="grid lg:grid-cols-4 gap-4">
           {Object.entries(tasksByStatus).map(([status, statusTasks]) => (
-            <Card key={status} className="bg-muted/30">
+            <Card key={status} className="bg-muted/30 shadow-lg hover:shadow-xl transition-all duration-300">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium capitalize flex items-center justify-between">
-                  {status.replace('-', ' ')}
-                  <Badge variant="secondary" className="text-xs">
+                <CardTitle className="text-sm font-semibold capitalize flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    {status === 'todo' && <Circle size={16} weight="bold" className="text-gray-500" />}
+                    {status === 'in-progress' && <ArrowRight size={16} weight="bold" className="text-blue-500" />}
+                    {status === 'review' && <Clock size={16} weight="bold" className="text-purple-500" />}
+                    {status === 'done' && <CheckCircle size={16} weight="fill" className="text-green-500" />}
+                    {status.replace('-', ' ')}
+                  </span>
+                  <Badge variant="secondary" className="text-xs font-bold shadow-sm">
                     {statusTasks.length}
                   </Badge>
                 </CardTitle>
@@ -714,7 +701,7 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps
                     strategy={verticalListSortingStrategy}
                     disabled={sortByPriority || false}
                   >
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {statusTasks.map(task => (
                         <SortableTaskCard
                           key={task.id}
@@ -727,9 +714,10 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps
                         />
                       ))}
                       {statusTasks.length === 0 && (
-                        <p className="text-sm text-muted-foreground text-center py-8">
-                          No tasks
-                        </p>
+                        <div className="text-sm text-muted-foreground text-center py-12 border-2 border-dashed border-muted rounded-lg">
+                          <p className="font-medium">No tasks</p>
+                          <p className="text-xs mt-1">Drag tasks here</p>
+                        </div>
                       )}
                     </div>
                   </SortableContext>
@@ -1147,52 +1135,62 @@ const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable 
     .filter(t => (task.dependencies || []).includes(t.id))
     .some(t => t.status !== 'done')
 
+  const priorityBorder = {
+    low: 'border-l-4 border-l-blue-500',
+    medium: 'border-l-4 border-l-yellow-500',
+    high: 'border-l-4 border-l-orange-500',
+    critical: 'border-l-4 border-l-red-500'
+  }
+
   return (
     <Card 
       className={cn(
-        "cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5",
-        isDragging && "opacity-50 cursor-grabbing shadow-2xl",
-        blockedByIncomplete && "border-orange-500/50 bg-orange-50/5"
+        "cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group relative overflow-hidden",
+        isDragging && "opacity-50 cursor-grabbing shadow-2xl scale-105",
+        blockedByIncomplete && "border-orange-500/50 bg-orange-50/5 dark:bg-orange-950/20",
+        priorityBorder[task.priority]
       )} 
       onClick={onClick}
     >
-      <CardContent className={compact ? 'pt-4' : 'pt-6'}>
-        <div className="space-y-2">
+      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-primary/5 to-accent/5 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+      
+      <CardContent className={compact ? 'pt-4 relative' : 'pt-6 relative'}>
+        <div className="space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-start gap-2 flex-1 min-w-0">
               {isDraggable && (
-                <DotsSixVertical size={16} weight="bold" className="text-muted-foreground mt-0.5 cursor-grab flex-shrink-0 hover:text-foreground transition-colors" />
+                <DotsSixVertical size={18} weight="bold" className="text-muted-foreground mt-0.5 cursor-grab flex-shrink-0 hover:text-foreground transition-colors opacity-0 group-hover:opacity-100" />
               )}
-              <h4 className="font-semibold text-sm line-clamp-2">{task.title}</h4>
+              <h4 className="font-semibold text-sm line-clamp-2 leading-snug">{task.title}</h4>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               {dependencies > 0 && (
                 <Badge variant="outline" className="text-xs gap-1 shadow-sm">
                   <GitBranch size={12} weight="bold" />
                   {dependencies}
                 </Badge>
               )}
-              <FlagBanner size={18} weight="fill" className={cn(priorityColors[task.priority], "flex-shrink-0 drop-shadow-sm")} />
+              <FlagBanner size={20} weight="fill" className={cn(priorityColors[task.priority], "flex-shrink-0 drop-shadow-md")} />
             </div>
           </div>
           
           {!compact && task.description && (
-            <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
+            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{task.description}</p>
           )}
 
           {blockedByIncomplete && (
-            <div className="flex items-center gap-1 text-xs text-orange-600 bg-orange-100/50 dark:bg-orange-900/20 px-2 py-1 rounded-md">
+            <div className="flex items-center gap-1.5 text-xs text-orange-600 dark:text-orange-400 bg-orange-100/50 dark:bg-orange-900/20 px-2.5 py-1.5 rounded-md font-medium">
               <GitBranch size={12} weight="bold" />
-              <span className="font-medium">Blocked by dependencies</span>
+              <span>Blocked by dependencies</span>
             </div>
           )}
           
           {dueDateInfo && (
             <div className={cn(
-              "flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md w-fit",
-              dueDateInfo.isOverdue ? "text-red-600 bg-red-100/50 dark:bg-red-900/20" : 
-              dueDateInfo.daysUntilDue <= 1 ? "text-orange-600 bg-orange-100/50 dark:bg-orange-900/20" : 
-              dueDateInfo.daysUntilDue <= 3 ? "text-yellow-600 bg-yellow-100/50 dark:bg-yellow-900/20" : "text-muted-foreground"
+              "flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md w-fit",
+              dueDateInfo.isOverdue ? "text-red-600 dark:text-red-400 bg-red-100/50 dark:bg-red-900/20" : 
+              dueDateInfo.daysUntilDue <= 1 ? "text-orange-600 dark:text-orange-400 bg-orange-100/50 dark:bg-orange-900/20" : 
+              dueDateInfo.daysUntilDue <= 3 ? "text-yellow-600 dark:text-yellow-400 bg-yellow-100/50 dark:bg-yellow-900/20" : "text-muted-foreground bg-muted/50"
             )}>
               <CalendarBlank size={14} weight="bold" />
               <span>
@@ -1205,10 +1203,10 @@ const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable 
             </div>
           )}
           
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2 pt-1">
             {assignee ? (
               <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6 ring-2 ring-background">
+                <Avatar className="h-7 w-7 ring-2 ring-background shadow-sm">
                   <AvatarImage src={assignee.avatarUrl} alt={assignee.name} />
                   <AvatarFallback className="text-xs">
                     {assignee.name.split(' ').map(n => n[0]).join('')}
@@ -1217,7 +1215,10 @@ const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable 
                 <span className="text-xs font-medium text-muted-foreground">{assignee.name.split(' ')[0]}</span>
               </div>
             ) : (
-              <span className="text-xs text-muted-foreground font-medium">Unassigned</span>
+              <span className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+                <Users size={14} />
+                Unassigned
+              </span>
             )}
             
             {onStatusChange && (
@@ -1227,7 +1228,7 @@ const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable 
                   onStatusChange(val as Task['status'])
                 }}
               >
-                <SelectTrigger className="h-7 w-28 text-xs shadow-sm" onClick={(e) => e.stopPropagation()}>
+                <SelectTrigger className="h-8 w-32 text-xs shadow-sm" onClick={(e) => e.stopPropagation()}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1241,12 +1242,17 @@ const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable 
           </div>
           
           {(task.tags || []).length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {(task.tags || []).map(tag => (
+            <div className="flex flex-wrap gap-1.5">
+              {(task.tags || []).slice(0, 3).map(tag => (
                 <Badge key={tag} variant="outline" className="text-xs shadow-sm">
                   {tag}
                 </Badge>
               ))}
+              {(task.tags || []).length > 3 && (
+                <Badge variant="outline" className="text-xs">
+                  +{(task.tags || []).length - 3}
+                </Badge>
+              )}
             </div>
           )}
         </div>
@@ -1350,6 +1356,7 @@ const CreateTaskDialog = ({ onClose, onCreate, currentUser, teamMembers }: Creat
   const [contextType, setContextType] = useState<'service' | 'workflow' | 'general'>('general')
   const [contextId, setContextId] = useState<string>('general')
   const [dueDate, setDueDate] = useState<string>('')
+  const [tags, setTags] = useState<string>('')
 
   const handleCreate = () => {
     if (!title.trim()) {
@@ -1370,114 +1377,228 @@ const CreateTaskDialog = ({ onClose, onCreate, currentUser, teamMembers }: Creat
       dueDate: dueDate ? new Date(dueDate).getTime() : undefined,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      tags: [],
+      tags: tags.split(',').map(t => t.trim()).filter(Boolean),
       comments: []
     }
 
     onCreate(newTask)
   }
 
+  const selectedAssignee = teamMembers.find(m => m.id === assignee)
+
+  const priorityIcons = {
+    low: <FlagBanner size={16} weight="fill" className="text-blue-500" />,
+    medium: <FlagBanner size={16} weight="fill" className="text-yellow-500" />,
+    high: <FlagBanner size={16} weight="fill" className="text-orange-500" />,
+    critical: <FlagBanner size={16} weight="fill" className="text-red-500" />
+  }
+
   return (
     <>
-      <DialogHeader>
-        <DialogTitle>Create New Task</DialogTitle>
-        <DialogDescription>
-          Assign work and track progress across the architecture
-        </DialogDescription>
+      <DialogHeader className="space-y-3 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-gradient-to-br from-primary to-accent rounded-xl">
+            <Plus size={24} weight="bold" className="text-white" />
+          </div>
+          <div>
+            <DialogTitle className="text-2xl">Create New Task</DialogTitle>
+            <DialogDescription className="text-base mt-1">
+              Assign work and track progress across your team
+            </DialogDescription>
+          </div>
+        </div>
       </DialogHeader>
 
-      <div className="space-y-4 mt-4">
-        <div>
-          <Label htmlFor="title">Task Title *</Label>
-          <Input
-            id="title"
-            placeholder="e.g., Implement API authentication"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="description">Description</Label>
-          <Textarea
-            id="description"
-            placeholder="Add details about this task..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="priority">Priority</Label>
-            <Select value={priority} onValueChange={(val) => setPriority(val as Task['priority'])}>
-              <SelectTrigger id="priority">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="critical">Critical</SelectItem>
-              </SelectContent>
-            </Select>
+      <ScrollArea className="max-h-[60vh] pr-4">
+        <div className="space-y-5 mt-2">
+          <div className="space-y-2">
+            <Label htmlFor="title" className="text-sm font-semibold">Task Title *</Label>
+            <Input
+              id="title"
+              placeholder="e.g., Implement user authentication"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="h-11 text-base"
+              autoFocus
+            />
           </div>
 
-          <div>
-            <Label htmlFor="assignee">Assign To</Label>
-            <Select value={assignee} onValueChange={setAssignee}>
-              <SelectTrigger id="assignee">
-                <SelectValue placeholder="Unassigned" />
+          <div className="space-y-2">
+            <Label htmlFor="description" className="text-sm font-semibold">Description</Label>
+            <Textarea
+              id="description"
+              placeholder="Add details, requirements, or context about this task..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={4}
+              className="resize-none text-base"
+            />
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="priority" className="text-sm font-semibold flex items-center gap-2">
+                <FlagBanner size={14} weight="duotone" />
+                Priority
+              </Label>
+              <Select value={priority} onValueChange={(val) => setPriority(val as Task['priority'])}>
+                <SelectTrigger id="priority" className="h-11">
+                  <div className="flex items-center gap-2">
+                    {priorityIcons[priority]}
+                    <SelectValue />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">
+                    <div className="flex items-center gap-2">
+                      <FlagBanner size={16} weight="fill" className="text-blue-500" />
+                      <span>Low Priority</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="medium">
+                    <div className="flex items-center gap-2">
+                      <FlagBanner size={16} weight="fill" className="text-yellow-500" />
+                      <span>Medium Priority</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="high">
+                    <div className="flex items-center gap-2">
+                      <FlagBanner size={16} weight="fill" className="text-orange-500" />
+                      <span>High Priority</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="critical">
+                    <div className="flex items-center gap-2">
+                      <FlagBanner size={16} weight="fill" className="text-red-500" />
+                      <span>Critical Priority</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="assignee" className="text-sm font-semibold flex items-center gap-2">
+                <Users size={14} weight="duotone" />
+                Assign To
+              </Label>
+              <Select value={assignee} onValueChange={setAssignee}>
+                <SelectTrigger id="assignee" className="h-11">
+                  <div className="flex items-center gap-2">
+                    {selectedAssignee ? (
+                      <>
+                        <Avatar className="h-5 w-5 ring-1 ring-background">
+                          <AvatarImage src={selectedAssignee.avatarUrl} alt={selectedAssignee.name} />
+                          <AvatarFallback className="text-xs">
+                            {selectedAssignee.name.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span>{selectedAssignee.name}</span>
+                      </>
+                    ) : (
+                      <SelectValue placeholder="Unassigned" />
+                    )}
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">
+                    <div className="flex items-center gap-2">
+                      <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center">
+                        <Users size={12} className="text-muted-foreground" />
+                      </div>
+                      <span>Unassigned</span>
+                    </div>
+                  </SelectItem>
+                  {teamMembers.map(member => (
+                    <SelectItem key={member.id} value={member.id}>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-5 w-5 ring-1 ring-background">
+                          <AvatarImage src={member.avatarUrl} alt={member.name} />
+                          <AvatarFallback className="text-xs">
+                            {member.name.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span>{member.name}</span>
+                        <Badge variant="outline" className="text-xs ml-auto">{member.role}</Badge>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="due-date" className="text-sm font-semibold flex items-center gap-2">
+              <CalendarBlank size={14} weight="duotone" />
+              Due Date
+            </Label>
+            <Input
+              id="due-date"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              className="h-11"
+            />
+            {dueDate && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock size={12} />
+                Due {new Date(dueDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="tags" className="text-sm font-semibold flex items-center gap-2">
+              <Tag size={14} weight="duotone" />
+              Tags
+            </Label>
+            <Input
+              id="tags"
+              placeholder="e.g., backend, urgent, bug-fix (comma separated)"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              className="h-11"
+            />
+            {tags && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {tags.split(',').map(t => t.trim()).filter(Boolean).map((tag, idx) => (
+                  <Badge key={idx} variant="secondary" className="text-xs">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="context" className="text-sm font-semibold">Related To</Label>
+            <Select value={contextId} onValueChange={setContextId}>
+              <SelectTrigger id="context" className="h-11">
+                <SelectValue placeholder="General task" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
-                {teamMembers.map(member => (
-                  <SelectItem key={member.id} value={member.id}>
-                    {member.name}
+                <SelectItem value="general">General Task</SelectItem>
+                {(services || []).map(service => (
+                  <SelectItem key={service.id} value={service.id}>
+                    {service.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
         </div>
+      </ScrollArea>
 
-        <div>
-          <Label htmlFor="due-date">Due Date (Optional)</Label>
-          <Input
-            id="due-date"
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            min={new Date().toISOString().split('T')[0]}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="context">Related To (Optional)</Label>
-          <Select value={contextId} onValueChange={setContextId}>
-            <SelectTrigger id="context">
-              <SelectValue placeholder="General task" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="general">General</SelectItem>
-              {(services || []).map(service => (
-                <SelectItem key={service.id} value={service.id}>
-                  {service.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex gap-2 justify-end pt-4">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleCreate}>
-            Create Task
-          </Button>
-        </div>
+      <div className="flex gap-3 justify-end pt-6 border-t mt-6">
+        <Button variant="outline" onClick={onClose} className="h-11 px-6">
+          Cancel
+        </Button>
+        <Button onClick={handleCreate} className="h-11 px-6 gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-lg">
+          <CheckCircle size={18} weight="bold" />
+          Create Task
+        </Button>
       </div>
     </>
   )

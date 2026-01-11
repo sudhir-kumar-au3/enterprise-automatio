@@ -12,19 +12,33 @@ A focused task management and team coordination tool with kanban boards, calenda
 
 ## Essential Features
 
+**Enhanced Task Creation Form**
+- Functionality: Modern, comprehensive task creation dialog with visual priority indicators, assignee selection with avatars, tag support, date preview, and rich formatting
+- Purpose: Streamline task creation with all necessary information in an intuitive, visually appealing form
+- Trigger: Click Create Task button in header
+- Progression: Click Create button → Modal opens with gradient header and icon → Enter task title (autofocused) → Add description in resizable textarea → Select priority with color-coded flag icons → Choose assignee with avatar preview → Set due date with formatted preview → Add comma-separated tags with live preview → Select related context → Review form → Click Create with gradient button → Task appears in board
+- Success criteria: Form validates required fields, priority icons display correctly, assignee selection shows avatars, tags parse and display properly, date preview formats correctly, smooth animations, data persists
+
+**Team Activity Timeline**
+- Functionality: Chronological timeline of all team activities including task creation, task updates, task completions, comments, and status changes with user avatars, action icons, and relative timestamps
+- Purpose: Provide real-time visibility into team work and maintain awareness of project progress
+- Trigger: Navigate to Overview tab
+- Progression: View timeline with vertical connector line → See avatar with action badge for each activity → Read activity description with user name → View task titles and priorities for task activities → See comment previews → Check relative timestamps (e.g., "2h ago") → Scroll through history → Activities animate in with stagger effect
+- Success criteria: Timeline displays all activity types correctly, avatars load properly, icons match activity types, timestamps are accurate and update, animations perform smoothly, empty state displays when no activity
+
 **Theme Customization**
-- Functionality: Toggle between light and dark color schemes with persistent preference storage
+- Functionality: Toggle between light and dark color schemes with persistent preference storage and smooth animated transitions
 - Purpose: Provide visual comfort and accessibility for different lighting conditions and user preferences
 - Trigger: Click theme toggle button in header
-- Progression: User clicks Moon/Sun icon → Theme switches instantly → Colors transition smoothly (300ms) → Preference saved to KV storage → Theme persists across sessions
-- Success criteria: Smooth color transitions, no visual glitches, preference persists after reload, all components adapt correctly to theme
+- Progression: User clicks Moon/Sun icon → Theme switches instantly with icon rotation animation → Colors transition smoothly (300ms) → Preference saved to KV storage → Theme persists across sessions → Background gradient adapts to theme
+- Success criteria: Smooth color transitions, no visual glitches, preference persists after reload, all components adapt correctly to theme, icon rotates smoothly during transition
 
 **Task Management Kanban Board**
-- Functionality: Drag-and-drop kanban board with four status columns (To Do, In Progress, Review, Done), visual priority indicators, assignee avatars, due date badges, dependency tracking, and status updates
-- Purpose: Visual task organization and workflow management with flexible ordering
+- Functionality: Drag-and-drop kanban board with four status columns (To Do, In Progress, Review, Done), visual priority indicators with colored flags, assignee avatars, due date badges, dependency tracking, priority-based left border colors, hover effects with gradient overlays, and status updates
+- Purpose: Visual task organization and workflow management with flexible ordering and modern UI
 - Trigger: Navigate to Tasks tab or default view
-- Progression: View tasks organized by status → Filter by assignee/priority/due date → Drag tasks to reorder within columns → Click task to view/edit dependencies → Update task status via dropdown → Add new tasks via Create button
-- Success criteria: Tasks persist across sessions, drag-and-drop smooth and responsive, filters work correctly, blocked tasks clearly indicated
+- Progression: View tasks organized by status with color-coded priority borders → Filter by assignee/priority/due date using enhanced controls → Drag tasks to reorder within columns → Task cards elevate and glow on hover → Click task to view/edit dependencies → Update task status via dropdown → Add new tasks via enhanced Create button with gradient
+- Success criteria: Tasks persist across sessions, drag-and-drop smooth and responsive, filters work correctly, blocked tasks clearly indicated, hover animations perform smoothly, priority borders visible
 
 **Task Priority & Custom Ordering**
 - Functionality: Toggle between automatic priority sorting (Critical > High > Medium > Low) and manual drag-and-drop custom ordering with per-status persistence
@@ -48,11 +62,11 @@ A focused task management and team coordination tool with kanban boards, calenda
 - Success criteria: Calendar displays correctly, filters work, exports generate valid iCal files, Google Calendar integration works
 
 **Team Collaboration Hub**
-- Functionality: Comment threads with context (general or service-related), activity feeds, team member status tracking, and comment resolution
-- Purpose: Enable discussion and feedback tracking across the project
+- Functionality: Comment threads with context (general or service-related), real-time activity timeline showing recent actions, team member status tracking, and comment resolution
+- Purpose: Enable discussion, feedback tracking, and activity monitoring across the project
 - Trigger: Navigate to Comments tab or Overview activity feed
-- Progression: Select context → Write comment → Post → Comments appear in activity feed → Other members view and respond → Mark as resolved when addressed
-- Success criteria: Comments persist, activity feed updates, context filtering works, resolve functionality works
+- Progression: Select context → Write comment → Post → Comments appear in activity feed → View team activity timeline with user avatars and action icons → Timeline shows task creation, updates, completions, and comments → Filter by time → Other members view and respond → Mark as resolved when addressed
+- Success criteria: Comments persist, activity feed updates, timeline displays correctly with proper icons and formatting, context filtering works, resolve functionality works, timeline shows accurate timestamps
 
 **Team Member Management**
 - Functionality: Add, edit, and remove team members with customizable roles (architect, developer, devops, product), access levels (owner, admin, member, viewer), and detailed permission controls. Track online/offline status, view member activity statistics, and manage profile information.
