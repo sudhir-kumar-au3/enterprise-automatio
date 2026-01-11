@@ -60,8 +60,8 @@ const RoadmapView = () => {
         
         tasksPerPhase.push({
           id: task.id,
-          title: `${phase.name}: ${task.name}`,
-          description: `Phase ${phase.phase} task - ${phase.duration}`,
+          title: `${phase.name || 'Phase'}: ${task.name || 'Task'}`,
+          description: `Phase ${phase.phase} task - ${phase.duration || 'TBD'}`,
           status: task.status === 'completed' ? 'done' : 
                   task.status === 'in-progress' ? 'in-progress' : 'todo',
           priority: phase.priority === 'critical' ? 'critical' : 
@@ -72,7 +72,7 @@ const RoadmapView = () => {
           dueDate: dueDate,
           createdAt: now,
           updatedAt: now,
-          tags: [phase.name, `Phase ${phase.phase}`],
+          tags: [phase.name || 'Phase', `Phase ${phase.phase}`],
           comments: []
         })
       })
@@ -90,7 +90,8 @@ const RoadmapView = () => {
   const handleExportPhase = (phase: typeof roadmap[0]) => {
     const allTasks = convertRoadmapToTasks()
     const phaseTasks = allTasks.filter(t => t.contextId === phase.id)
-    exportTasksToICal(phaseTasks, `Phase ${phase.phase}: ${phase.name}`)
+    const phaseName = phase.name || `Phase ${phase.phase}`
+    exportTasksToICal(phaseTasks, `Phase ${phase.phase}: ${phaseName}`)
     toast.success(`Exported ${phaseTasks.length} tasks from Phase ${phase.phase}`)
   }
 

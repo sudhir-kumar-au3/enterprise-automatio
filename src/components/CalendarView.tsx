@@ -498,7 +498,7 @@ const CalendarView = ({ tasks, teamMembers }: CalendarViewProps) => {
                                   }
                                   className="text-xs"
                                 >
-                                  {task.status.replace('-', ' ')}
+                                  {task.status ? task.status.replace('-', ' ') : 'Unknown'}
                                 </Badge>
                               </div>
                             </CardContent>
@@ -594,7 +594,7 @@ const CalendarView = ({ tasks, teamMembers }: CalendarViewProps) => {
                                   }
                                   className="text-xs"
                                 >
-                                  {task.status.replace('-', ' ')}
+                                  {task.status ? task.status.replace('-', ' ') : 'Unknown'}
                                 </Badge>
                               </div>
                             </CardContent>

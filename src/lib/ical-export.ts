@@ -66,8 +66,8 @@ export const generateICalFromTasks = (tasks: Task[], calendarName: string = 'Tas
     .filter(task => task.dueDate)
     .map(task => ({
       uid: `task-${task.id}@enterprise-automation`,
-      summary: task.title,
-      description: task.description,
+      summary: task.title || 'Untitled Task',
+      description: task.description || '',
       startDate: new Date(task.dueDate!),
       priority: taskPriorityToICalPriority(task.priority),
       status: taskStatusToICalStatus(task.status),
@@ -158,7 +158,7 @@ export const getGoogleCalendarUrl = (tasks: Task[]): string => {
   
   const params = new URLSearchParams({
     action: 'TEMPLATE',
-    text: task.title,
+    text: task.title || 'Untitled Task',
     details: task.description || '',
     dates: `${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}`,
     location: task.contextType === 'service' ? 'Service Implementation' : 
@@ -170,7 +170,8 @@ export const getGoogleCalendarUrl = (tasks: Task[]): string => {
 }
 
 export const exportTasksToICal = (tasks: Task[], calendarName?: string) => {
-  const icalContent = generateICalFromTasks(tasks, calendarName)
-  const filename = `${(calendarName || 'tasks').toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.ics`
+  const safeName = calendarName || 'tasks'
+  const icalContent = generateICalFromTasks(tasks, safeName)
+  const filename = `${safeName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.ics`
   downloadICalFile(icalContent, filename)
 }
