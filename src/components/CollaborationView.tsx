@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import { 
   Users, 
   ChatCircleDots, 
@@ -25,12 +26,33 @@ import {
   Tag,
   CalendarBlank,
   FlagBanner,
-  Circle
+  Circle,
+  ArrowsDownUp,
+  DotsSixVertical
 } from '@phosphor-icons/react'
 import { mockTeamMembers, Comment, Task, TeamMember } from '@/lib/collaboration-data'
 import { services } from '@/lib/architecture-data'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 const priorityColors = {
   low: 'text-blue-600',
@@ -273,15 +295,50 @@ interface TasksViewProps {
   currentUser: TeamMember
 }
 
+const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 }
+
 const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps) => {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterPriority, setFilterPriority] = useState<string>('all')
+  const [sortByPriority, setSortByPriority] = useKV<boolean>('tasks-sort-by-priority', false)
+  const [taskOrder, setTaskOrder] = useKV<Record<string, string[]>>('tasks-custom-order', {})
+  const [activeId, setActiveId] = useState<string | null>(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
 
   const filteredTasks = tasks.filter(task => {
     if (filterStatus !== 'all' && task.status !== filterStatus) return false
     if (filterPriority !== 'all' && task.priority !== filterPriority) return false
     return true
   })
+
+  const sortTasks = (statusTasks: Task[], status: string) => {
+    if (sortByPriority) {
+      return [...statusTasks].sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
+    }
+    
+    const order = (taskOrder || {})[status]
+    if (!order) return statusTasks
+    
+    const orderedTasks = [...statusTasks].sort((a, b) => {
+      const indexA = order.indexOf(a.id)
+      const indexB = order.indexOf(b.id)
+      if (indexA === -1) return 1
+      if (indexB === -1) return -1
+      return indexA - indexB
+    })
+    
+    return orderedTasks
+  }
 
   const updateTaskStatus = (taskId: string, newStatus: Task['status']) => {
     setTasks(current => 
@@ -290,16 +347,49 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps
     toast.success('Task updated')
   }
 
-  const tasksByStatus = {
-    todo: filteredTasks.filter(t => t.status === 'todo'),
-    'in-progress': filteredTasks.filter(t => t.status === 'in-progress'),
-    review: filteredTasks.filter(t => t.status === 'review'),
-    done: filteredTasks.filter(t => t.status === 'done')
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string)
   }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    setActiveId(null)
+
+    if (!over || active.id === over.id) return
+
+    const activeTask = tasks.find(t => t.id === active.id)
+    if (!activeTask) return
+
+    const status = activeTask.status
+    const statusTasks = filteredTasks.filter(t => t.status === status)
+    const oldIndex = statusTasks.findIndex(t => t.id === active.id)
+    const newIndex = statusTasks.findIndex(t => t.id === over.id)
+
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const reorderedTasks = arrayMove(statusTasks, oldIndex, newIndex)
+    const newOrder = reorderedTasks.map(t => t.id)
+
+    setTaskOrder(current => ({
+      ...(current || {}),
+      [status]: newOrder
+    }))
+
+    toast.success('Task reordered')
+  }
+
+  const tasksByStatus = {
+    todo: sortTasks(filteredTasks.filter(t => t.status === 'todo'), 'todo'),
+    'in-progress': sortTasks(filteredTasks.filter(t => t.status === 'in-progress'), 'in-progress'),
+    review: sortTasks(filteredTasks.filter(t => t.status === 'review'), 'review'),
+    done: sortTasks(filteredTasks.filter(t => t.status === 'done'), 'done')
+  }
+
+  const activeTask = activeId ? tasks.find(t => t.id === activeId) : null
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Status" />
@@ -325,41 +415,86 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps
             <SelectItem value="low">Low</SelectItem>
           </SelectContent>
         </Select>
+
+        <div className="flex items-center gap-2 ml-auto border rounded-lg px-3 py-2 bg-card">
+          <ArrowsDownUp size={16} className="text-muted-foreground" />
+          <Label htmlFor="priority-sort" className="text-sm cursor-pointer">
+            Sort by Priority
+          </Label>
+          <Switch
+            id="priority-sort"
+            checked={sortByPriority || false}
+            onCheckedChange={(checked) => {
+              setSortByPriority(checked)
+              if (checked) {
+                toast.info('Sorting by priority (drag-and-drop disabled)')
+              } else {
+                toast.info('Custom order enabled (drag to reorder)')
+              }
+            }}
+          />
+        </div>
       </div>
 
-      <div className="grid lg:grid-cols-4 gap-4">
-        {Object.entries(tasksByStatus).map(([status, statusTasks]) => (
-          <Card key={status} className="bg-muted/30">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium capitalize flex items-center justify-between">
-                {status.replace('-', ' ')}
-                <Badge variant="secondary" className="text-xs">
-                  {statusTasks.length}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[600px] pr-4">
-                <div className="space-y-2">
-                  {statusTasks.map(task => (
-                    <TaskCard
-                      key={task.id}
-                      task={task}
-                      onClick={() => {}}
-                      onStatusChange={(newStatus) => updateTaskStatus(task.id, newStatus)}
-                    />
-                  ))}
-                  {statusTasks.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-8">
-                      No tasks
-                    </p>
-                  )}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="grid lg:grid-cols-4 gap-4">
+          {Object.entries(tasksByStatus).map(([status, statusTasks]) => (
+            <Card key={status} className="bg-muted/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium capitalize flex items-center justify-between">
+                  {status.replace('-', ' ')}
+                  <Badge variant="secondary" className="text-xs">
+                    {statusTasks.length}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[600px] pr-4">
+                  <SortableContext
+                    items={statusTasks.map(t => t.id)}
+                    strategy={verticalListSortingStrategy}
+                    disabled={sortByPriority || false}
+                  >
+                    <div className="space-y-2">
+                      {statusTasks.map(task => (
+                        <SortableTaskCard
+                          key={task.id}
+                          task={task}
+                          onClick={() => {}}
+                          onStatusChange={(newStatus) => updateTaskStatus(task.id, newStatus)}
+                          isDraggable={!sortByPriority}
+                        />
+                      ))}
+                      {statusTasks.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-8">
+                          No tasks
+                        </p>
+                      )}
+                    </div>
+                  </SortableContext>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <DragOverlay>
+          {activeTask ? (
+            <div className="opacity-80">
+              <TaskCard
+                task={activeTask}
+                onClick={() => {}}
+                isDragging
+              />
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
     </div>
   )
 }
@@ -561,18 +696,31 @@ interface TaskCardProps {
   onClick: () => void
   compact?: boolean
   onStatusChange?: (status: Task['status']) => void
+  isDraggable?: boolean
+  isDragging?: boolean
 }
 
-const TaskCard = ({ task, onClick, compact = false, onStatusChange }: TaskCardProps) => {
+const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable = false, isDragging = false }: TaskCardProps) => {
   const assignee = mockTeamMembers.find(m => m.id === task.assigneeId)
 
   return (
-    <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onClick}>
+    <Card 
+      className={cn(
+        "cursor-pointer hover:shadow-md transition-shadow",
+        isDragging && "opacity-50 cursor-grabbing"
+      )} 
+      onClick={onClick}
+    >
       <CardContent className={compact ? 'pt-4' : 'pt-6'}>
         <div className="space-y-2">
           <div className="flex items-start justify-between gap-2">
-            <h4 className="font-medium text-sm line-clamp-2">{task.title}</h4>
-            <FlagBanner size={16} weight="fill" className={priorityColors[task.priority]} />
+            <div className="flex items-start gap-2 flex-1 min-w-0">
+              {isDraggable && (
+                <DotsSixVertical size={16} weight="bold" className="text-muted-foreground mt-0.5 cursor-grab flex-shrink-0" />
+              )}
+              <h4 className="font-medium text-sm line-clamp-2">{task.title}</h4>
+            </div>
+            <FlagBanner size={16} weight="fill" className={cn(priorityColors[task.priority], "flex-shrink-0")} />
           </div>
           
           {!compact && task.description && (
@@ -626,6 +774,41 @@ const TaskCard = ({ task, onClick, compact = false, onStatusChange }: TaskCardPr
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+interface SortableTaskCardProps {
+  task: Task
+  onClick: () => void
+  onStatusChange?: (status: Task['status']) => void
+  isDraggable?: boolean
+}
+
+const SortableTaskCard = ({ task, onClick, onStatusChange, isDraggable = true }: SortableTaskCardProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id, disabled: !isDraggable })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <TaskCard
+        task={task}
+        onClick={onClick}
+        onStatusChange={onStatusChange}
+        isDraggable={isDraggable}
+        isDragging={isDragging}
+      />
+    </div>
   )
 }
 

@@ -55,11 +55,11 @@ The application presents a multi-layered enterprise architecture with interactiv
 - Success criteria: Comprehensive coverage of security and scalability across all services
 
 **Team Collaboration Hub**
-- Functionality: Task management, comment threads, team member activity tracking with context-aware collaboration on services and workflows
-- Purpose: Enable distributed teams to coordinate implementation, share feedback, and track progress on specific architecture components
+- Functionality: Task management with drag-and-drop reordering, priority-based sorting, comment threads, and team member activity tracking with context-aware collaboration on services and workflows
+- Purpose: Enable distributed teams to coordinate implementation, share feedback, track progress on specific architecture components, and flexibly organize tasks by priority or custom order
 - Trigger: Navigate to Team tab or access collaboration features from service detail dialogs
-- Progression: View team overview → Create tasks with assignments → Comment on services/workflows → Track task status through kanban board → Monitor team activity and progress
-- Success criteria: All tasks and comments persist across sessions, assignees receive clear task visibility, context-aware discussions linked to specific services
+- Progression: View team overview → Create tasks with assignments → Sort by priority or enable drag-and-drop custom ordering → Drag tasks within status columns to reorder → Comment on services/workflows → Track task status through kanban board → Monitor team activity and progress
+- Success criteria: All tasks and comments persist across sessions, assignees receive clear task visibility, context-aware discussions linked to specific services, task order persists across sessions, smooth drag-and-drop interactions with visual feedback
 
 ## Edge Case Handling
 
@@ -71,6 +71,8 @@ The application presents a multi-layered enterprise architecture with interactiv
 - **Unassigned Tasks**: Allow tasks without assignees to be created and displayed prominently for team visibility
 - **Offline Team Members**: Display offline status clearly while maintaining access to their task history and contributions
 - **Empty Collaboration States**: Provide helpful prompts and CTAs when no comments or tasks exist yet
+- **Drag-and-Drop Conflicts**: Prevent dragging when priority sort is enabled, provide clear visual indicators and toast feedback when switching between sort modes
+- **Task Reordering Persistence**: Custom task order persists per status column across sessions using KV storage
 
 ## Design Direction
 
