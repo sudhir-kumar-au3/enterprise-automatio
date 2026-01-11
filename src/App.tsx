@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { CirclesThree, Database, FlowArrow, Stack, Calendar, ShieldCheck } from '@phosphor-icons/react'
+import { CirclesThree, Database, FlowArrow, Stack, Calendar, ShieldCheck, Users } from '@phosphor-icons/react'
 import ArchitectureView from '@/components/ArchitectureView'
 import ServicesView from '@/components/ServicesView'
 import WorkflowsView from '@/components/WorkflowsView'
 import TechStackView from '@/components/TechStackView'
 import RoadmapView from '@/components/RoadmapView'
 import SecurityView from '@/components/SecurityView'
+import CollaborationView from '@/components/CollaborationView'
 
 function App() {
   const [activeTab, setActiveTab] = useState('architecture')
@@ -29,7 +30,7 @@ function App() {
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-3 lg:grid-cols-6 w-full bg-muted/50 p-1">
+          <TabsList className="grid grid-cols-4 lg:grid-cols-7 w-full bg-muted/50 p-1">
             <TabsTrigger value="architecture" className="gap-2">
               <CirclesThree size={18} />
               <span className="hidden sm:inline">Architecture</span>
@@ -53,6 +54,10 @@ function App() {
             <TabsTrigger value="security" className="gap-2">
               <ShieldCheck size={18} />
               <span className="hidden sm:inline">Security</span>
+            </TabsTrigger>
+            <TabsTrigger value="collaboration" className="gap-2">
+              <Users size={18} />
+              <span className="hidden sm:inline">Team</span>
             </TabsTrigger>
           </TabsList>
 
@@ -78,6 +83,10 @@ function App() {
 
           <TabsContent value="security" className="space-y-6">
             <SecurityView />
+          </TabsContent>
+
+          <TabsContent value="collaboration" className="space-y-6">
+            <CollaborationView />
           </TabsContent>
         </Tabs>
       </main>

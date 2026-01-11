@@ -1,11 +1,17 @@
 import { useState } from 'react'
+import { useKV } from '@github/spark/hooks'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Separator } from '@/components/ui/separator'
 import { services, Service } from '@/lib/architecture-data'
-import { Database, CirclesThree, GitBranch, Bell, Lock } from '@phosphor-icons/react'
+import { Comment, Task, mockTeamMembers } from '@/lib/collaboration-data'
+import { Database, CirclesThree, GitBranch, Bell, Lock, ChatCircleDots, CheckSquare, PaperPlaneTilt } from '@phosphor-icons/react'
+import { toast } from 'sonner'
 
 const categoryIcons = {
   lms: Database,
@@ -24,10 +30,44 @@ const statusColors = {
 const ServicesView = () => {
   const [selectedService, setSelectedService] = useState<Service | null>(null)
   const [filter, setFilter] = useState<string>('all')
+  const [comments, setComments] = useKV<Comment[]>('collaboration-comments', [])
+  const [tasks, setTasks] = useKV<Task[]>('collaboration-tasks', [])
+  const [newComment, setNewComment] = useState('')
+
+  const currentUser = mockTeamMembers[0]
 
   const filteredServices = filter === 'all' 
     ? services 
     : services.filter(s => s.category === filter)
+
+  const addComment = (serviceId: string) => {
+    if (!newComment.trim()) return
+
+    const comment: Comment = {
+      id: `comment-${Date.now()}`,
+      authorId: currentUser.id,
+      content: newComment,
+      timestamp: Date.now(),
+      contextType: 'service',
+      contextId: serviceId,
+      replies: [],
+      reactions: [],
+      mentions: [],
+      isResolved: false
+    }
+
+    setComments(current => [...(current || []), comment])
+    setNewComment('')
+    toast.success('Comment added')
+  }
+
+  const getServiceComments = (serviceId: string) => {
+    return (comments || []).filter(c => c.contextType === 'service' && c.contextId === serviceId)
+  }
+
+  const getServiceTasks = (serviceId: string) => {
+    return (tasks || []).filter(t => t.contextType === 'service' && t.contextId === serviceId)
+  }
 
   return (
     <div className="space-y-6">
@@ -98,7 +138,7 @@ const ServicesView = () => {
       </Tabs>
 
       <Dialog open={!!selectedService} onOpenChange={() => setSelectedService(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           {selectedService && (
             <>
               <DialogHeader>
@@ -113,86 +153,211 @@ const ServicesView = () => {
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-6 mt-4">
-                <div>
-                  <h4 className="font-semibold mb-2">Tech Stack</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedService.techStack.map(tech => (
-                      <Badge key={tech} variant="secondary" className="font-mono">
-                        {tech}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
+              <Tabs defaultValue="details" className="mt-4">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="details">Details</TabsTrigger>
+                  <TabsTrigger value="comments" className="gap-2">
+                    <ChatCircleDots size={16} />
+                    Comments ({getServiceComments(selectedService.id).length})
+                  </TabsTrigger>
+                  <TabsTrigger value="tasks" className="gap-2">
+                    <CheckSquare size={16} />
+                    Tasks ({getServiceTasks(selectedService.id).length})
+                  </TabsTrigger>
+                </TabsList>
 
-                {selectedService.endpoints && selectedService.endpoints.length > 0 && (
+                <TabsContent value="details" className="space-y-6 mt-4">
                   <div>
-                    <h4 className="font-semibold mb-2">API Endpoints</h4>
-                    <div className="bg-muted p-4 rounded-lg space-y-1">
-                      {selectedService.endpoints.map(endpoint => (
-                        <code key={endpoint} className="block text-sm font-mono">
-                          {endpoint}
-                        </code>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {selectedService.databases && selectedService.databases.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold mb-2">Databases</h4>
+                    <h4 className="font-semibold mb-2">Tech Stack</h4>
                     <div className="flex flex-wrap gap-2">
-                      {selectedService.databases.map(db => (
-                        <Badge key={db} variant="outline" className="font-mono">
-                          {db}
+                      {selectedService.techStack.map(tech => (
+                        <Badge key={tech} variant="secondary" className="font-mono">
+                          {tech}
                         </Badge>
                       ))}
                     </div>
                   </div>
-                )}
 
-                <div>
-                  <h4 className="font-semibold mb-2">Cloud Services</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedService.cloudServices.map(cloud => (
-                      <Badge key={cloud} variant="outline">
-                        {cloud}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
+                  {selectedService.endpoints && selectedService.endpoints.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-2">API Endpoints</h4>
+                      <div className="bg-muted p-4 rounded-lg space-y-1">
+                        {selectedService.endpoints.map(endpoint => (
+                          <code key={endpoint} className="block text-sm font-mono">
+                            {endpoint}
+                          </code>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                {selectedService.dependencies.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold mb-2">Dependencies</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedService.dependencies.map(dep => {
-                        const depService = services.find(s => s.id === dep)
-                        return (
-                          <Badge key={dep} variant="outline" className="cursor-pointer hover:bg-accent/20">
-                            {depService?.name || dep}
+                  {selectedService.databases && selectedService.databases.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-2">Databases</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedService.databases.map(db => (
+                          <Badge key={db} variant="outline" className="font-mono">
+                            {db}
                           </Badge>
-                        )
-                      })}
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <h4 className="font-semibold mb-2">Cloud Services</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedService.cloudServices.map(cloud => (
+                        <Badge key={cloud} variant="outline">
+                          {cloud}
+                        </Badge>
+                      ))}
                     </div>
                   </div>
-                )}
 
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="p-4 border rounded-lg">
-                    <h4 className="font-semibold mb-2 text-sm">Scalability</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedService.scalabilityNotes}
-                    </p>
+                  {selectedService.dependencies.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-2">Dependencies</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedService.dependencies.map(dep => {
+                          const depService = services.find(s => s.id === dep)
+                          return (
+                            <Badge key={dep} variant="outline" className="cursor-pointer hover:bg-accent/20">
+                              {depService?.name || dep}
+                            </Badge>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="p-4 border rounded-lg">
+                      <h4 className="font-semibold mb-2 text-sm">Scalability</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedService.scalabilityNotes}
+                      </p>
+                    </div>
+                    <div className="p-4 border rounded-lg">
+                      <h4 className="font-semibold mb-2 text-sm">Security</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedService.securityNotes}
+                      </p>
+                    </div>
                   </div>
-                  <div className="p-4 border rounded-lg">
-                    <h4 className="font-semibold mb-2 text-sm">Security</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedService.securityNotes}
-                    </p>
+                </TabsContent>
+
+                <TabsContent value="comments" className="space-y-4 mt-4">
+                  <div className="space-y-3">
+                    <div className="flex gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
+                        <AvatarFallback>
+                          {currentUser.name.split(' ').map(n => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 space-y-2">
+                        <Textarea
+                          placeholder="Add a comment..."
+                          value={newComment}
+                          onChange={(e) => setNewComment(e.target.value)}
+                          rows={2}
+                        />
+                        <Button
+                          onClick={() => addComment(selectedService.id)}
+                          size="sm"
+                          className="gap-2"
+                        >
+                          <PaperPlaneTilt size={16} />
+                          Comment
+                        </Button>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-3">
+                      {getServiceComments(selectedService.id).length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-8">
+                          No comments yet. Start the discussion!
+                        </p>
+                      ) : (
+                        getServiceComments(selectedService.id).reverse().map(comment => {
+                          const author = mockTeamMembers.find(m => m.id === comment.authorId)
+                          return (
+                            <div key={comment.id} className="flex gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={author?.avatarUrl} alt={author?.name} />
+                                <AvatarFallback className="text-xs">
+                                  {author?.name.split(' ').map(n => n[0]).join('') || 'U'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium text-sm">{author?.name || 'Unknown'}</p>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(comment.timestamp).toLocaleString()}
+                                  </span>
+                                </div>
+                                <p className="text-sm">{comment.content}</p>
+                              </div>
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
+                </TabsContent>
+
+                <TabsContent value="tasks" className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    {getServiceTasks(selectedService.id).length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        No tasks for this service yet.
+                      </p>
+                    ) : (
+                      getServiceTasks(selectedService.id).map(task => {
+                        const assignee = mockTeamMembers.find(m => m.id === task.assigneeId)
+                        return (
+                          <Card key={task.id}>
+                            <CardContent className="pt-4">
+                              <div className="flex items-start justify-between gap-2 mb-2">
+                                <h4 className="font-medium text-sm">{task.title}</h4>
+                                <Badge variant="outline" className="text-xs">
+                                  {task.status}
+                                </Badge>
+                              </div>
+                              {task.description && (
+                                <p className="text-xs text-muted-foreground mb-2">
+                                  {task.description}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-2">
+                                {assignee && (
+                                  <div className="flex items-center gap-1">
+                                    <Avatar className="h-5 w-5">
+                                      <AvatarImage src={assignee.avatarUrl} alt={assignee.name} />
+                                      <AvatarFallback className="text-xs">
+                                        {assignee.name.split(' ').map(n => n[0]).join('')}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span className="text-xs text-muted-foreground">
+                                      {assignee.name}
+                                    </span>
+                                  </div>
+                                )}
+                                <Badge variant="secondary" className="text-xs">
+                                  {task.priority}
+                                </Badge>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )
+                      })
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
             </>
           )}
         </DialogContent>

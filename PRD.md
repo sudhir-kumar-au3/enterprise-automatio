@@ -54,6 +54,13 @@ The application presents a multi-layered enterprise architecture with interactiv
 - Progression: Select concern type → View patterns and implementations → See service-specific applications → View monitoring/alerting setup → Export compliance report
 - Success criteria: Comprehensive coverage of security and scalability across all services
 
+**Team Collaboration Hub**
+- Functionality: Task management, comment threads, team member activity tracking with context-aware collaboration on services and workflows
+- Purpose: Enable distributed teams to coordinate implementation, share feedback, and track progress on specific architecture components
+- Trigger: Navigate to Team tab or access collaboration features from service detail dialogs
+- Progression: View team overview → Create tasks with assignments → Comment on services/workflows → Track task status through kanban board → Monitor team activity and progress
+- Success criteria: All tasks and comments persist across sessions, assignees receive clear task visibility, context-aware discussions linked to specific services
+
 ## Edge Case Handling
 
 - **Large Architecture Complexity**: Use collapsible sections, zoom controls, and filtering to manage visual complexity in architecture diagrams
@@ -61,6 +68,9 @@ The application presents a multi-layered enterprise architecture with interactiv
 - **Export/Sharing**: Generate PDF reports and shareable URLs for stakeholder presentations
 - **Incomplete Data**: Graceful handling of missing specifications with placeholder states and "Coming Soon" indicators
 - **Deep Linking**: Support direct URLs to specific services, workflows, or roadmap phases
+- **Unassigned Tasks**: Allow tasks without assignees to be created and displayed prominently for team visibility
+- **Offline Team Members**: Display offline status clearly while maintaining access to their task history and contributions
+- **Empty Collaboration States**: Provide helpful prompts and CTAs when no comments or tasks exist yet
 
 ## Design Direction
 
