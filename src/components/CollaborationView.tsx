@@ -300,6 +300,8 @@ const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 }
 const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps) => {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterPriority, setFilterPriority] = useState<string>('all')
+  const [filterAssignee, setFilterAssignee] = useState<string>('all')
+  const [filterDueDate, setFilterDueDate] = useState<string>('all')
   const [sortByPriority, setSortByPriority] = useKV<boolean>('tasks-sort-by-priority', false)
   const [taskOrder, setTaskOrder] = useKV<Record<string, string[]>>('tasks-custom-order', {})
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -318,6 +320,25 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps
   const filteredTasks = tasks.filter(task => {
     if (filterStatus !== 'all' && task.status !== filterStatus) return false
     if (filterPriority !== 'all' && task.priority !== filterPriority) return false
+    if (filterAssignee !== 'all') {
+      if (filterAssignee === 'unassigned' && task.assigneeId) return false
+      if (filterAssignee !== 'unassigned' && task.assigneeId !== filterAssignee) return false
+    }
+    if (filterDueDate !== 'all') {
+      const now = Date.now()
+      const oneDayMs = 24 * 60 * 60 * 1000
+      const oneWeekMs = 7 * oneDayMs
+      
+      if (filterDueDate === 'overdue') {
+        if (!task.dueDate || task.dueDate >= now) return false
+      } else if (filterDueDate === 'today') {
+        if (!task.dueDate || task.dueDate < now || task.dueDate > now + oneDayMs) return false
+      } else if (filterDueDate === 'this-week') {
+        if (!task.dueDate || task.dueDate < now || task.dueDate > now + oneWeekMs) return false
+      } else if (filterDueDate === 'no-due-date') {
+        if (task.dueDate) return false
+      }
+    }
     return true
   })
 
@@ -413,6 +434,34 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps
             <SelectItem value="high">High</SelectItem>
             <SelectItem value="medium">Medium</SelectItem>
             <SelectItem value="low">Low</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={filterAssignee} onValueChange={setFilterAssignee}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Assignee" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Assignees</SelectItem>
+            <SelectItem value="unassigned">Unassigned</SelectItem>
+            {teamMembers.map(member => (
+              <SelectItem key={member.id} value={member.id}>
+                {member.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filterDueDate} onValueChange={setFilterDueDate}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Due Date" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Dates</SelectItem>
+            <SelectItem value="overdue">Overdue</SelectItem>
+            <SelectItem value="today">Due Today</SelectItem>
+            <SelectItem value="this-week">This Week</SelectItem>
+            <SelectItem value="no-due-date">No Due Date</SelectItem>
           </SelectContent>
         </Select>
 
@@ -702,6 +751,19 @@ interface TaskCardProps {
 
 const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable = false, isDragging = false }: TaskCardProps) => {
   const assignee = mockTeamMembers.find(m => m.id === task.assigneeId)
+  
+  const getDueDateInfo = () => {
+    if (!task.dueDate) return null
+    
+    const now = Date.now()
+    const dueDate = new Date(task.dueDate)
+    const isOverdue = task.dueDate < now
+    const daysUntilDue = Math.ceil((task.dueDate - now) / (1000 * 60 * 60 * 24))
+    
+    return { dueDate, isOverdue, daysUntilDue }
+  }
+  
+  const dueDateInfo = getDueDateInfo()
 
   return (
     <Card 
@@ -725,6 +787,24 @@ const TaskCard = ({ task, onClick, compact = false, onStatusChange, isDraggable 
           
           {!compact && task.description && (
             <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
+          )}
+          
+          {dueDateInfo && (
+            <div className={cn(
+              "flex items-center gap-1 text-xs",
+              dueDateInfo.isOverdue ? "text-red-600" : 
+              dueDateInfo.daysUntilDue <= 1 ? "text-orange-600" : 
+              dueDateInfo.daysUntilDue <= 3 ? "text-yellow-600" : "text-muted-foreground"
+            )}>
+              <CalendarBlank size={14} weight="bold" />
+              <span>
+                {dueDateInfo.isOverdue ? 'Overdue' : 
+                 dueDateInfo.daysUntilDue === 0 ? 'Due today' :
+                 dueDateInfo.daysUntilDue === 1 ? 'Due tomorrow' :
+                 `Due in ${dueDateInfo.daysUntilDue} days`}
+              </span>
+              <span className="text-muted-foreground">· {dueDateInfo.dueDate.toLocaleDateString()}</span>
+            </div>
           )}
           
           <div className="flex items-center justify-between gap-2">
@@ -861,6 +941,7 @@ const CreateTaskDialog = ({ onClose, onCreate, currentUser }: CreateTaskDialogPr
   const [assignee, setAssignee] = useState<string>('unassigned')
   const [contextType, setContextType] = useState<'service' | 'workflow' | 'general'>('general')
   const [contextId, setContextId] = useState<string>('general')
+  const [dueDate, setDueDate] = useState<string>('')
 
   const handleCreate = () => {
     if (!title.trim()) {
@@ -878,6 +959,7 @@ const CreateTaskDialog = ({ onClose, onCreate, currentUser }: CreateTaskDialogPr
       creatorId: currentUser.id,
       contextType,
       contextId: contextId === 'general' ? undefined : contextId,
+      dueDate: dueDate ? new Date(dueDate).getTime() : undefined,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       tags: [],
@@ -950,6 +1032,17 @@ const CreateTaskDialog = ({ onClose, onCreate, currentUser }: CreateTaskDialogPr
               </SelectContent>
             </Select>
           </div>
+        </div>
+
+        <div>
+          <Label htmlFor="due-date">Due Date (Optional)</Label>
+          <Input
+            id="due-date"
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            min={new Date().toISOString().split('T')[0]}
+          />
         </div>
 
         <div>
