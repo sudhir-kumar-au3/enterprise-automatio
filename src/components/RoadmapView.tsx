@@ -2,8 +2,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Progress } from '@/components/ui/progress'
+import { Button } from '@/components/ui/button'
 import { roadmap } from '@/lib/architecture-data'
-import { Calendar, Lightning, TrendUp, CheckCircle, Circle, Clock } from '@phosphor-icons/react'
+import { Calendar, Lightning, TrendUp, CheckCircle, Circle, Clock, Export, GoogleLogo } from '@phosphor-icons/react'
+import { exportTasksToICal } from '@/lib/ical-export'
+import { Task } from '@/lib/collaboration-data'
+import { toast } from 'sonner'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel
+} from '@/components/ui/dropdown-menu'
 
 const priorityColors = {
   critical: 'bg-red-500/10 text-red-700 border-red-500/20',
@@ -29,13 +41,86 @@ const RoadmapView = () => {
     return Math.round((completed / tasks.length) * 100)
   }
 
+  const convertRoadmapToTasks = (): Task[] => {
+    const now = Date.now()
+    const tasksPerPhase: Task[] = []
+    
+    roadmap.forEach((phase, phaseIndex) => {
+      const phaseStartOffset = phaseIndex * 90 * 24 * 60 * 60 * 1000
+      
+      phase.tasks.forEach((task, taskIndex) => {
+        const taskOffset = Math.floor((taskIndex / phase.tasks.length) * 90) * 24 * 60 * 60 * 1000
+        const dueDate = now + phaseStartOffset + taskOffset
+        
+        tasksPerPhase.push({
+          id: task.id,
+          title: `${phase.name}: ${task.name}`,
+          description: `Phase ${phase.phase} task - ${phase.duration}`,
+          status: task.status === 'completed' ? 'done' : 
+                  task.status === 'in-progress' ? 'in-progress' : 'todo',
+          priority: phase.priority === 'critical' ? 'critical' : 
+                    phase.priority === 'high' ? 'high' : 'medium',
+          creatorId: 'system',
+          contextType: 'roadmap',
+          contextId: phase.id,
+          dueDate: dueDate,
+          createdAt: now,
+          updatedAt: now,
+          tags: [phase.name, `Phase ${phase.phase}`],
+          comments: []
+        })
+      })
+    })
+    
+    return tasksPerPhase
+  }
+
+  const handleExportRoadmap = () => {
+    const tasks = convertRoadmapToTasks()
+    exportTasksToICal(tasks, 'Implementation Roadmap')
+    toast.success(`Exported ${tasks.length} roadmap tasks to iCal format`)
+  }
+
+  const handleExportPhase = (phase: typeof roadmap[0]) => {
+    const allTasks = convertRoadmapToTasks()
+    const phaseTasks = allTasks.filter(t => t.contextId === phase.id)
+    exportTasksToICal(phaseTasks, `Phase ${phase.phase}: ${phase.name}`)
+    toast.success(`Exported ${phaseTasks.length} tasks from Phase ${phase.phase}`)
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold mb-2">Implementation Roadmap</h2>
-        <p className="text-muted-foreground text-lg">
-          Phased rollout plan with timelines, dependencies, and progress tracking
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h2 className="text-3xl font-bold mb-2">Implementation Roadmap</h2>
+          <p className="text-muted-foreground text-lg">
+            Phased rollout plan with timelines, dependencies, and progress tracking
+          </p>
+        </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              <Export size={18} />
+              Export Roadmap
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Export to iCal</DropdownMenuLabel>
+            <DropdownMenuItem onClick={handleExportRoadmap}>
+              <Calendar size={16} className="mr-2" />
+              Complete Roadmap
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Export by Phase</DropdownMenuLabel>
+            {roadmap.map(phase => (
+              <DropdownMenuItem key={phase.id} onClick={() => handleExportPhase(phase)}>
+                <Calendar size={16} className="mr-2" />
+                Phase {phase.phase}: {phase.name}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div className="grid md:grid-cols-3 gap-4">
@@ -119,6 +204,18 @@ const RoadmapView = () => {
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="space-y-6 pt-4 pl-12">
+                      <div className="flex justify-end">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="gap-2"
+                          onClick={() => handleExportPhase(phase)}
+                        >
+                          <Export size={16} />
+                          Export Phase
+                        </Button>
+                      </div>
+
                       {phase.dependencies.length > 0 && (
                         <div>
                           <h5 className="text-sm font-semibold mb-2">Dependencies</h5>

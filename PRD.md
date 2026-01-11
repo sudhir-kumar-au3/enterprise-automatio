@@ -41,11 +41,11 @@ The application presents a multi-layered enterprise architecture with interactiv
 - Success criteria: Clear technology justifications with trade-offs documented
 
 **Implementation Roadmap**
-- Functionality: Phased rollout plan (Phase 1-3) with milestones, priorities, dependencies, and effort estimates
-- Purpose: Provides actionable implementation plan for development teams
+- Functionality: Phased rollout plan (Phase 1-3) with milestones, priorities, dependencies, effort estimates, and calendar export to iCal format for integration with external calendar applications
+- Purpose: Provides actionable implementation plan for development teams with the ability to sync deadlines to personal/team calendars
 - Trigger: Navigate to Roadmap tab
-- Progression: View timeline visualization → Expand phases → See task breakdown → View dependencies → Mark tasks as in-progress/complete → Export project plan
-- Success criteria: Clear phase breakdown with dependencies and effort estimates
+- Progression: View timeline visualization → Expand phases → See task breakdown → View dependencies → Mark tasks as in-progress/complete → Export complete roadmap or individual phases to iCal format → Import into calendar application of choice → Receive calendar reminders for upcoming milestones
+- Success criteria: Clear phase breakdown with dependencies and effort estimates, valid iCal files that import correctly into Apple Calendar, Google Calendar, Outlook, and other calendar applications, exported tasks maintain priority and status information
 
 **Security & Scalability Dashboard**
 - Functionality: Consolidated view of security patterns (OAuth/JWT/SSO, API Gateway auth, encryption), scalability strategies (horizontal scaling, caching, load balancing), and fault-tolerance mechanisms
@@ -55,11 +55,11 @@ The application presents a multi-layered enterprise architecture with interactiv
 - Success criteria: Comprehensive coverage of security and scalability across all services
 
 **Team Collaboration Hub**
-- Functionality: Task management with drag-and-drop reordering, priority-based sorting, calendar visualization of deadlines, comment threads, and team member activity tracking with context-aware collaboration on services and workflows
-- Purpose: Enable distributed teams to coordinate implementation, share feedback, track progress on specific architecture components, visualize task timelines, and flexibly organize tasks by priority or custom order
-- Trigger: Navigate to Team tab or access collaboration features from service detail dialogs
-- Progression: View team overview → Create tasks with assignments and due dates → Sort by priority or enable drag-and-drop custom ordering → Drag tasks within status columns to reorder → View calendar to visualize task deadlines → Filter tasks by assignee and due date → Click calendar days to see tasks due → Comment on services/workflows → Track task status through kanban board → Monitor team activity and progress
-- Success criteria: All tasks and comments persist across sessions, assignees receive clear task visibility, context-aware discussions linked to specific services, task order persists across sessions, smooth drag-and-drop interactions with visual feedback, calendar displays all tasks with due dates, overdue tasks highlighted prominently, filtering by assignee and date works correctly
+- Functionality: Task management with drag-and-drop reordering, priority-based sorting, calendar visualization of deadlines, calendar export to iCal/Google Calendar formats, comment threads, and team member activity tracking with context-aware collaboration on services and workflows
+- Purpose: Enable distributed teams to coordinate implementation, share feedback, track progress on specific architecture components, visualize task timelines, flexibly organize tasks by priority or custom order, and integrate task deadlines with external calendar applications
+- Trigger: Navigate to Team tab, access collaboration features from service detail dialogs, or export calendar from Calendar view or Roadmap view
+- Progression: View team overview → Create tasks with assignments and due dates → Sort by priority or enable drag-and-drop custom ordering → Drag tasks within status columns to reorder → View calendar to visualize task deadlines → Export tasks to iCal format or add single task to Google Calendar → Filter tasks by assignee and due date → Click calendar days to see tasks due → Comment on services/workflows → Track task status through kanban board → Monitor team activity and progress → Import calendar into Apple Calendar, Google Calendar, Outlook, or other iCal-compatible applications
+- Success criteria: All tasks and comments persist across sessions, assignees receive clear task visibility, context-aware discussions linked to specific services, task order persists across sessions, smooth drag-and-drop interactions with visual feedback, calendar displays all tasks with due dates, overdue tasks highlighted prominently, filtering by assignee and date works correctly, exported iCal files are valid and importable into standard calendar applications, Google Calendar integration creates events correctly with proper metadata
 
 ## Edge Case Handling
 
@@ -77,6 +77,11 @@ The application presents a multi-layered enterprise architecture with interactiv
 - **Overdue Task Visibility**: Overdue tasks are prominently highlighted with red indicators in calendar view and shown in a dedicated alert section
 - **Calendar Month Navigation**: Users can navigate between months while maintaining filter state and selected day context
 - **Multiple Tasks on Same Day**: Calendar cells display visual indicators for multiple tasks with tooltips showing count
+- **Calendar Export Features**: Users can export task calendars in iCal format for import into external applications, with options to export all tasks, current month only, or selected day's tasks
+- **Calendar Integration Options**: Direct Google Calendar quick-add link for single tasks, while full iCal export supports Apple Calendar, Outlook, and other calendar applications
+- **Invalid iCal Export**: Clear error messages with guidance if export fails or no tasks are available to export
+- **Large Task Lists**: Export process handles large task lists efficiently with progress feedback via toast notifications
+- **Roadmap Calendar Export**: Export implementation roadmap phases with estimated timelines to iCal format for team synchronization
 
 ## Design Direction
 

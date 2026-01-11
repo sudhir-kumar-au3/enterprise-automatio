@@ -11,10 +11,22 @@ import {
   CalendarBlank, 
   FlagBanner,
   Clock,
-  Users
+  Users,
+  Export,
+  GoogleLogo
 } from '@phosphor-icons/react'
 import { Task, TeamMember } from '@/lib/collaboration-data'
 import { cn } from '@/lib/utils'
+import { exportTasksToICal, getGoogleCalendarUrl } from '@/lib/ical-export'
+import { toast } from 'sonner'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel
+} from '@/components/ui/dropdown-menu'
 
 interface CalendarViewProps {
   tasks: Task[]
@@ -154,6 +166,59 @@ const CalendarView = ({ tasks, teamMembers }: CalendarViewProps) => {
     .filter(task => task.dueDate && task.dueDate < Date.now() && task.status !== 'done')
     .sort((a, b) => (a.dueDate || 0) - (b.dueDate || 0))
 
+  const handleExportAll = () => {
+    if (filteredTasks.length === 0) {
+      toast.error('No tasks to export')
+      return
+    }
+    
+    exportTasksToICal(filteredTasks, 'All Tasks')
+    toast.success(`Exported ${filteredTasks.length} tasks to iCal format`)
+  }
+
+  const handleExportMonth = () => {
+    const monthTasks = calendarDays
+      .filter(day => day.isCurrentMonth)
+      .flatMap(day => day.tasks)
+    
+    if (monthTasks.length === 0) {
+      toast.error('No tasks in this month')
+      return
+    }
+    
+    const uniqueTasks = Array.from(new Map(monthTasks.map(t => [t.id, t])).values())
+    exportTasksToICal(uniqueTasks, `${monthName} Tasks`)
+    toast.success(`Exported ${uniqueTasks.length} tasks from ${monthName}`)
+  }
+
+  const handleExportSelected = () => {
+    if (!selectedDay || selectedDayTasks.length === 0) {
+      toast.error('No tasks selected')
+      return
+    }
+    
+    exportTasksToICal(
+      selectedDayTasks, 
+      `${selectedDay.toLocaleDateString('default', { month: 'long', day: 'numeric' })} Tasks`
+    )
+    toast.success(`Exported ${selectedDayTasks.length} tasks`)
+  }
+
+  const handleAddToGoogleCalendar = () => {
+    if (selectedDayTasks.length === 0) {
+      toast.error('No tasks selected')
+      return
+    }
+    
+    const url = getGoogleCalendarUrl(selectedDayTasks)
+    if (url) {
+      window.open(url, '_blank')
+      toast.success('Opening Google Calendar')
+    } else {
+      toast.error('Unable to create Google Calendar link')
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -179,6 +244,45 @@ const CalendarView = ({ tasks, teamMembers }: CalendarViewProps) => {
               ))}
             </SelectContent>
           </Select>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Export size={18} />
+                Export Calendar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Export to iCal</DropdownMenuLabel>
+              <DropdownMenuItem onClick={handleExportAll}>
+                <CalendarBlank size={16} className="mr-2" />
+                All Tasks ({filteredTasks.length})
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportMonth}>
+                <CalendarBlank size={16} className="mr-2" />
+                Current Month
+              </DropdownMenuItem>
+              {selectedDay && selectedDayTasks.length > 0 && (
+                <DropdownMenuItem onClick={handleExportSelected}>
+                  <CalendarBlank size={16} className="mr-2" />
+                  Selected Day ({selectedDayTasks.length})
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Quick Add</DropdownMenuLabel>
+              {selectedDay && selectedDayTasks.length > 0 ? (
+                <DropdownMenuItem onClick={handleAddToGoogleCalendar}>
+                  <GoogleLogo size={16} className="mr-2" />
+                  Add to Google Calendar
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem disabled>
+                  <GoogleLogo size={16} className="mr-2" />
+                  Select a day with tasks
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
