@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { useKV } from '@github/spark/hooks'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -67,6 +66,9 @@ import CalendarView from '@/components/CalendarView'
 import TaskDependenciesDialog from '@/components/TaskDependenciesDialog'
 import ActivityTimeline from '@/components/ActivityTimeline'
 import WorkloadBalancing from '@/components/WorkloadBalancing'
+import { useAuth } from '@/contexts'
+import { useTasks, useComments, useTeamMembers } from '@/hooks'
+import { Loader2 } from 'lucide-react'
 
 const priorityColors = {
   low: 'text-blue-600',
@@ -104,10 +106,11 @@ const accessLevelIcons = {
 }
 
 const CollaborationView = () => {
+  const { user } = useAuth()
+  const { tasks, setTasks, isLoading: tasksLoading } = useTasks()
+  const { comments, setComments, isLoading: commentsLoading } = useComments()
+  const { members: teamMembers, setMembers: setTeamMembers, isLoading: teamMembersLoading } = useTeamMembers()
   const [activeTab, setActiveTab] = useState('overview')
-  const [comments, setComments] = useKV<Comment[]>('collaboration-comments', [])
-  const [tasks, setTasks] = useKV<Task[]>('collaboration-tasks', [])
-  const [teamMembers, setTeamMembers] = useKV<TeamMember[]>('team-members', mockTeamMembers)
   const [newCommentText, setNewCommentText] = useState('')
   const [selectedContext, setSelectedContext] = useState<{ type: string; id: string } | null>(null)
   const [isCreatingTask, setIsCreatingTask] = useState(false)
@@ -181,6 +184,14 @@ const CollaborationView = () => {
     setTasks(() => data.tasks)
     setComments(() => data.comments)
     setTeamMembers(() => data.teamMembers)
+  }
+
+  if (tasksLoading || commentsLoading || teamMembersLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="animate-spin" size={48} />
+      </div>
+    )
   }
 
   return (
@@ -460,8 +471,8 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser }: TasksViewProps
   const [filterPriority, setFilterPriority] = useState<string>('all')
   const [filterAssignee, setFilterAssignee] = useState<string>('all')
   const [filterDueDate, setFilterDueDate] = useState<string>('all')
-  const [sortByPriority, setSortByPriority] = useKV<boolean>('tasks-sort-by-priority', false)
-  const [taskOrder, setTaskOrder] = useKV<Record<string, string[]>>('tasks-custom-order', {})
+  const [sortByPriority, setSortByPriority] = useState<boolean>(false)
+  const [taskOrder, setTaskOrder] = useState<Record<string, string[]>>({})
   const [activeId, setActiveId] = useState<string | null>(null)
   const [dependenciesDialogTask, setDependenciesDialogTask] = useState<Task | null>(null)
 
@@ -1067,6 +1078,13 @@ const TeamView = ({ teamMembers, setTeamMembers, tasks, comments }: TeamViewProp
             <PermissionsDetailsDialog
               member={selectedMember}
               onClose={() => setSelectedMember(null)}
+              onSave={(updatedMember) => {
+                setTeamMembers(current =>
+                  current.map(m => m.id === updatedMember.id ? updatedMember : m)
+                )
+                setSelectedMember(null)
+              }}
+              canEdit={canManageTeam(currentUser)}
             />
           )}
         </DialogContent>
@@ -1729,6 +1747,89 @@ const AddEditMemberDialog = ({ member, onClose, onSave, onDelete }: AddEditMembe
   const [accessLevel, setAccessLevel] = useState<AccessLevel>(member?.accessLevel || 'member')
   const [avatarUrl, setAvatarUrl] = useState(member?.avatarUrl || '')
   const [isOnline, setIsOnline] = useState(member?.isOnline ?? true)
+  const [customPermissions, setCustomPermissions] = useState<Permission[]>(member?.customPermissions || [])
+  const [showCustomPermissions, setShowCustomPermissions] = useState(false)
+
+  const allPermissions: Permission[] = [
+    'manage_team',
+    'manage_roles',
+    'manage_permissions',
+    'create_tasks',
+    'assign_tasks',
+    'delete_tasks',
+    'edit_all_tasks',
+    'create_comments',
+    'delete_comments',
+    'manage_services',
+    'manage_workflows',
+    'manage_roadmap',
+    'view_analytics',
+    'export_data'
+  ]
+
+  const roleDescriptions: Record<TeamMember['role'], { description: string; suggestedAccess: AccessLevel; icon: string }> = {
+    architect: {
+      description: 'System design, technical leadership, and architectural decisions',
+      suggestedAccess: 'admin',
+      icon: '🏗️'
+    },
+    developer: {
+      description: 'Code implementation, feature development, and bug fixes',
+      suggestedAccess: 'member',
+      icon: '💻'
+    },
+    devops: {
+      description: 'Infrastructure, deployment, and operational excellence',
+      suggestedAccess: 'admin',
+      icon: '🔧'
+    },
+    product: {
+      description: 'Product strategy, roadmap planning, and stakeholder coordination',
+      suggestedAccess: 'member',
+      icon: '📊'
+    }
+  }
+
+  const accessLevelDescriptions: Record<AccessLevel, { description: string; color: string }> = {
+    owner: {
+      description: 'Full system access with all permissions. Can manage everything including other owners.',
+      color: 'bg-purple-100 border-purple-300 text-purple-800'
+    },
+    admin: {
+      description: 'Administrative access to manage team, content, and most system features.',
+      color: 'bg-blue-100 border-blue-300 text-blue-800'
+    },
+    member: {
+      description: 'Standard access to create tasks, collaborate, and participate in discussions.',
+      color: 'bg-green-100 border-green-300 text-green-800'
+    },
+    viewer: {
+      description: 'Read-only access with ability to view content and add comments.',
+      color: 'bg-gray-100 border-gray-300 text-gray-800'
+    }
+  }
+
+  const handleRoleChange = (newRole: TeamMember['role']) => {
+    setRole(newRole)
+    // Suggest appropriate access level based on role
+    const suggested = roleDescriptions[newRole].suggestedAccess
+    if (accessLevel !== 'owner') { // Don't downgrade owners
+      setAccessLevel(suggested)
+      toast.info(`Suggested access level "${suggested}" for ${newRole} role`)
+    }
+  }
+
+  const toggleCustomPermission = (permission: Permission) => {
+    setCustomPermissions(current => {
+      if (current.includes(permission)) {
+        return current.filter(p => p !== permission)
+      } else {
+        return [...current, permission]
+      }
+    })
+  }
+
+  const basePermissions = ACCESS_LEVEL_PERMISSIONS[accessLevel] || []
 
   const handleSave = () => {
     if (!name.trim()) {
@@ -1747,12 +1848,16 @@ const AddEditMemberDialog = ({ member, onClose, onSave, onDelete }: AddEditMembe
       return
     }
 
+    // Filter custom permissions to only include those not already in base permissions
+    const effectiveCustomPermissions = customPermissions.filter(p => !basePermissions.includes(p))
+
     const memberData: TeamMember = {
       id: member?.id || `user-${Date.now()}`,
       name: name.trim(),
       email: email.trim(),
       role,
       accessLevel,
+      customPermissions: effectiveCustomPermissions.length > 0 ? effectiveCustomPermissions : undefined,
       avatarUrl: avatarUrl.trim() || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
       isOnline
     }
@@ -1767,131 +1872,306 @@ const AddEditMemberDialog = ({ member, onClose, onSave, onDelete }: AddEditMembe
   }
 
   const currentPermissions = ACCESS_LEVEL_PERMISSIONS[accessLevel]
+  const totalPermissions = new Set([...basePermissions, ...customPermissions]).size
 
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{member ? 'Edit Team Member' : 'Add Team Member'}</DialogTitle>
+        <DialogTitle className="flex items-center gap-2">
+          {member ? (
+            <>
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={member.avatarUrl} alt={member.name} />
+                <AvatarFallback>{member.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+              </Avatar>
+              Edit {member.name}
+            </>
+          ) : (
+            <>
+              <Users size={24} weight="duotone" />
+              Add Team Member
+            </>
+          )}
+        </DialogTitle>
         <DialogDescription>
-          {member ? 'Update team member information and permissions' : 'Add a new member to your team with specific access levels'}
+          {member ? 'Update team member information, role, and permissions' : 'Add a new member to your team with specific access levels'}
         </DialogDescription>
       </DialogHeader>
 
       <ScrollArea className="max-h-[60vh]">
-        <div className="space-y-4 mt-4 pr-4">
-          <div>
-            <Label htmlFor="member-name">Name *</Label>
-            <Input
-              id="member-name"
-              placeholder="e.g., John Doe"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+        <div className="space-y-5 mt-4 pr-4">
+          {/* Basic Info Section */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+              <Users size={14} />
+              Basic Information
+            </h4>
+            
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="member-name">Name *</Label>
+                <Input
+                  id="member-name"
+                  placeholder="e.g., John Doe"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="member-email">Email *</Label>
+                <Input
+                  id="member-email"
+                  type="email"
+                  placeholder="e.g., john.doe@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="member-avatar">Avatar URL (Optional)</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="member-avatar"
+                  type="url"
+                  placeholder="https://example.com/avatar.jpg"
+                  value={avatarUrl}
+                  onChange={(e) => setAvatarUrl(e.target.value)}
+                  className="flex-1"
+                />
+                {(avatarUrl || name) && (
+                  <Avatar className="h-10 w-10 border">
+                    <AvatarImage src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name || 'user')}`} />
+                    <AvatarFallback>{name.split(' ').map(n => n[0]).join('') || 'U'}</AvatarFallback>
+                  </Avatar>
+                )}
+              </div>
+            </div>
           </div>
 
-          <div>
-            <Label htmlFor="member-email">Email *</Label>
-            <Input
-              id="member-email"
-              type="email"
-              placeholder="e.g., john.doe@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
+          <Separator />
 
-          <div>
-            <Label htmlFor="member-role">Role *</Label>
-            <Select value={role} onValueChange={(val) => setRole(val as TeamMember['role'])}>
-              <SelectTrigger id="member-role">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="architect">Architect</SelectItem>
-                <SelectItem value="developer">Developer</SelectItem>
-                <SelectItem value="devops">DevOps</SelectItem>
-                <SelectItem value="product">Product</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="member-access">Access Level *</Label>
-            <Select value={accessLevel} onValueChange={(val) => setAccessLevel(val as AccessLevel)}>
-              <SelectTrigger id="member-access">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="owner">
-                  <div className="flex flex-col items-start">
-                    <span className="font-medium">Owner</span>
-                    <span className="text-xs text-muted-foreground">Full system access</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="admin">
-                  <div className="flex flex-col items-start">
-                    <span className="font-medium">Admin</span>
-                    <span className="text-xs text-muted-foreground">Manage team and content</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="member">
-                  <div className="flex flex-col items-start">
-                    <span className="font-medium">Member</span>
-                    <span className="text-xs text-muted-foreground">Create and collaborate</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="viewer">
-                  <div className="flex flex-col items-start">
-                    <span className="font-medium">Viewer</span>
-                    <span className="text-xs text-muted-foreground">Read-only with comments</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="border rounded-lg p-3 bg-muted/30">
-            <p className="text-sm font-medium mb-2">Permissions for {accessLevel} access:</p>
-            <div className="space-y-1">
-              {(currentPermissions || []).filter(p => p).map((permission, idx) => (
-                <div key={`${permission}-${idx}`} className="flex items-center gap-2 text-xs">
-                  <CheckCircle size={14} weight="fill" className="text-green-600" />
-                  <span className="text-muted-foreground">{permission.replace(/_/g, ' ')}</span>
-                </div>
+          {/* Role Section */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+              <Tag size={14} />
+              Role & Responsibilities
+            </h4>
+            
+            <div className="grid sm:grid-cols-2 gap-3">
+              {(Object.entries(roleDescriptions) as [TeamMember['role'], typeof roleDescriptions['architect']][]).map(([roleKey, roleInfo]) => (
+                <Card
+                  key={roleKey}
+                  className={cn(
+                    "cursor-pointer transition-all hover:shadow-md",
+                    role === roleKey ? "border-primary border-2 bg-primary/5" : "hover:border-muted-foreground/30"
+                  )}
+                  onClick={() => handleRoleChange(roleKey)}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-xl">{roleInfo.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm capitalize">{roleKey}</p>
+                          {role === roleKey && (
+                            <CheckCircle size={14} weight="fill" className="text-primary" />
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{roleInfo.description}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="member-avatar">Avatar URL (Optional)</Label>
-            <Input
-              id="member-avatar"
-              type="url"
-              placeholder="https://example.com/avatar.jpg"
-              value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Leave empty to auto-generate an avatar
-            </p>
+          <Separator />
+
+          {/* Access Level Section */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+              <ShieldCheck size={14} />
+              Access Level
+            </h4>
+            
+            <div className="space-y-2">
+              {(Object.entries(accessLevelDescriptions) as [AccessLevel, typeof accessLevelDescriptions['owner']][]).map(([level, info]) => (
+                <Card
+                  key={level}
+                  className={cn(
+                    "cursor-pointer transition-all",
+                    accessLevel === level ? `border-2 ${info.color}` : "hover:border-muted-foreground/30"
+                  )}
+                  onClick={() => setAccessLevel(level)}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">{accessLevelIcons[level]}</span>
+                        <div>
+                          <p className="font-medium text-sm capitalize">{level}</p>
+                          <p className="text-xs text-muted-foreground">{info.description}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {(ACCESS_LEVEL_PERMISSIONS[level] || []).length} permissions
+                        </Badge>
+                        {accessLevel === level && (
+                          <CheckCircle size={18} weight="fill" className="text-primary" />
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <Separator />
+
+          {/* Permissions Preview & Custom Permissions */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+                <Lock size={14} />
+                Permissions ({totalPermissions} total)
+              </h4>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCustomPermissions(!showCustomPermissions)}
+                className="gap-2"
+              >
+                {showCustomPermissions ? 'Hide' : 'Customize'}
+                <Badge variant="secondary" className="text-xs">
+                  {customPermissions.filter(p => !basePermissions.includes(p)).length} custom
+                </Badge>
+              </Button>
+            </div>
+
+            {/* Base Permissions Preview */}
+            <div className="border rounded-lg p-3 bg-muted/30">
+              <p className="text-xs font-medium mb-2 text-muted-foreground">
+                Base permissions for {accessLevel} access:
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {(currentPermissions || []).filter(p => p).map((permission, idx) => (
+                  <Badge key={`${permission}-${idx}`} variant="secondary" className="text-xs gap-1">
+                    <CheckCircle size={10} weight="fill" className="text-green-600" />
+                    {permission.replace(/_/g, ' ')}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom Permissions Toggle */}
+            {showCustomPermissions && (
+              <Card className="border-dashed">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Add Custom Permissions</CardTitle>
+                  <CardDescription className="text-xs">
+                    Grant additional permissions beyond the base access level
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    {allPermissions.map((permission, idx) => {
+                      const isBasePermission = basePermissions.includes(permission)
+                      const isCustomEnabled = customPermissions.includes(permission)
+                      const isEnabled = isBasePermission || isCustomEnabled
+
+                      return (
+                        <div
+                          key={`${permission}-${idx}`}
+                          className={cn(
+                            "flex items-center justify-between p-2 rounded-md border transition-colors",
+                            isBasePermission ? "bg-green-50 border-green-200 dark:bg-green-950/20" : 
+                            isCustomEnabled ? "bg-blue-50 border-blue-200 dark:bg-blue-950/20" : 
+                            "bg-muted/30 hover:bg-muted/50"
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            {isEnabled ? (
+                              <CheckCircle size={14} weight="fill" className={isBasePermission ? "text-green-600" : "text-blue-600"} />
+                            ) : (
+                              <Circle size={14} className="text-muted-foreground" />
+                            )}
+                            <span className={cn(
+                              "text-xs",
+                              isEnabled ? "text-foreground" : "text-muted-foreground"
+                            )}>
+                              {permission.replace(/_/g, ' ')}
+                            </span>
+                          </div>
+                          {isBasePermission ? (
+                            <Badge variant="outline" className="text-xs">Base</Badge>
+                          ) : (
+                            <Switch
+                              checked={isCustomEnabled}
+                              onCheckedChange={() => toggleCustomPermission(permission)}
+                              className="scale-75"
+                            />
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Custom Permissions Summary */}
+            {customPermissions.filter(p => !basePermissions.includes(p)).length > 0 && (
+              <div className="border rounded-lg p-3 bg-blue-50/50 dark:bg-blue-950/20 border-blue-200">
+                <p className="text-xs font-medium mb-2 text-blue-700 dark:text-blue-400">
+                  Custom permissions added:
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {customPermissions.filter(p => !basePermissions.includes(p)).map((permission, idx) => (
+                    <Badge key={`custom-${permission}-${idx}`} className="text-xs gap-1 bg-blue-100 text-blue-800 hover:bg-blue-200">
+                      <Plus size={10} weight="bold" />
+                      {permission.replace(/_/g, ' ')}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* Status Section */}
+          <div className="flex items-center justify-between p-3 border rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "h-3 w-3 rounded-full",
+                isOnline ? "bg-green-500" : "bg-gray-400"
+              )} />
+              <div>
+                <p className="text-sm font-medium">Availability Status</p>
+                <p className="text-xs text-muted-foreground">
+                  {isOnline ? 'Member is available and online' : 'Member is currently offline'}
+                </p>
+              </div>
+            </div>
             <Switch
               id="member-online"
               checked={isOnline}
               onCheckedChange={setIsOnline}
             />
-            <Label htmlFor="member-online" className="cursor-pointer">
-              Available / Online
-            </Label>
           </div>
         </div>
       </ScrollArea>
 
-      <div className="flex gap-2 justify-between pt-4">
+      <div className="flex gap-2 justify-between pt-4 border-t mt-4">
         {member && onDelete && (
-          <Button variant="destructive" onClick={handleDelete}>
+          <Button variant="destructive" onClick={handleDelete} className="gap-2">
+            <Circle size={14} weight="fill" className="text-red-200" />
             Delete Member
           </Button>
         )}
@@ -1899,7 +2179,8 @@ const AddEditMemberDialog = ({ member, onClose, onSave, onDelete }: AddEditMembe
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} className="gap-2">
+            <CheckCircle size={16} weight="bold" />
             {member ? 'Update' : 'Add'} Member
           </Button>
         </div>
@@ -1911,9 +2192,16 @@ const AddEditMemberDialog = ({ member, onClose, onSave, onDelete }: AddEditMembe
 interface PermissionsDetailsDialogProps {
   member: TeamMember
   onClose: () => void
+  onSave?: (updatedMember: TeamMember) => void
+  canEdit?: boolean
 }
 
-const PermissionsDetailsDialog = ({ member, onClose }: PermissionsDetailsDialogProps) => {
+const PermissionsDetailsDialog = ({ member, onClose, onSave, canEdit = false }: PermissionsDetailsDialogProps) => {
+  const [isEditing, setIsEditing] = useState(false)
+  const [accessLevel, setAccessLevel] = useState<AccessLevel>(member.accessLevel)
+  const [customPermissions, setCustomPermissions] = useState<Permission[]>(member.customPermissions || [])
+  const [hasChanges, setHasChanges] = useState(false)
+
   const allPermissions: Permission[] = [
     'manage_team',
     'manage_roles',
@@ -1956,37 +2244,183 @@ const PermissionsDetailsDialog = ({ member, onClose }: PermissionsDetailsDialogP
     'Data & Analytics': ['view_analytics', 'export_data'] as Permission[]
   }
 
+  const accessLevelDescriptions: Record<AccessLevel, { description: string; color: string }> = {
+    owner: {
+      description: 'Full system access with all permissions. Can manage everything.',
+      color: 'bg-purple-100 border-purple-300 text-purple-800 dark:bg-purple-950/30 dark:border-purple-700 dark:text-purple-300'
+    },
+    admin: {
+      description: 'Administrative access to manage team and content.',
+      color: 'bg-blue-100 border-blue-300 text-blue-800 dark:bg-blue-950/30 dark:border-blue-700 dark:text-blue-300'
+    },
+    member: {
+      description: 'Standard access to create tasks and collaborate.',
+      color: 'bg-green-100 border-green-300 text-green-800 dark:bg-green-950/30 dark:border-green-700 dark:text-green-300'
+    },
+    viewer: {
+      description: 'Read-only access with ability to comment.',
+      color: 'bg-gray-100 border-gray-300 text-gray-800 dark:bg-gray-800/30 dark:border-gray-600 dark:text-gray-300'
+    }
+  }
+
+  const basePermissions = ACCESS_LEVEL_PERMISSIONS[accessLevel] || []
+
+  const toggleCustomPermission = (permission: Permission) => {
+    setCustomPermissions(current => {
+      const newPermissions = current.includes(permission)
+        ? current.filter(p => p !== permission)
+        : [...current, permission]
+      return newPermissions
+    })
+    setHasChanges(true)
+  }
+
+  const handleAccessLevelChange = (newLevel: AccessLevel) => {
+    setAccessLevel(newLevel)
+    // Reset custom permissions that are now included in base permissions
+    const newBasePermissions = ACCESS_LEVEL_PERMISSIONS[newLevel] || []
+    setCustomPermissions(current => current.filter(p => !newBasePermissions.includes(p)))
+    setHasChanges(true)
+  }
+
+  const handleSave = () => {
+    if (onSave) {
+      const effectiveCustomPermissions = customPermissions.filter(p => !basePermissions.includes(p))
+      const updatedMember: TeamMember = {
+        ...member,
+        accessLevel,
+        customPermissions: effectiveCustomPermissions.length > 0 ? effectiveCustomPermissions : undefined
+      }
+      onSave(updatedMember)
+      toast.success('Permissions updated successfully')
+    }
+    setIsEditing(false)
+    setHasChanges(false)
+  }
+
+  const handleCancel = () => {
+    setAccessLevel(member.accessLevel)
+    setCustomPermissions(member.customPermissions || [])
+    setIsEditing(false)
+    setHasChanges(false)
+  }
+
+  const totalPermissions = new Set([...basePermissions, ...customPermissions]).size
+
   return (
     <>
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
-          <ShieldCheck size={24} weight="duotone" className="text-accent" />
+          <ShieldCheck size={24} weight="duotone" className="text-primary" />
           Permissions for {member.name}
         </DialogTitle>
-        <DialogDescription>
-          Access level: <span className="font-semibold capitalize">{member.accessLevel}</span>
+        <DialogDescription className="flex items-center gap-2">
+          <span>Access level:</span>
+          <Badge className={cn('capitalize', accessLevelColors[accessLevel])}>
+            {accessLevelIcons[accessLevel]} {accessLevel}
+          </Badge>
+          <span className="text-xs">({totalPermissions} permissions)</span>
         </DialogDescription>
       </DialogHeader>
 
       <ScrollArea className="max-h-[60vh] mt-4">
         <div className="space-y-4 pr-4">
-          <Card className={cn('border-2', accessLevelColors[member.accessLevel].replace('text-white', 'border-current'))}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <span>{accessLevelIcons[member.accessLevel]}</span>
-                <span className="capitalize">{member.accessLevel} Access Level</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {member.accessLevel === 'owner' && 'Full system access with all permissions enabled. Can manage team members, roles, and all system content.'}
-                {member.accessLevel === 'admin' && 'Administrative access to manage team and content. Cannot modify owner permissions or access levels.'}
-                {member.accessLevel === 'member' && 'Standard team member access. Can create tasks, collaborate, and view analytics.'}
-                {member.accessLevel === 'viewer' && 'Read-only access with ability to comment. Cannot create or modify tasks.'}
-              </p>
-            </CardContent>
-          </Card>
+          {/* Edit Mode Toggle */}
+          {canEdit && onSave && (
+            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
+              <div className="flex items-center gap-2">
+                <Lock size={16} className={isEditing ? "text-primary" : "text-muted-foreground"} />
+                <span className="text-sm font-medium">
+                  {isEditing ? 'Editing permissions' : 'View mode'}
+                </span>
+              </div>
+              {!isEditing ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                  className="gap-2"
+                >
+                  <Lock size={14} />
+                  Edit Permissions
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={handleCancel}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    onClick={handleSave}
+                    disabled={!hasChanges}
+                    className="gap-2"
+                  >
+                    <CheckCircle size={14} weight="bold" />
+                    Save Changes
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
 
+          {/* Access Level Selection (Edit Mode) */}
+          {isEditing && (
+            <div className="space-y-3">
+              <h4 className="font-semibold text-sm flex items-center gap-2">
+                <ShieldCheck size={16} />
+                Change Access Level
+              </h4>
+              <div className="grid grid-cols-2 gap-2">
+                {(Object.entries(accessLevelDescriptions) as [AccessLevel, typeof accessLevelDescriptions['owner']][]).map(([level, info]) => (
+                  <Card
+                    key={level}
+                    className={cn(
+                      "cursor-pointer transition-all hover:shadow-md",
+                      accessLevel === level ? `border-2 ${info.color}` : "hover:border-muted-foreground/30"
+                    )}
+                    onClick={() => handleAccessLevelChange(level)}
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{accessLevelIcons[level]}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-sm capitalize">{level}</p>
+                            {accessLevel === level && (
+                              <CheckCircle size={14} weight="fill" className="text-primary" />
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-1">{info.description}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Access Level Card (View Mode) */}
+          {!isEditing && (
+            <Card className={cn('border-2', accessLevelColors[accessLevel].replace('text-white', 'border-current'))}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <span>{accessLevelIcons[accessLevel]}</span>
+                  <span className="capitalize">{accessLevel} Access Level</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  {accessLevel === 'owner' && 'Full system access with all permissions enabled. Can manage team members, roles, and all system content.'}
+                  {accessLevel === 'admin' && 'Administrative access to manage team and content. Cannot modify owner permissions or access levels.'}
+                  {accessLevel === 'member' && 'Standard team member access. Can create tasks, collaborate, and view analytics.'}
+                  {accessLevel === 'viewer' && 'Read-only access with ability to comment. Cannot create or modify tasks.'}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Permission Categories */}
           {Object.entries(permissionCategories).map(([category, permissions]) => (
             <div key={category} className="space-y-2">
               <h4 className="font-semibold text-sm flex items-center gap-2">
@@ -1995,36 +2429,68 @@ const PermissionsDetailsDialog = ({ member, onClose }: PermissionsDetailsDialogP
               </h4>
               <div className="space-y-2">
                 {permissions.map((permission, idx) => {
-                  const hasAccess = hasPermission(member, permission)
+                  const isBasePermission = basePermissions.includes(permission)
+                  const isCustomEnabled = customPermissions.includes(permission)
+                  const hasAccess = isBasePermission || isCustomEnabled
+
                   return (
                     <div 
                       key={`${permission}-${idx}`}
                       className={cn(
-                        "flex items-start gap-3 p-3 rounded-lg border",
-                        hasAccess ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"
+                        "flex items-start gap-3 p-3 rounded-lg border transition-all",
+                        hasAccess 
+                          ? isBasePermission 
+                            ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800" 
+                            : "bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800"
+                          : "bg-gray-50 border-gray-200 dark:bg-gray-900/30 dark:border-gray-700",
+                        isEditing && !isBasePermission && "cursor-pointer hover:shadow-md"
                       )}
+                      onClick={() => {
+                        if (isEditing && !isBasePermission) {
+                          toggleCustomPermission(permission)
+                        }
+                      }}
                     >
                       <div className="mt-0.5">
                         {hasAccess ? (
-                          <CheckCircle size={18} weight="fill" className="text-green-600" />
+                          <CheckCircle 
+                            size={18} 
+                            weight="fill" 
+                            className={isBasePermission ? "text-green-600" : "text-blue-600"} 
+                          />
                         ) : (
                           <Circle size={18} className="text-gray-400" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={cn(
-                          "text-sm font-medium",
-                          hasAccess ? "text-green-900" : "text-gray-500"
-                        )}>
-                          {permission.replace(/_/g, ' ')}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className={cn(
+                            "text-sm font-medium",
+                            hasAccess ? (isBasePermission ? "text-green-900 dark:text-green-300" : "text-blue-900 dark:text-blue-300") : "text-gray-500"
+                          )}>
+                            {permission.replace(/_/g, ' ')}
+                          </p>
+                          {isBasePermission && (
+                            <Badge variant="outline" className="text-xs">Base</Badge>
+                          )}
+                          {isCustomEnabled && !isBasePermission && (
+                            <Badge className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Custom</Badge>
+                          )}
+                        </div>
                         <p className={cn(
                           "text-xs",
-                          hasAccess ? "text-green-700" : "text-gray-500"
+                          hasAccess ? (isBasePermission ? "text-green-700 dark:text-green-400" : "text-blue-700 dark:text-blue-400") : "text-gray-500"
                         )}>
                           {permissionDescriptions[permission]}
                         </p>
                       </div>
+                      {isEditing && !isBasePermission && (
+                        <Switch
+                          checked={isCustomEnabled}
+                          onCheckedChange={() => toggleCustomPermission(permission)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      )}
                     </div>
                   )
                 })}
@@ -2032,30 +2498,65 @@ const PermissionsDetailsDialog = ({ member, onClose }: PermissionsDetailsDialogP
             </div>
           ))}
 
-          {(member.customPermissions || []).length > 0 && (
-            <Card className="border-accent">
+          {/* Custom Permissions Summary */}
+          {customPermissions.filter(p => !basePermissions.includes(p)).length > 0 && (
+            <Card className="border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-950/20">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
+                <CardTitle className="text-sm flex items-center gap-2 text-blue-800 dark:text-blue-300">
                   <Tag size={16} />
-                  Custom Permissions
+                  Custom Permissions ({customPermissions.filter(p => !basePermissions.includes(p)).length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
-                  {(member.customPermissions || []).filter(p => p).map((permission, idx) => (
-                    <Badge key={`${permission}-${idx}`} variant="secondary" className="text-xs">
+                  {customPermissions.filter(p => !basePermissions.includes(p)).map((permission, idx) => (
+                    <Badge 
+                      key={`${permission}-${idx}`} 
+                      className="text-xs gap-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                    >
+                      <Plus size={10} weight="bold" />
                       {permission.replace(/_/g, ' ')}
+                      {isEditing && (
+                        <button
+                          onClick={() => toggleCustomPermission(permission)}
+                          className="ml-1 hover:text-red-600 transition-colors"
+                        >
+                          ×
+                        </button>
+                      )}
                     </Badge>
                   ))}
                 </div>
               </CardContent>
             </Card>
           )}
+
+          {/* Changes Indicator */}
+          {hasChanges && (
+            <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <Clock size={16} className="text-yellow-600" />
+              <span className="text-sm text-yellow-800 dark:text-yellow-300">
+                You have unsaved changes
+              </span>
+            </div>
+          )}
         </div>
       </ScrollArea>
 
-      <div className="flex justify-end gap-2 pt-4">
-        <Button onClick={onClose}>Close</Button>
+      <div className="flex justify-end gap-2 pt-4 border-t mt-4">
+        {isEditing && hasChanges ? (
+          <>
+            <Button variant="outline" onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} className="gap-2">
+              <CheckCircle size={16} weight="bold" />
+              Save Changes
+            </Button>
+          </>
+        ) : (
+          <Button onClick={onClose}>Close</Button>
+        )}
       </div>
     </>
   )
