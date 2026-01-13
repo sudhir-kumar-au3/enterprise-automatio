@@ -41,7 +41,8 @@ const CollaborationView = () => {
     createTask: createTaskApi,
     updateTask: updateTaskApi,
     updateTaskStatus: updateTaskStatusApi,
-    deleteTask: deleteTaskApi
+    deleteTask: deleteTaskApi,
+    updateTaskDependencies: updateTaskDependenciesApi
   } = useTasks()
   const { 
     comments, 
@@ -242,6 +243,7 @@ const CollaborationView = () => {
             currentUser={currentUser}
             updateTaskStatusApi={updateTaskStatusApi}
             updateTaskApi={updateTaskApi}
+            updateTaskDependenciesApi={updateTaskDependenciesApi}
           />
         </TabsContent>
 

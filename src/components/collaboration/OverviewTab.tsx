@@ -575,6 +575,13 @@ const OverviewTab = ({ currentUser, allMembers, tasks, comments }: OverviewTabPr
           </Card>
         </div>
       </div>
+
+      {/* Activity Timeline - Full Width */}
+      <ActivityTimeline 
+        tasks={tasks} 
+        comments={comments} 
+        teamMembers={allMembers} 
+      />
     </div>
   )
 }

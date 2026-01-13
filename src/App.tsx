@@ -238,7 +238,7 @@ function AppHeader() {
             <CheckSquare className="h-5 w-5" />
           </div>
           <div className="hidden sm:block">
-            <h1 className="text-base font-semibold tracking-tight">Team Hub</h1>
+            <h1 className="text-base font-semibold tracking-tight">Pulsework.io</h1>
             <p className="text-xs text-muted-foreground">Enterprise Collaboration</p>
           </div>
         </div>
@@ -387,7 +387,7 @@ function AppContent() {
       <footer className="border-t bg-muted/30">
         <div className="container flex flex-col items-center justify-between gap-4 py-6 md:h-16 md:flex-row md:py-0 px-4 md:px-6">
           <p className="text-center text-sm text-muted-foreground md:text-left">
-            © 2026 Team Hub. Built with precision.
+            © 2026 Pulsework.io. Built with precision.
           </p>
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
             <a href="#" className="hover:text-foreground transition-colors duration-200">Privacy</a>

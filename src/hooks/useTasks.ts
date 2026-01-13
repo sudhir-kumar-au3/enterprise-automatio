@@ -53,6 +53,17 @@ export function useTasks(initialFilters?: TaskFilters) {
     (id, status) => taskService.updateTaskStatus(id, status)
   );
 
+  // Dependencies update mutation
+  const dependenciesMutation = useMutation<Task, [string, string[]]>(
+    (id, dependencies) => taskService.updateTaskDependencies(id, dependencies)
+  );
+
+  // Bulk update mutation
+  const bulkUpdateMutation = useMutation<
+    Task[],
+    [Array<{ id: string; data: UpdateTaskData }>]
+  >((updates) => taskService.bulkUpdateTasks(updates));
+
   const createTask = useCallback(
     async (data: CreateTaskData) => {
       const result = await createMutation.mutate(data);
@@ -97,6 +108,45 @@ export function useTasks(initialFilters?: TaskFilters) {
     [statusMutation, updateItem]
   );
 
+  // NEW: Update task dependencies via API
+  const updateTaskDependencies = useCallback(
+    async (id: string, dependencies: string[]) => {
+      const result = await dependenciesMutation.mutate(id, dependencies);
+      if (result.success && result.data) {
+        updateItem(id, { dependencies });
+      }
+      return result;
+    },
+    [dependenciesMutation, updateItem]
+  );
+
+  // NEW: Bulk update tasks via API
+  const bulkUpdateTasks = useCallback(
+    async (updates: Array<{ id: string; data: UpdateTaskData }>) => {
+      const result = await bulkUpdateMutation.mutate(updates);
+      if (result.success && result.data) {
+        // Update all items in local state
+        result.data.forEach((updatedTask) => {
+          updateItem(updatedTask.id, updatedTask);
+        });
+      }
+      return result;
+    },
+    [bulkUpdateMutation, updateItem]
+  );
+
+  // NEW: Get my tasks (current user's assigned tasks)
+  const fetchMyTasks = useCallback(
+    async (additionalFilters?: Omit<TaskFilters, "assigneeId">) => {
+      const result = await taskService.getMyTasks(additionalFilters);
+      if (result.success && result.data) {
+        setItems(result.data);
+      }
+      return result;
+    },
+    [setItems]
+  );
+
   return {
     tasks,
     pagination,
@@ -105,6 +155,7 @@ export function useTasks(initialFilters?: TaskFilters) {
     filters,
     // Actions
     fetchTasks: fetchData,
+    fetchMyTasks,
     goToPage,
     updateFilters,
     refresh,
@@ -112,11 +163,15 @@ export function useTasks(initialFilters?: TaskFilters) {
     updateTask,
     deleteTask,
     updateTaskStatus,
+    updateTaskDependencies,
+    bulkUpdateTasks,
     setTasks: setItems,
     // Mutation states
     isCreating: createMutation.isLoading,
     isUpdating: updateMutation.isLoading,
     isDeleting: deleteMutation.isLoading,
+    isUpdatingDependencies: dependenciesMutation.isLoading,
+    isBulkUpdating: bulkUpdateMutation.isLoading,
   };
 }
 

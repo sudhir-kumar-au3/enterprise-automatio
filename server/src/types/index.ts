@@ -222,6 +222,7 @@ export interface DataStatistics {
     dueSoon: number;
     withDependencies: number;
     unassigned: number;
+    completedThisWeek: number;
   };
   comments: {
     total: number;

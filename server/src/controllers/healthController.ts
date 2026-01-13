@@ -7,6 +7,9 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import os from "os";
 import { asyncHandler } from "../middleware";
+import { cacheService } from "../services/cache.service";
+import { wsService } from "../services/websocket.service";
+import { isDatabaseHealthy, getConnectionStats } from "../config/database";
 import logger from "../utils/logger";
 
 // Track application start time
@@ -23,6 +26,7 @@ const metrics = {
     sum: 0,
     count: 0,
     max: 0,
+    p99: [] as number[], // Keep last 1000 for percentile calculation
   },
   errors: {
     total: 0,
@@ -43,12 +47,26 @@ export const incrementRequestMetric = (
   metrics.latency.sum += latencyMs;
   metrics.latency.count++;
   metrics.latency.max = Math.max(metrics.latency.max, latencyMs);
+
+  // Track for percentile calculation (keep last 1000)
+  metrics.latency.p99.push(latencyMs);
+  if (metrics.latency.p99.length > 1000) {
+    metrics.latency.p99.shift();
+  }
 };
 
 export const incrementErrorMetric = (errorType: string) => {
   metrics.errors.total++;
   metrics.errors.byType[errorType] =
     (metrics.errors.byType[errorType] || 0) + 1;
+};
+
+// Calculate p99 latency
+const calculateP99 = (): number => {
+  if (metrics.latency.p99.length === 0) return 0;
+  const sorted = [...metrics.latency.p99].sort((a, b) => a - b);
+  const index = Math.floor(sorted.length * 0.99);
+  return sorted[index] || 0;
 };
 
 /**
@@ -67,7 +85,7 @@ export const livenessProbe = asyncHandler(
 /**
  * Kubernetes Readiness Probe
  * Returns 200 if the application can accept traffic
- * Checks critical dependencies (database, etc.)
+ * Checks critical dependencies (database, Redis, etc.)
  */
 export const readinessProbe = asyncHandler(
   async (_req: Request, res: Response) => {
@@ -80,10 +98,8 @@ export const readinessProbe = asyncHandler(
     // Check MongoDB connection
     const dbStart = Date.now();
     try {
-      const dbState = mongoose.connection.readyState;
-      if (dbState === 1) {
-        // Ping the database
-        await mongoose.connection.db?.admin().ping();
+      const isHealthy = await isDatabaseHealthy();
+      if (isHealthy) {
         checks.mongodb = {
           status: "healthy",
           latency: Date.now() - dbStart,
@@ -91,7 +107,7 @@ export const readinessProbe = asyncHandler(
       } else {
         checks.mongodb = {
           status: "unhealthy",
-          error: `Connection state: ${dbState}`,
+          error: "Database not responding",
         };
         isReady = false;
       }
@@ -102,6 +118,21 @@ export const readinessProbe = asyncHandler(
         latency: Date.now() - dbStart,
       };
       isReady = false;
+    }
+
+    // Check Redis/Cache service
+    const cacheStart = Date.now();
+    try {
+      const cacheStats = cacheService.getStats();
+      checks.redis = {
+        status: "healthy",
+        latency: Date.now() - cacheStart,
+      };
+    } catch (error) {
+      checks.redis = {
+        status: "degraded", // Not critical, can work without cache
+        error: (error as Error).message,
+      };
     }
 
     // Check memory usage
@@ -140,6 +171,7 @@ export const healthCheck = asyncHandler(
 
     // MongoDB Health
     try {
+      const dbStats = getConnectionStats();
       const dbState = mongoose.connection.readyState;
       const stateMap: Record<number, string> = {
         0: "disconnected",
@@ -149,13 +181,16 @@ export const healthCheck = asyncHandler(
       };
 
       if (dbState === 1) {
-        const dbStats = await mongoose.connection.db?.stats();
+        const mongoStats = await mongoose.connection.db?.stats();
         checks.mongodb = {
           status: "healthy",
           state: stateMap[dbState],
-          collections: dbStats?.collections || 0,
-          dataSize: formatBytes(dbStats?.dataSize || 0),
-          indexSize: formatBytes(dbStats?.indexSize || 0),
+          host: dbStats.host,
+          database: dbStats.name,
+          poolSize: dbStats.poolSize,
+          collections: mongoStats?.collections || 0,
+          dataSize: formatBytes(mongoStats?.dataSize || 0),
+          indexSize: formatBytes(mongoStats?.indexSize || 0),
         };
       } else {
         checks.mongodb = {
@@ -172,10 +207,47 @@ export const healthCheck = asyncHandler(
       overallStatus = "unhealthy";
     }
 
+    // Redis/Cache Health
+    try {
+      const cacheStats = cacheService.getStats();
+      checks.cache = {
+        status: "healthy",
+        hits: cacheStats.hits,
+        misses: cacheStats.misses,
+        hitRate: cacheStats.hitRate.toFixed(2) + "%",
+        localCacheSize: cacheStats.size,
+        staleHits: cacheStats.staleHits,
+      };
+    } catch (error) {
+      checks.cache = {
+        status: "degraded",
+        error: (error as Error).message,
+      };
+    }
+
+    // WebSocket Health
+    try {
+      const wsMetrics = wsService.getMetrics();
+      const globalMetrics = await wsService.getGlobalMetrics();
+      checks.websocket = {
+        status: "healthy",
+        serverId: wsMetrics.serverId,
+        localConnections: wsMetrics.localConnections,
+        totalConnections: globalMetrics.totalConnections,
+        serverCount: globalMetrics.serverCount,
+        uptime: formatUptime(wsMetrics.uptime),
+      };
+    } catch (error) {
+      checks.websocket = {
+        status: "degraded",
+        error: (error as Error).message,
+      };
+    }
+
     // System Resources
     const memUsage = process.memoryUsage();
     const cpuUsage = process.cpuUsage();
-    const loadAvg = os.loadavg(); // Fixed: loadavg() not loadaverage()
+    const loadAvg = os.loadavg();
 
     checks.system = {
       status: "healthy",
@@ -197,6 +269,27 @@ export const healthCheck = asyncHandler(
         "15min": loadAvg[2].toFixed(2),
       },
       uptime: formatUptime(process.uptime()),
+      platform: os.platform(),
+      cpuCores: os.cpus().length,
+      totalMemory: formatBytes(os.totalmem()),
+      freeMemory: formatBytes(os.freemem()),
+    };
+
+    // Request Metrics
+    checks.requests = {
+      status: "healthy",
+      total: metrics.requests.total,
+      avgLatency:
+        metrics.latency.count > 0
+          ? (metrics.latency.sum / metrics.latency.count).toFixed(2) + "ms"
+          : "0ms",
+      maxLatency: metrics.latency.max.toFixed(2) + "ms",
+      p99Latency: calculateP99().toFixed(2) + "ms",
+      errorRate:
+        metrics.requests.total > 0
+          ? ((metrics.errors.total / metrics.requests.total) * 100).toFixed(2) +
+            "%"
+          : "0%",
     };
 
     // Application Info
@@ -226,6 +319,12 @@ export const metricsEndpoint = asyncHandler(
   async (_req: Request, res: Response) => {
     const memUsage = process.memoryUsage();
     const uptime = (Date.now() - startTime) / 1000;
+    const cacheStats = cacheService.getStats();
+    let wsMetrics = { connections: 0, localConnections: 0 };
+
+    try {
+      wsMetrics = wsService.getMetrics();
+    } catch {}
 
     // Format as Prometheus text format
     const prometheusMetrics = [
@@ -254,9 +353,25 @@ export const metricsEndpoint = asyncHandler(
       `http_request_duration_seconds_sum ${metrics.latency.sum / 1000}`,
       `http_request_duration_seconds_count ${metrics.latency.count}`,
       "",
+      "# HELP http_request_latency_p99_ms 99th percentile latency in ms",
+      "# TYPE http_request_latency_p99_ms gauge",
+      `http_request_latency_p99_ms ${calculateP99()}`,
+      "",
       "# HELP http_errors_total Total HTTP errors",
       "# TYPE http_errors_total counter",
       `http_errors_total ${metrics.errors.total}`,
+      "",
+      "# HELP cache_hits_total Total cache hits",
+      "# TYPE cache_hits_total counter",
+      `cache_hits_total ${cacheStats.hits}`,
+      "",
+      "# HELP cache_misses_total Total cache misses",
+      "# TYPE cache_misses_total counter",
+      `cache_misses_total ${cacheStats.misses}`,
+      "",
+      "# HELP websocket_connections_total Total WebSocket connections",
+      "# TYPE websocket_connections_total gauge",
+      `websocket_connections_total ${wsMetrics.connections}`,
     ];
 
     // Add per-status metrics
@@ -291,6 +406,12 @@ export const appInfo = asyncHandler(async (_req: Request, res: Response) => {
         comments: "/api/v1/comments",
         team: "/api/v1/team",
         data: "/api/v1/data",
+      },
+      features: {
+        realtime: "WebSocket with Redis Pub/Sub for horizontal scaling",
+        caching: "Multi-tier caching with Redis and local cache",
+        backgroundJobs: "BullMQ for async task processing",
+        rateLimit: "Redis-backed distributed rate limiting",
       },
     },
   });

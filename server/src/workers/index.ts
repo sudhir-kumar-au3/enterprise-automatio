@@ -95,9 +95,9 @@ const EMAIL_TEMPLATES: Record<
   }),
 
   welcome: (data) => ({
-    subject: `Welcome to Team Hub, ${data.name}!`,
+    subject: `Welcome to Pulsework.io, ${data.name}!`,
     html: `
-      <h2>Welcome to Team Hub! 🎉</h2>
+      <h2>Welcome to Pulsework.io! 🎉</h2>
       <p>Hi ${data.name},</p>
       <p>Your account has been created successfully. Here's how to get started:</p>
       <ol>

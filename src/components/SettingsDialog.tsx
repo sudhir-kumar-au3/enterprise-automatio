@@ -53,14 +53,46 @@ import {
 import { useAuth, useSettings } from '@/contexts';
 import type { AppearanceSettings, ProductivitySettings, PrivacySettings } from '@/contexts';
 
-// Accent colors with proper styling
+// Accent colors with proper styling - Solid colors
 const accentColors = [
   { name: 'Blue', value: 'blue', bg: 'bg-blue-500', ring: 'ring-blue-500' },
   { name: 'Purple', value: 'purple', bg: 'bg-purple-500', ring: 'ring-purple-500' },
-  { name: 'Green', value: 'green', bg: 'bg-green-500', ring: 'ring-green-500' },
-  { name: 'Orange', value: 'orange', bg: 'bg-orange-500', ring: 'ring-orange-500' },
-  { name: 'Pink', value: 'pink', bg: 'bg-pink-500', ring: 'ring-pink-500' },
+  { name: 'Violet', value: 'violet', bg: 'bg-violet-500', ring: 'ring-violet-500' },
+  { name: 'Indigo', value: 'indigo', bg: 'bg-indigo-500', ring: 'ring-indigo-500' },
+  { name: 'Cyan', value: 'cyan', bg: 'bg-cyan-500', ring: 'ring-cyan-500' },
   { name: 'Teal', value: 'teal', bg: 'bg-teal-500', ring: 'ring-teal-500' },
+  { name: 'Emerald', value: 'emerald', bg: 'bg-emerald-500', ring: 'ring-emerald-500' },
+  { name: 'Green', value: 'green', bg: 'bg-green-500', ring: 'ring-green-500' },
+  { name: 'Lime', value: 'lime', bg: 'bg-lime-500', ring: 'ring-lime-500' },
+  { name: 'Yellow', value: 'yellow', bg: 'bg-yellow-500', ring: 'ring-yellow-500' },
+  { name: 'Amber', value: 'amber', bg: 'bg-amber-500', ring: 'ring-amber-500' },
+  { name: 'Orange', value: 'orange', bg: 'bg-orange-500', ring: 'ring-orange-500' },
+  { name: 'Red', value: 'red', bg: 'bg-red-500', ring: 'ring-red-500' },
+  { name: 'Rose', value: 'rose', bg: 'bg-rose-500', ring: 'ring-rose-500' },
+  { name: 'Pink', value: 'pink', bg: 'bg-pink-500', ring: 'ring-pink-500' },
+  { name: 'Fuchsia', value: 'fuchsia', bg: 'bg-fuchsia-500', ring: 'ring-fuchsia-500' },
+  { name: 'Slate', value: 'slate', bg: 'bg-slate-500', ring: 'ring-slate-500' },
+  { name: 'Zinc', value: 'zinc', bg: 'bg-zinc-500', ring: 'ring-zinc-500' },
+] as const;
+
+// Gradient accent colors - Modern gradients
+const gradientColors = [
+  { name: 'Ocean', value: 'gradient-ocean', bg: 'bg-gradient-to-r from-blue-500 to-cyan-500', ring: 'ring-cyan-500' },
+  { name: 'Sunset', value: 'gradient-sunset', bg: 'bg-gradient-to-r from-orange-500 to-pink-500', ring: 'ring-pink-500' },
+  { name: 'Aurora', value: 'gradient-aurora', bg: 'bg-gradient-to-r from-purple-500 to-pink-500', ring: 'ring-pink-500' },
+  { name: 'Forest', value: 'gradient-forest', bg: 'bg-gradient-to-r from-green-500 to-emerald-500', ring: 'ring-emerald-500' },
+  { name: 'Twilight', value: 'gradient-twilight', bg: 'bg-gradient-to-r from-violet-500 to-purple-500', ring: 'ring-purple-500' },
+  { name: 'Flame', value: 'gradient-flame', bg: 'bg-gradient-to-r from-red-500 to-orange-500', ring: 'ring-orange-500' },
+  { name: 'Lagoon', value: 'gradient-lagoon', bg: 'bg-gradient-to-r from-cyan-500 to-teal-500', ring: 'ring-teal-500' },
+  { name: 'Berry', value: 'gradient-berry', bg: 'bg-gradient-to-r from-fuchsia-500 to-pink-500', ring: 'ring-pink-500' },
+  { name: 'Midnight', value: 'gradient-midnight', bg: 'bg-gradient-to-r from-blue-600 to-violet-600', ring: 'ring-violet-600' },
+  { name: 'Citrus', value: 'gradient-citrus', bg: 'bg-gradient-to-r from-yellow-400 to-orange-500', ring: 'ring-orange-500' },
+  { name: 'Mint', value: 'gradient-mint', bg: 'bg-gradient-to-r from-emerald-400 to-cyan-500', ring: 'ring-cyan-500' },
+  { name: 'Candy', value: 'gradient-candy', bg: 'bg-gradient-to-r from-pink-500 to-rose-500', ring: 'ring-rose-500' },
+  { name: 'Neon', value: 'gradient-neon', bg: 'bg-gradient-to-r from-green-400 to-blue-500', ring: 'ring-blue-500' },
+  { name: 'Peach', value: 'gradient-peach', bg: 'bg-gradient-to-r from-rose-400 to-orange-400', ring: 'ring-orange-400' },
+  { name: 'Royal', value: 'gradient-royal', bg: 'bg-gradient-to-r from-indigo-500 to-purple-600', ring: 'ring-purple-600' },
+  { name: 'Solar', value: 'gradient-solar', bg: 'bg-gradient-to-r from-amber-500 to-red-500', ring: 'ring-red-500' },
 ] as const;
 
 // Navigation items
@@ -479,7 +511,7 @@ export function SettingsDialog({ trigger }: SettingsDialogProps) {
                     </CardHeader>
                     <CardContent>
                       <div className="flex flex-wrap gap-3">
-                        {accentColors.map((color) => {
+                        {[...accentColors, ...gradientColors].map((color) => {
                           const isSelected = settings.appearance.accentColor === color.value;
                           return (
                             <button

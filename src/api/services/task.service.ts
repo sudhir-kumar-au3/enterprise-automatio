@@ -42,6 +42,11 @@ export interface TasksResponse {
   };
 }
 
+export interface BulkUpdateItem {
+  id: string;
+  data: UpdateTaskData;
+}
+
 export const taskService = {
   async getTasks(filters?: TaskFilters): Promise<ApiResponse<Task[]>> {
     return apiClient.get<Task[]>("/tasks", filters);
@@ -81,7 +86,7 @@ export const taskService = {
   },
 
   async bulkUpdateTasks(
-    updates: Array<{ id: string; data: UpdateTaskData }>
+    updates: BulkUpdateItem[]
   ): Promise<ApiResponse<Task[]>> {
     return apiClient.post<Task[]>("/tasks/bulk-update", { updates });
   },

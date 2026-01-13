@@ -19,7 +19,7 @@ export interface NotificationSettings {
 
 export interface AppearanceSettings {
   theme: 'light' | 'dark' | 'system';
-  accentColor: 'blue' | 'purple' | 'green' | 'orange' | 'pink' | 'teal';
+  accentColor: 'blue' | 'purple' | 'violet' | 'indigo' | 'cyan' | 'teal' | 'emerald' | 'green' | 'lime' | 'yellow' | 'amber' | 'orange' | 'red' | 'rose' | 'pink' | 'fuchsia' | 'slate' | 'zinc' | 'gradient-ocean' | 'gradient-sunset' | 'gradient-aurora' | 'gradient-forest' | 'gradient-twilight' | 'gradient-flame' | 'gradient-lagoon' | 'gradient-berry' | 'gradient-midnight' | 'gradient-citrus' | 'gradient-mint' | 'gradient-candy' | 'gradient-neon' | 'gradient-peach' | 'gradient-royal' | 'gradient-solar';
   compactMode: boolean;
   animations: boolean;
   fontSize: 'small' | 'medium' | 'large';
@@ -90,7 +90,9 @@ const accentColorVars: Record<string, {
   primary: string; 
   primaryForeground: string;
   ring: string;
+  gradient?: string;
 }> = {
+  // Solid colors
   blue: { 
     primary: '217 91% 60%', 
     primaryForeground: '210 40% 98%',
@@ -101,25 +103,182 @@ const accentColorVars: Record<string, {
     primaryForeground: '210 40% 98%',
     ring: '262 83% 58%'
   },
+  violet: { 
+    primary: '263 70% 50%', 
+    primaryForeground: '210 40% 98%',
+    ring: '263 70% 50%'
+  },
+  indigo: { 
+    primary: '239 84% 67%', 
+    primaryForeground: '210 40% 98%',
+    ring: '239 84% 67%'
+  },
+  cyan: { 
+    primary: '189 94% 43%', 
+    primaryForeground: '210 40% 98%',
+    ring: '189 94% 43%'
+  },
+  teal: { 
+    primary: '173 80% 40%', 
+    primaryForeground: '60 9% 98%',
+    ring: '173 80% 40%'
+  },
+  emerald: { 
+    primary: '160 84% 39%', 
+    primaryForeground: '355 100% 97%',
+    ring: '160 84% 39%'
+  },
   green: { 
     primary: '142 71% 45%', 
     primaryForeground: '355 100% 97%',
     ring: '142 71% 45%'
+  },
+  lime: { 
+    primary: '84 81% 44%', 
+    primaryForeground: '210 40% 98%',
+    ring: '84 81% 44%'
+  },
+  yellow: { 
+    primary: '48 96% 53%', 
+    primaryForeground: '26 83% 14%',
+    ring: '48 96% 53%'
+  },
+  amber: { 
+    primary: '38 92% 50%', 
+    primaryForeground: '26 83% 14%',
+    ring: '38 92% 50%'
   },
   orange: { 
     primary: '25 95% 53%', 
     primaryForeground: '60 9% 98%',
     ring: '25 95% 53%'
   },
+  red: { 
+    primary: '0 84% 60%', 
+    primaryForeground: '210 40% 98%',
+    ring: '0 84% 60%'
+  },
+  rose: { 
+    primary: '350 89% 60%', 
+    primaryForeground: '355 100% 97%',
+    ring: '350 89% 60%'
+  },
   pink: { 
     primary: '330 81% 60%', 
     primaryForeground: '355 100% 97%',
     ring: '330 81% 60%'
   },
-  teal: { 
-    primary: '173 80% 40%', 
+  fuchsia: { 
+    primary: '292 84% 61%', 
+    primaryForeground: '210 40% 98%',
+    ring: '292 84% 61%'
+  },
+  slate: { 
+    primary: '215 16% 47%', 
+    primaryForeground: '210 40% 98%',
+    ring: '215 16% 47%'
+  },
+  zinc: { 
+    primary: '240 5% 46%', 
+    primaryForeground: '210 40% 98%',
+    ring: '240 5% 46%'
+  },
+  // Gradient colors
+  'gradient-ocean': { 
+    primary: '199 89% 48%', 
+    primaryForeground: '210 40% 98%',
+    ring: '189 94% 43%',
+    gradient: 'linear-gradient(to right, hsl(217, 91%, 60%), hsl(189, 94%, 43%))'
+  },
+  'gradient-sunset': { 
+    primary: '25 95% 53%', 
+    primaryForeground: '210 40% 98%',
+    ring: '330 81% 60%',
+    gradient: 'linear-gradient(to right, hsl(25, 95%, 53%), hsl(330, 81%, 60%))'
+  },
+  'gradient-aurora': { 
+    primary: '280 82% 59%', 
+    primaryForeground: '210 40% 98%',
+    ring: '330 81% 60%',
+    gradient: 'linear-gradient(to right, hsl(262, 83%, 58%), hsl(330, 81%, 60%))'
+  },
+  'gradient-forest': { 
+    primary: '151 77% 42%', 
+    primaryForeground: '355 100% 97%',
+    ring: '160 84% 39%',
+    gradient: 'linear-gradient(to right, hsl(142, 71%, 45%), hsl(160, 84%, 39%))'
+  },
+  'gradient-twilight': { 
+    primary: '263 70% 50%', 
+    primaryForeground: '210 40% 98%',
+    ring: '262 83% 58%',
+    gradient: 'linear-gradient(to right, hsl(263, 70%, 50%), hsl(262, 83%, 58%))'
+  },
+  'gradient-flame': { 
+    primary: '12 90% 56%', 
+    primaryForeground: '210 40% 98%',
+    ring: '25 95% 53%',
+    gradient: 'linear-gradient(to right, hsl(0, 84%, 60%), hsl(25, 95%, 53%))'
+  },
+  'gradient-lagoon': { 
+    primary: '181 87% 42%', 
+    primaryForeground: '210 40% 98%',
+    ring: '173 80% 40%',
+    gradient: 'linear-gradient(to right, hsl(189, 94%, 43%), hsl(173, 80%, 40%))'
+  },
+  'gradient-berry': { 
+    primary: '311 82% 60%', 
+    primaryForeground: '210 40% 98%',
+    ring: '330 81% 60%',
+    gradient: 'linear-gradient(to right, hsl(292, 84%, 61%), hsl(330, 81%, 60%))'
+  },
+  'gradient-midnight': { 
+    primary: '250 82% 60%', 
+    primaryForeground: '210 40% 98%',
+    ring: '263 70% 50%',
+    gradient: 'linear-gradient(to right, hsl(217, 91%, 50%), hsl(263, 70%, 50%))'
+  },
+  'gradient-citrus': { 
+    primary: '43 96% 50%', 
+    primaryForeground: '26 83% 14%',
+    ring: '25 95% 53%',
+    gradient: 'linear-gradient(to right, hsl(48, 96%, 53%), hsl(25, 95%, 53%))'
+  },
+  'gradient-mint': { 
+    primary: '170 82% 44%', 
+    primaryForeground: '210 40% 98%',
+    ring: '189 94% 43%',
+    gradient: 'linear-gradient(to right, hsl(160, 84%, 45%), hsl(189, 94%, 43%))'
+  },
+  'gradient-candy': { 
+    primary: '340 85% 60%', 
+    primaryForeground: '355 100% 97%',
+    ring: '350 89% 60%',
+    gradient: 'linear-gradient(to right, hsl(330, 81%, 60%), hsl(350, 89%, 60%))'
+  },
+  'gradient-neon': { 
+    primary: '155 77% 47%', 
+    primaryForeground: '210 40% 98%',
+    ring: '217 91% 60%',
+    gradient: 'linear-gradient(to right, hsl(142, 71%, 50%), hsl(217, 91%, 60%))'
+  },
+  'gradient-peach': { 
+    primary: '15 90% 65%', 
+    primaryForeground: '26 83% 14%',
+    ring: '25 95% 53%',
+    gradient: 'linear-gradient(to right, hsl(350, 89%, 65%), hsl(25, 95%, 60%))'
+  },
+  'gradient-royal': { 
+    primary: '252 84% 60%', 
+    primaryForeground: '210 40% 98%',
+    ring: '262 83% 58%',
+    gradient: 'linear-gradient(to right, hsl(239, 84%, 60%), hsl(262, 83%, 55%))'
+  },
+  'gradient-solar': { 
+    primary: '20 92% 52%', 
     primaryForeground: '60 9% 98%',
-    ring: '173 80% 40%'
+    ring: '0 84% 60%',
+    gradient: 'linear-gradient(to right, hsl(38, 92%, 50%), hsl(0, 84%, 60%))'
   },
 };
 

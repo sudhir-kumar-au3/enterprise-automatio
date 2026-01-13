@@ -77,6 +77,7 @@ export interface TasksViewProps {
   currentUser: TeamMember
   updateTaskStatusApi: (taskId: string, status: Task['status']) => Promise<{ success: boolean; data?: Task; error?: string }>
   updateTaskApi: (taskId: string, data: Partial<Task>) => Promise<{ success: boolean; data?: Task; error?: string }>
+  updateTaskDependenciesApi?: (taskId: string, dependencies: string[]) => Promise<{ success: boolean; data?: Task; error?: string }>
 }
 
 // Status configuration with colors and icons
@@ -119,7 +120,7 @@ const statusConfig = {
   }
 }
 
-const TasksView = ({ tasks, setTasks, teamMembers, currentUser, updateTaskStatusApi, updateTaskApi }: TasksViewProps) => {
+const TasksView = ({ tasks, setTasks, teamMembers, currentUser, updateTaskStatusApi, updateTaskApi, updateTaskDependenciesApi }: TasksViewProps) => {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterPriority, setFilterPriority] = useState<string>('all')
   const [filterAssignee, setFilterAssignee] = useState<string>('all')
@@ -239,10 +240,28 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser, updateTaskStatus
     }
   }
 
-  const updateTaskDependencies = (taskId: string, dependencies: string[]) => {
-    setTasks(current =>
-      current.map(t => t.id === taskId ? { ...t, dependencies, updatedAt: Date.now() } : t)
-    )
+  const updateTaskDependencies = async (taskId: string, dependencies: string[]) => {
+    // Use API if provided, otherwise update locally
+    if (updateTaskDependenciesApi) {
+      try {
+        const result = await updateTaskDependenciesApi(taskId, dependencies)
+        if (result.success && result.data) {
+          setTasks(current =>
+            current.map(t => t.id === taskId ? { ...t, dependencies, updatedAt: Date.now() } : t)
+          )
+          toast.success('Dependencies updated successfully')
+        } else {
+          toast.error(result.error || 'Failed to update dependencies')
+        }
+      } catch (error) {
+        toast.error('Failed to update dependencies')
+      }
+    } else {
+      // Fallback to local update
+      setTasks(current =>
+        current.map(t => t.id === taskId ? { ...t, dependencies, updatedAt: Date.now() } : t)
+      )
+    }
   }
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -731,7 +750,7 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser, updateTaskStatus
             /* List View */
             <Card>
               <ScrollArea className="h-[600px]">
-                <div className="divide-y">
+                <div className="p-4 space-y-3">
                   {filteredTasks.length === 0 ? (
                     <div className="py-16 text-center">
                       <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 flex items-center justify-center mx-auto mb-4">
@@ -742,20 +761,15 @@ const TasksView = ({ tasks, setTasks, teamMembers, currentUser, updateTaskStatus
                     </div>
                   ) : (
                     filteredTasks.map(task => (
-                      <div
+                      <TaskCard
                         key={task.id}
-                        className="p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                        task={task}
                         onClick={() => setDependenciesDialogTask(task)}
-                      >
-                        <TaskCard
-                          task={task}
-                          onClick={() => setDependenciesDialogTask(task)}
-                          onStatusChange={(newStatus) => updateTaskStatus(task.id, newStatus)}
-                          teamMembers={teamMembers}
-                          allTasks={tasks}
-                          compact={false}
-                        />
-                      </div>
+                        onStatusChange={(newStatus) => updateTaskStatus(task.id, newStatus)}
+                        teamMembers={teamMembers}
+                        allTasks={tasks}
+                        compact={false}
+                      />
                     ))
                   )}
                 </div>

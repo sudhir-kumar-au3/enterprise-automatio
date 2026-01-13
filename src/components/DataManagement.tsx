@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -20,11 +20,14 @@ import {
   ChartBar,
   ShieldCheck,
   ClockCounterClockwise,
-  Trash
+  Trash,
+  Plus,
+  SpinnerGap
 } from '@phosphor-icons/react'
 import { Task, Comment, TeamMember } from '@/lib/collaboration-data'
 import { DataService, DataExport } from '@/lib/data-service'
-import { useAutoBackup } from '@/hooks/use-auto-backup'
+import { useData } from '@/contexts/DataContext'
+import { dataService } from '@/api'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -38,7 +41,7 @@ interface DataManagementProps {
 export const DataManagement = ({ tasks, comments, teamMembers, onDataRestore }: DataManagementProps) => {
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
-  const [autoBackupEnabled, setAutoBackupEnabled] = useState(true)
+  const [isCreatingBackup, setIsCreatingBackup] = useState(false)
   const [validationResults, setValidationResults] = useState<{
     tasks: number
     comments: number
@@ -48,29 +51,79 @@ export const DataManagement = ({ tasks, comments, teamMembers, onDataRestore }: 
   } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
-  const { backups, restoreBackup, deleteBackup, clearAllBackups } = useAutoBackup(
-    tasks,
-    comments,
-    teamMembers,
-    autoBackupEnabled
-  )
+  // Use DataContext for backend API integration
+  const { 
+    backups, 
+    isLoadingBackups,
+    fetchBackups,
+    createBackup: createBackupApi, 
+    restoreBackup: restoreBackupApi, 
+    deleteBackup: deleteBackupApi,
+    statistics,
+    fetchStatistics,
+    isLoadingStats
+  } = useData()
 
-  const stats = DataService.getDataStatistics(tasks, comments, teamMembers)
+  // Fetch backups on mount
+  useEffect(() => {
+    fetchBackups()
+    fetchStatistics()
+  }, [fetchBackups, fetchStatistics])
 
-  const handleExport = () => {
+  const stats = statistics ? {
+    tasks: {
+      total: statistics.tasks.total,
+      byStatus: {
+        todo: statistics.tasks.byStatus?.todo || 0,
+        inProgress: statistics.tasks.byStatus?.['in-progress'] || 0,
+        review: statistics.tasks.byStatus?.review || 0,
+        done: statistics.tasks.byStatus?.done || 0,
+      },
+      overdue: statistics.tasks.overdue,
+      dueSoon: statistics.tasks.dueSoon,
+      withDependencies: 0,
+      unassigned: 0,
+    },
+    comments: {
+      total: statistics.comments.total,
+      resolved: statistics.comments.resolved,
+      unresolved: statistics.comments.unresolved,
+    },
+    teamMembers: {
+      total: statistics.teamMembers.total,
+      online: statistics.teamMembers.online,
+      offline: statistics.teamMembers.total - statistics.teamMembers.online,
+    }
+  } : DataService.getDataStatistics(tasks, comments, teamMembers)
+
+  const handleExport = async () => {
     setIsExporting(true)
     try {
+      // Try backend export first
+      const response = await dataService.exportData()
+      if (response.success && response.data) {
+        const filename = `collaboration-backup-${new Date().toISOString().split('T')[0]}.json`
+        DataService.downloadJSON(response.data, filename)
+        toast.success('Data exported from server successfully')
+      } else {
+        // Fallback to local export
+        const exportData = DataService.exportData(tasks, comments, teamMembers, {
+          exportType: 'manual',
+          userInitiated: true
+        })
+        const filename = `collaboration-backup-${new Date().toISOString().split('T')[0]}.json`
+        DataService.downloadJSON(exportData, filename)
+        toast.success('Data exported successfully')
+      }
+    } catch (error) {
+      // Fallback to local export on error
       const exportData = DataService.exportData(tasks, comments, teamMembers, {
         exportType: 'manual',
         userInitiated: true
       })
-      
       const filename = `collaboration-backup-${new Date().toISOString().split('T')[0]}.json`
       DataService.downloadJSON(exportData, filename)
-      
-      toast.success('Data exported successfully')
-    } catch (error) {
-      toast.error('Failed to export data: ' + (error as Error).message)
+      toast.success('Data exported locally')
     } finally {
       setIsExporting(false)
     }
@@ -97,6 +150,24 @@ export const DataManagement = ({ tasks, comments, teamMembers, onDataRestore }: 
         return
       }
 
+      // Try to import via backend API
+      try {
+        const response = await dataService.importData(data)
+        if (response.success) {
+          toast.success(`Data imported to server successfully`)
+          // Refresh local state
+          if (validation.data) {
+            onDataRestore(validation.data)
+          }
+          // Refresh statistics
+          fetchStatistics()
+          return
+        }
+      } catch (apiError) {
+        console.warn('Backend import failed, using local import', apiError)
+      }
+
+      // Fallback to local import
       if (validation.warnings.length > 0) {
         setValidationResults({
           tasks: data.tasks?.length || 0,
@@ -118,6 +189,50 @@ export const DataManagement = ({ tasks, comments, teamMembers, onDataRestore }: 
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
+    }
+  }
+
+  const handleCreateBackup = async () => {
+    setIsCreatingBackup(true)
+    try {
+      const success = await createBackupApi()
+      if (success) {
+        toast.success('Backup created successfully on server')
+      } else {
+        toast.error('Failed to create backup')
+      }
+    } catch (error) {
+      toast.error('Failed to create backup: ' + (error as Error).message)
+    } finally {
+      setIsCreatingBackup(false)
+    }
+  }
+
+  const handleRestoreBackup = async (backupId: string) => {
+    try {
+      const success = await restoreBackupApi(backupId)
+      if (success) {
+        toast.success('Backup restored successfully')
+        // Refresh data after restore
+        window.location.reload()
+      } else {
+        toast.error('Failed to restore backup')
+      }
+    } catch (error) {
+      toast.error('Failed to restore backup: ' + (error as Error).message)
+    }
+  }
+
+  const handleDeleteBackup = async (backupId: string) => {
+    try {
+      const success = await deleteBackupApi(backupId)
+      if (success) {
+        toast.success('Backup deleted')
+      } else {
+        toast.error('Failed to delete backup')
+      }
+    } catch (error) {
+      toast.error('Failed to delete backup: ' + (error as Error).message)
     }
   }
 
@@ -168,6 +283,7 @@ export const DataManagement = ({ tasks, comments, teamMembers, onDataRestore }: 
 
   return (
     <div className="space-y-6">
+      {/* ...existing stats cards code... */}
       <div className="grid md:grid-cols-3 gap-4">
         <Card className="border-blue-500/50 bg-blue-500/5">
           <CardHeader className="pb-3">
@@ -178,7 +294,7 @@ export const DataManagement = ({ tasks, comments, teamMembers, onDataRestore }: 
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <div className="text-3xl font-bold">{getTotalItems()}</div>
+              <div className="text-3xl font-bold">{isLoadingStats ? '...' : getTotalItems()}</div>
               <div className="text-sm text-muted-foreground">Total Items Stored</div>
               <div className="grid grid-cols-3 gap-2 mt-3">
                 <div className="text-center">
@@ -252,24 +368,25 @@ export const DataManagement = ({ tasks, comments, teamMembers, onDataRestore }: 
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <CheckCircle size={16} weight="fill" className="text-green-600" />
-                <span className="text-sm">Local Storage</span>
+                <span className="text-sm">Server Storage</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle size={16} weight="fill" className="text-green-600" />
-                <span className="text-sm">Auto-persist</span>
+                <span className="text-sm">Auto-sync</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle size={16} weight="fill" className="text-green-600" />
-                <span className="text-sm">Export/Import</span>
+                <span className="text-sm">Cloud Backup</span>
               </div>
               <div className="text-xs text-muted-foreground mt-2">
-                All data stored securely in your browser
+                All data stored securely on the server
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Statistics Card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -289,22 +406,22 @@ export const DataManagement = ({ tasks, comments, teamMembers, onDataRestore }: 
                 <div className="space-y-1">
                   <div className="text-xs text-muted-foreground">To Do</div>
                   <div className="text-2xl font-bold">{stats.tasks.byStatus.todo}</div>
-                  <Progress value={(stats.tasks.byStatus.todo / stats.tasks.total) * 100} className="h-1" />
+                  <Progress value={(stats.tasks.byStatus.todo / Math.max(stats.tasks.total, 1)) * 100} className="h-1" />
                 </div>
                 <div className="space-y-1">
                   <div className="text-xs text-muted-foreground">In Progress</div>
                   <div className="text-2xl font-bold">{stats.tasks.byStatus.inProgress}</div>
-                  <Progress value={(stats.tasks.byStatus.inProgress / stats.tasks.total) * 100} className="h-1" />
+                  <Progress value={(stats.tasks.byStatus.inProgress / Math.max(stats.tasks.total, 1)) * 100} className="h-1" />
                 </div>
                 <div className="space-y-1">
                   <div className="text-xs text-muted-foreground">Review</div>
                   <div className="text-2xl font-bold">{stats.tasks.byStatus.review}</div>
-                  <Progress value={(stats.tasks.byStatus.review / stats.tasks.total) * 100} className="h-1" />
+                  <Progress value={(stats.tasks.byStatus.review / Math.max(stats.tasks.total, 1)) * 100} className="h-1" />
                 </div>
                 <div className="space-y-1">
                   <div className="text-xs text-muted-foreground">Done</div>
                   <div className="text-2xl font-bold">{stats.tasks.byStatus.done}</div>
-                  <Progress value={(stats.tasks.byStatus.done / stats.tasks.total) * 100} className="h-1" />
+                  <Progress value={(stats.tasks.byStatus.done / Math.max(stats.tasks.total, 1)) * 100} className="h-1" />
                 </div>
               </div>
               <Separator className="my-4" />
@@ -316,14 +433,6 @@ export const DataManagement = ({ tasks, comments, teamMembers, onDataRestore }: 
                 <div>
                   <span className="text-muted-foreground">Due Soon:</span>
                   <span className="ml-2 font-semibold text-yellow-600">{stats.tasks.dueSoon}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Dependencies:</span>
-                  <span className="ml-2 font-semibold">{stats.tasks.withDependencies}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Unassigned:</span>
-                  <span className="ml-2 font-semibold">{stats.tasks.unassigned}</span>
                 </div>
               </div>
             </div>
@@ -369,6 +478,7 @@ export const DataManagement = ({ tasks, comments, teamMembers, onDataRestore }: 
         </CardContent>
       </Card>
 
+      {/* Data Management Actions */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -385,7 +495,7 @@ export const DataManagement = ({ tasks, comments, teamMembers, onDataRestore }: 
               className="gap-2"
               variant="outline"
             >
-              <Download size={18} />
+              {isExporting ? <SpinnerGap size={18} className="animate-spin" /> : <Download size={18} />}
               {isExporting ? 'Exporting...' : 'Export Data'}
             </Button>
 
@@ -395,7 +505,7 @@ export const DataManagement = ({ tasks, comments, teamMembers, onDataRestore }: 
               className="gap-2"
               variant="outline"
             >
-              <Upload size={18} />
+              {isImporting ? <SpinnerGap size={18} className="animate-spin" /> : <Upload size={18} />}
               {isImporting ? 'Importing...' : 'Import Data'}
             </Button>
             <input
@@ -436,10 +546,10 @@ export const DataManagement = ({ tasks, comments, teamMembers, onDataRestore }: 
               )}
 
               {validationResults.warnings.length > 0 && (
-                <Alert className="border-yellow-500 bg-yellow-50">
+                <Alert className="border-yellow-500 bg-yellow-50 dark:bg-yellow-500/10">
                   <Warning size={18} weight="fill" className="text-yellow-600" />
-                  <AlertTitle className="text-yellow-900">Validation Warnings ({validationResults.warnings.length})</AlertTitle>
-                  <AlertDescription className="text-yellow-800">
+                  <AlertTitle className="text-yellow-900 dark:text-yellow-400">Validation Warnings ({validationResults.warnings.length})</AlertTitle>
+                  <AlertDescription className="text-yellow-800 dark:text-yellow-300">
                     <ScrollArea className="h-32 mt-2">
                       <ul className="text-xs space-y-1">
                         {validationResults.warnings.map((warning, idx) => (
@@ -457,68 +567,58 @@ export const DataManagement = ({ tasks, comments, teamMembers, onDataRestore }: 
             <Database size={18} weight="fill" />
             <AlertTitle>About Data Storage</AlertTitle>
             <AlertDescription className="text-sm">
-              Your data is stored securely in your browser using persistent local storage. 
-              All changes are automatically saved. Use Export to create backups, and Import to restore data from a backup file.
-              Data validation ensures integrity of tasks, comments, and team member information.
+              Your data is stored securely on the server with automatic backups. 
+              Use Export to download a local copy, and Import to restore data from a backup file.
+              Server backups are managed in the section below.
             </AlertDescription>
           </Alert>
         </CardContent>
       </Card>
 
+      {/* Server Backups */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <ClockCounterClockwise size={20} weight="duotone" />
-                Automatic Backups
+                Server Backups
               </CardTitle>
-              <CardDescription>System automatically creates backups every 5 minutes</CardDescription>
+              <CardDescription>Create and manage backups stored on the server</CardDescription>
             </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                id="auto-backup"
-                checked={autoBackupEnabled}
-                onCheckedChange={setAutoBackupEnabled}
-              />
-              <Label htmlFor="auto-backup" className="cursor-pointer text-sm">
-                {autoBackupEnabled ? 'Enabled' : 'Disabled'}
-              </Label>
-            </div>
+            <Button
+              onClick={handleCreateBackup}
+              disabled={isCreatingBackup}
+              className="gap-2"
+            >
+              {isCreatingBackup ? <SpinnerGap size={16} className="animate-spin" /> : <Plus size={16} />}
+              Create Backup
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {backups.length === 0 ? (
+            {isLoadingBackups ? (
+              <div className="text-center py-8">
+                <SpinnerGap size={32} className="mx-auto text-muted-foreground mb-2 animate-spin" />
+                <p className="text-sm text-muted-foreground">Loading backups...</p>
+              </div>
+            ) : backups.length === 0 ? (
               <div className="text-center py-8">
                 <ClockCounterClockwise size={48} className="mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">No automatic backups yet</p>
+                <p className="text-sm text-muted-foreground">No server backups yet</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {autoBackupEnabled ? 'First backup will be created within 5 minutes' : 'Enable automatic backups to create restore points'}
+                  Click "Create Backup" to create your first server backup
                 </p>
               </div>
             ) : (
               <>
                 <div className="flex items-center justify-between mb-3">
                   <Badge variant="secondary">{backups.length} backups stored</Badge>
-                  {backups.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        clearAllBackups()
-                        toast.success('All backups cleared')
-                      }}
-                      className="gap-1 text-destructive hover:text-destructive"
-                    >
-                      <Trash size={16} />
-                      Clear All
-                    </Button>
-                  )}
                 </div>
                 <ScrollArea className="h-[300px]">
                   <div className="space-y-2">
-                    {[...backups].reverse().map((backup, index) => {
+                    {[...backups].map((backup, index) => {
                       const backupDate = new Date(backup.timestamp)
                       const isRecent = Date.now() - backup.timestamp < 60 * 60 * 1000
                       
@@ -535,6 +635,9 @@ export const DataManagement = ({ tasks, comments, teamMembers, onDataRestore }: 
                                     Recent
                                   </Badge>
                                 )}
+                                <Badge variant="outline" className="text-xs">
+                                  {backup.type}
+                                </Badge>
                               </div>
                               <p className="text-xs text-muted-foreground">
                                 {backupDate.toLocaleString()} ({getRelativeTime(backup.timestamp)})
@@ -544,16 +647,7 @@ export const DataManagement = ({ tasks, comments, teamMembers, onDataRestore }: 
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => {
-                                  const result = restoreBackup(backup.id)
-                                  if (result) {
-                                    const data = JSON.parse(backup.data)
-                                    onDataRestore(data)
-                                    toast.success('Backup restored successfully')
-                                  } else {
-                                    toast.error('Failed to restore backup')
-                                  }
-                                }}
+                                onClick={() => handleRestoreBackup(backup.id)}
                                 className="gap-1"
                               >
                                 <ArrowClockwise size={14} />
@@ -562,10 +656,7 @@ export const DataManagement = ({ tasks, comments, teamMembers, onDataRestore }: 
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => {
-                                  deleteBackup(backup.id)
-                                  toast.success('Backup deleted')
-                                }}
+                                onClick={() => handleDeleteBackup(backup.id)}
                               >
                                 <Trash size={14} />
                               </Button>

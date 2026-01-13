@@ -7,9 +7,32 @@ import {
   CommentFilterQuery,
 } from "../types";
 import { asyncHandler, AppError } from "../middleware";
+import { cacheService } from "../services/cache.service";
+import { wsService } from "../services/websocket.service";
+import { jobQueue } from "../services/jobQueue.service";
 import logger from "../utils/logger";
 
-// Get all comments with filtering
+// Helper to transform lean query results - converts _id to id
+const transformLeanDoc = <T extends { _id?: any; id?: string }>(
+  doc: T
+): T & { id: string } => {
+  if (!doc) return doc;
+  const transformed = { ...doc } as T & { id: string };
+  if (doc._id) {
+    transformed.id = doc._id.toString();
+    delete (transformed as any)._id;
+  }
+  delete (transformed as any).__v;
+  return transformed;
+};
+
+const transformLeanDocs = <T extends { _id?: any; id?: string }>(
+  docs: T[]
+): (T & { id: string })[] => {
+  return docs.map(transformLeanDoc);
+};
+
+// Get all comments with filtering and caching
 export const getComments = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const {
@@ -23,31 +46,45 @@ export const getComments = asyncHandler(
       isResolved,
     } = req.query as CommentFilterQuery;
 
-    const query: any = {};
+    // Create cache key from filters
+    const cacheKey = `comments:${JSON.stringify(req.query)}`;
 
-    if (contextType) query.contextType = contextType;
-    if (contextId) query.contextId = contextId;
-    if (authorId) query.authorId = authorId;
-    if (isResolved !== undefined)
-      query.isResolved = String(isResolved) === "true";
+    const result = await cacheService.getOrSet(
+      cacheKey,
+      async () => {
+        const query: any = {};
 
-    const skip = (Number(page) - 1) * Number(limit);
-    const sort: any = { [sortBy as string]: sortOrder === "asc" ? 1 : -1 };
+        if (contextType) query.contextType = contextType;
+        if (contextId) query.contextId = contextId;
+        if (authorId) query.authorId = authorId;
+        if (isResolved !== undefined)
+          query.isResolved = String(isResolved) === "true";
 
-    const [comments, total] = await Promise.all([
-      Comment.find(query).sort(sort).skip(skip).limit(Number(limit)),
-      Comment.countDocuments(query),
-    ]);
+        const skip = (Number(page) - 1) * Number(limit);
+        const sort: any = { [sortBy as string]: sortOrder === "asc" ? 1 : -1 };
+
+        const [comments, total] = await Promise.all([
+          Comment.find(query).sort(sort).skip(skip).limit(Number(limit)).lean(),
+          Comment.countDocuments(query),
+        ]);
+
+        return {
+          comments: transformLeanDocs(comments),
+          pagination: {
+            page: Number(page),
+            limit: Number(limit),
+            total,
+            totalPages: Math.ceil(total / Number(limit)),
+          },
+        };
+      },
+      { ttl: 30, tags: ["comments"] }
+    );
 
     res.json({
       success: true,
-      data: comments,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        totalPages: Math.ceil(total / Number(limit)),
-      },
+      data: result.comments,
+      pagination: result.pagination,
     } as ApiResponse);
   }
 );
@@ -55,7 +92,7 @@ export const getComments = asyncHandler(
 // Get single comment
 export const getComment = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const comment = await Comment.findById(req.params.id);
+    const comment = await Comment.findById(req.params.id).lean();
 
     if (!comment) {
       throw new AppError("Comment not found", 404);
@@ -63,12 +100,12 @@ export const getComment = asyncHandler(
 
     res.json({
       success: true,
-      data: comment,
+      data: transformLeanDoc(comment),
     } as ApiResponse);
   }
 );
 
-// Create comment
+// Create comment with WebSocket broadcast and notifications
 export const createComment = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
@@ -86,6 +123,7 @@ export const createComment = asyncHandler(
     };
 
     const comment = await Comment.create(commentData);
+    const commentObj = comment.toJSON();
 
     // Create activity log
     await Activity.create({
@@ -98,11 +136,18 @@ export const createComment = asyncHandler(
       metadata: { commentId: comment._id.toString() },
     });
 
-    // Create mention activities
+    // Invalidate comments cache
+    await cacheService.invalidateByTag("comments");
+
+    // Broadcast via WebSocket
+    await wsService.notifyCommentAdded(commentObj, req.user?.userId!);
+
+    // Create mention activities and send notifications
     if (comment.mentions && comment.mentions.length > 0) {
       await Promise.all(
-        comment.mentions.map((mentionedUserId: string) =>
-          Activity.create({
+        comment.mentions.map(async (mentionedUserId: string) => {
+          // Create activity
+          await Activity.create({
             userId: mentionedUserId,
             type: "mention",
             timestamp: Date.now(),
@@ -113,8 +158,33 @@ export const createComment = asyncHandler(
               commentId: comment._id.toString(),
               mentionedBy: req.user?.userId,
             },
-          })
-        )
+          });
+
+          // Send real-time notification
+          if (mentionedUserId !== req.user?.userId) {
+            await wsService.broadcastToUser(mentionedUserId, "notification", {
+              title: "You were mentioned",
+              message: `${req.user?.email} mentioned you in a comment`,
+              type: "info",
+              action: {
+                label: "View Comment",
+                url: `/${comment.contextType}/${comment.contextId}`,
+              },
+            });
+
+            // Queue notification for persistence
+            try {
+              await jobQueue.sendNotification({
+                userId: mentionedUserId,
+                title: "You were mentioned",
+                message: `${req.user?.email} mentioned you in a comment`,
+                type: "info",
+              });
+            } catch (error) {
+              logger.warn("Failed to queue mention notification", error);
+            }
+          }
+        })
       );
     }
 
@@ -122,7 +192,7 @@ export const createComment = asyncHandler(
 
     res.status(201).json({
       success: true,
-      data: comment,
+      data: commentObj,
       message: "Comment created successfully",
     } as ApiResponse);
   }
@@ -149,9 +219,19 @@ export const updateComment = asyncHandler(
 
     await comment.save();
 
+    // Invalidate cache
+    await cacheService.invalidateByTag("comments");
+
+    // Broadcast update
+    const room = `${comment.contextType}:${comment.contextId}`;
+    await wsService.broadcastToRoom(room, "comment:updated", {
+      comment: comment.toJSON(),
+      updatedBy: req.user?.userId,
+    });
+
     res.json({
       success: true,
-      data: comment,
+      data: comment.toJSON(),
       message: "Comment updated successfully",
     } as ApiResponse);
   }
@@ -166,7 +246,20 @@ export const deleteComment = asyncHandler(
       throw new AppError("Comment not found", 404);
     }
 
+    const contextType = comment.contextType;
+    const contextId = comment.contextId;
+
     await Comment.findByIdAndDelete(req.params.id);
+
+    // Invalidate cache
+    await cacheService.invalidateByTag("comments");
+
+    // Broadcast deletion
+    const room = `${contextType}:${contextId}`;
+    await wsService.broadcastToRoom(room, "comment:deleted", {
+      commentId: req.params.id,
+      deletedBy: req.user?.userId,
+    });
 
     logger.info(`Comment deleted by ${req.user?.email}`);
 
@@ -177,7 +270,7 @@ export const deleteComment = asyncHandler(
   }
 );
 
-// Toggle resolve status
+// Toggle resolve status with broadcast
 export const toggleResolve = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const comment = await Comment.findById(req.params.id);
@@ -189,15 +282,25 @@ export const toggleResolve = asyncHandler(
     comment.isResolved = !comment.isResolved;
     await comment.save();
 
+    // Invalidate cache
+    await cacheService.invalidateByTag("comments");
+
+    // Broadcast status change
+    const room = `${comment.contextType}:${comment.contextId}`;
+    await wsService.broadcastToRoom(room, "comment:resolved", {
+      comment: comment.toJSON(),
+      resolvedBy: req.user?.userId,
+    });
+
     res.json({
       success: true,
-      data: comment,
+      data: comment.toJSON(),
       message: comment.isResolved ? "Comment resolved" : "Comment reopened",
     } as ApiResponse);
   }
 );
 
-// Add reaction
+// Add reaction with real-time update
 export const addReaction = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const { emoji } = req.body;
@@ -221,9 +324,17 @@ export const addReaction = asyncHandler(
     comment.reactions.push({ emoji, userId: req.user?.userId! });
     await comment.save();
 
+    // Broadcast reaction
+    const room = `${comment.contextType}:${comment.contextId}`;
+    await wsService.broadcastToRoom(room, "comment:reaction", {
+      commentId: comment._id.toString(),
+      reactions: comment.reactions,
+      addedBy: req.user?.userId,
+    });
+
     res.json({
       success: true,
-      data: comment,
+      data: comment.toJSON(),
       message: "Reaction added",
     } as ApiResponse);
   }
@@ -243,15 +354,23 @@ export const removeReaction = asyncHandler(
     );
     await comment.save();
 
+    // Broadcast reaction removal
+    const room = `${comment.contextType}:${comment.contextId}`;
+    await wsService.broadcastToRoom(room, "comment:reaction", {
+      commentId: comment._id.toString(),
+      reactions: comment.reactions,
+      removedBy: req.user?.userId,
+    });
+
     res.json({
       success: true,
-      data: comment,
+      data: comment.toJSON(),
       message: "Reaction removed",
     } as ApiResponse);
   }
 );
 
-// Add reply
+// Add reply with notification
 export const addReply = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
@@ -281,9 +400,29 @@ export const addReply = asyncHandler(
     parentComment.replies.push(reply._id);
     await parentComment.save();
 
+    // Invalidate cache
+    await cacheService.invalidateByTag("comments");
+
+    // Broadcast reply
+    const room = `${parentComment.contextType}:${parentComment.contextId}`;
+    await wsService.broadcastToRoom(room, "comment:reply", {
+      parentCommentId: parentComment._id.toString(),
+      reply: reply.toJSON(),
+      addedBy: req.user?.userId,
+    });
+
+    // Notify parent comment author
+    if (parentComment.authorId !== req.user?.userId) {
+      await wsService.broadcastToUser(parentComment.authorId, "notification", {
+        title: "New reply to your comment",
+        message: `${req.user?.email} replied to your comment`,
+        type: "info",
+      });
+    }
+
     res.status(201).json({
       success: true,
-      data: reply,
+      data: reply.toJSON(),
       message: "Reply added",
     } as ApiResponse);
   }

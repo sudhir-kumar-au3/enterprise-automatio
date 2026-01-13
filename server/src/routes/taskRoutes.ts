@@ -16,6 +16,9 @@ router.use(authenticate);
 // Get all tasks with filtering
 router.get("/", paginationValidator, taskController.getTasks);
 
+// Get current user's assigned tasks
+router.get("/my-tasks", paginationValidator, taskController.getMyTasks);
+
 // Get single task
 router.get("/:id", idValidator, taskController.getTask);
 
@@ -28,7 +31,7 @@ router.post(
 );
 
 // Update task
-router.put("/:id", updateTaskValidator, taskController.updateTask);
+router.put("/:id", idValidator, updateTaskValidator, taskController.updateTask);
 
 // Delete task
 router.delete(

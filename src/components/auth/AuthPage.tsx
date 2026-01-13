@@ -328,7 +328,7 @@ export function AuthPage() {
             <div className="flex h-10 w-10 lg:h-12 lg:w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
               <CheckSquare className="h-5 w-5 lg:h-6 lg:w-6" />
             </div>
-            <span className="text-xl lg:text-2xl font-bold">Team Hub</span>
+            <span className="text-xl lg:text-2xl font-bold">Pulsework.io</span>
           </div>
           
           {/* Main content */}
@@ -362,7 +362,7 @@ export function AuthPage() {
           
           {/* Footer */}
           <p className="text-xs lg:text-sm text-white/60">
-            © 2026 Team Hub. Enterprise Collaboration Platform.
+            © 2026 Pulsework.io. Enterprise Collaboration Platform.
           </p>
         </div>
       </div>
@@ -375,7 +375,7 @@ export function AuthPage() {
             <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <CheckSquare className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
-            <span className="text-lg sm:text-xl font-bold">Team Hub</span>
+            <span className="text-lg sm:text-xl font-bold">Pulsework.io</span>
           </div>
           <div className="ml-auto">
             <ThemeToggle />
