@@ -272,10 +272,7 @@ const CreateTaskDialog = ({ onClose, onCreate, currentUser, teamMembers }: Creat
                   </Label>
                   <Select value={priority} onValueChange={(val) => setPriority(val as Task['priority'])}>
                     <SelectTrigger id="priority" className="h-10">
-                      <div className="flex items-center gap-2">
-                        {priorityIcons[priority]}
-                        <SelectValue />
-                      </div>
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="low">
