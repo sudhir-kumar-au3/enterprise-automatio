@@ -3,7 +3,8 @@ import { useState, useEffect, useCallback } from "react";
 type Theme = "light" | "dark" | "system";
 type ResolvedTheme = "light" | "dark";
 
-const THEME_KEY = "app-theme";
+// Use the same key as SettingsContext
+const SETTINGS_KEY = "teamhub_user_settings";
 
 function getSystemTheme(): ResolvedTheme {
   if (typeof window !== "undefined" && window.matchMedia) {
@@ -16,12 +17,37 @@ function getSystemTheme(): ResolvedTheme {
 
 function getStoredTheme(): Theme {
   if (typeof window !== "undefined") {
-    const stored = localStorage.getItem(THEME_KEY);
-    if (stored === "light" || stored === "dark" || stored === "system") {
-      return stored;
+    try {
+      // Read from the unified settings storage
+      const saved = localStorage.getItem(SETTINGS_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const theme = parsed.appearance?.theme;
+        if (theme === "light" || theme === "dark" || theme === "system") {
+          return theme;
+        }
+      }
+    } catch (e) {
+      // Ignore parse errors
     }
   }
   return "system";
+}
+
+function saveThemeToSettings(theme: Theme): void {
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem(SETTINGS_KEY);
+      const settings = saved ? JSON.parse(saved) : {};
+      if (!settings.appearance) {
+        settings.appearance = {};
+      }
+      settings.appearance.theme = theme;
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    } catch (e) {
+      // Ignore errors
+    }
+  }
 }
 
 export function useTheme() {
@@ -36,12 +62,16 @@ export function useTheme() {
     const root = window.document.documentElement;
     const resolved = theme === "system" ? getSystemTheme() : theme;
 
-    root.classList.remove("light", "dark");
-    root.classList.add(resolved);
+    // Only toggle 'dark' class, don't add 'light' class
+    if (resolved === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
     setResolvedTheme(resolved);
 
-    // Store theme preference
-    localStorage.setItem(THEME_KEY, theme);
+    // Store theme preference in unified settings
+    saveThemeToSettings(theme);
   }, [theme]);
 
   // Listen for system theme changes
@@ -52,8 +82,11 @@ export function useTheme() {
     const handleChange = (e: MediaQueryListEvent) => {
       const newTheme = e.matches ? "dark" : "light";
       const root = window.document.documentElement;
-      root.classList.remove("light", "dark");
-      root.classList.add(newTheme);
+      if (newTheme === "dark") {
+        root.classList.add("dark");
+      } else {
+        root.classList.remove("dark");
+      }
       setResolvedTheme(newTheme);
     };
 

@@ -28,11 +28,9 @@ export function useComments(initialFilters?: CommentFilters) {
     { initialLimit: 50 }
   );
 
-  // Fetch on mount if filters provided
+  // Fetch on mount - always fetch comments
   useEffect(() => {
-    if (initialFilters) {
-      fetchData(initialFilters);
-    }
+    fetchData(initialFilters);
   }, []);
 
   // Create comment mutation

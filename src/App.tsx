@@ -1,8 +1,8 @@
-import React, { Suspense, lazy } from 'react';
-import { CheckSquare, LogOut, User, Settings, Bell } from 'lucide-react';
+import React, { Suspense, lazy, useEffect } from 'react';
+import { CheckSquare, LogOut, User, Settings, Bell, Keyboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { AuthProvider, DataProvider, useAuth } from '@/contexts';
+import { AuthProvider, DataProvider, useAuth, PowerFeaturesProvider, useCommandPalette, useShortcuts, useNotifications, useNavigation, SettingsProvider } from '@/contexts';
 import { AuthPage } from '@/components/auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -14,6 +14,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { CommandPalette } from '@/components/CommandPalette';
+import { NotificationCenter } from '@/components/NotificationCenter';
+import { AIInsightsPanel } from '@/components/AIInsightsPanel';
+import { KeyboardShortcutsModal } from '@/components/KeyboardShortcutsModal';
+import { SettingsDialog } from '@/components/SettingsDialog';
 
 // Lazy load the main collaboration view for better initial load
 const CollaborationView = lazy(() => import('@/components/CollaborationView'));
@@ -54,6 +59,10 @@ function ContentSkeleton() {
 // Modern header component
 function AppHeader() {
   const { user, logout } = useAuth();
+  const { open: openCommandPalette, registerCommand } = useCommandPalette();
+  const { openShortcutsModal, registerShortcut } = useShortcuts();
+  const { addNotification } = useNotifications();
+  const { setActiveTab, setIsCreateTaskOpen } = useNavigation();
 
   const initials = user?.name
     ?.split(' ')
@@ -61,6 +70,165 @@ function AppHeader() {
     .join('')
     .toUpperCase()
     .slice(0, 2) || 'U';
+
+  // Register commands
+  useEffect(() => {
+    registerCommand({
+      id: 'open-settings',
+      title: 'Open Settings',
+      description: 'Configure your preferences',
+      category: 'settings',
+      shortcut: ['⌘', ','],
+      action: () => {
+        // Settings dialog handles its own open state
+        document.querySelector<HTMLButtonElement>('[data-settings-trigger]')?.click();
+      },
+    });
+
+    registerCommand({
+      id: 'toggle-theme',
+      title: 'Toggle Theme',
+      description: 'Switch between light and dark mode',
+      category: 'settings',
+      shortcut: ['⌘', 'D'],
+      action: () => {
+        document.documentElement.classList.toggle('dark');
+      },
+    });
+
+    registerCommand({
+      id: 'show-shortcuts',
+      title: 'Keyboard Shortcuts',
+      description: 'View all keyboard shortcuts',
+      category: 'settings',
+      shortcut: ['⌘', '/'],
+      action: openShortcutsModal,
+    });
+
+    registerCommand({
+      id: 'go-home',
+      title: 'Go to Overview',
+      description: 'Navigate to the overview tab',
+      category: 'navigation',
+      shortcut: ['G', 'H'],
+      action: () => {
+        setActiveTab('overview');
+      },
+    });
+
+    registerCommand({
+      id: 'go-tasks',
+      title: 'Go to Tasks',
+      description: 'Navigate to the tasks tab',
+      category: 'navigation',
+      shortcut: ['G', 'T'],
+      action: () => {
+        setActiveTab('tasks');
+      },
+    });
+
+    registerCommand({
+      id: 'go-workload',
+      title: 'Go to Workload',
+      description: 'Navigate to the workload tab',
+      category: 'navigation',
+      shortcut: ['G', 'W'],
+      action: () => {
+        setActiveTab('workload');
+      },
+    });
+
+    registerCommand({
+      id: 'go-calendar',
+      title: 'Go to Calendar',
+      description: 'Navigate to the calendar tab',
+      category: 'navigation',
+      shortcut: ['G', 'C'],
+      action: () => {
+        setActiveTab('calendar');
+      },
+    });
+
+    registerCommand({
+      id: 'go-comments',
+      title: 'Go to Comments',
+      description: 'Navigate to the comments tab',
+      category: 'navigation',
+      shortcut: ['G', 'M'],
+      action: () => {
+        setActiveTab('comments');
+      },
+    });
+
+    registerCommand({
+      id: 'go-team',
+      title: 'Go to Team',
+      description: 'Navigate to the team tab',
+      category: 'navigation',
+      shortcut: ['G', 'E'],
+      action: () => {
+        setActiveTab('team');
+      },
+    });
+
+    registerCommand({
+      id: 'new-task',
+      title: 'Create New Task',
+      description: 'Create a new task',
+      category: 'actions',
+      shortcut: ['N'],
+      action: () => {
+        setActiveTab('tasks');
+        setIsCreateTaskOpen(true);
+      },
+    });
+
+    registerCommand({
+      id: 'ai-insights',
+      title: 'AI Insights',
+      description: 'View AI-powered insights and suggestions',
+      category: 'ai',
+      shortcut: ['⌘', 'I'],
+      action: () => {
+        document.querySelector<HTMLButtonElement>('[data-ai-trigger]')?.click();
+      },
+    });
+
+    registerCommand({
+      id: 'sign-out',
+      title: 'Sign Out',
+      description: 'Sign out of your account',
+      category: 'actions',
+      action: logout,
+    });
+  }, [registerCommand, openShortcutsModal, logout, setActiveTab, setIsCreateTaskOpen]);
+
+  // Register keyboard shortcuts
+  useEffect(() => {
+    registerShortcut({
+      key: '/',
+      meta: true,
+      action: openShortcutsModal,
+      description: 'Show keyboard shortcuts',
+      category: 'General',
+    });
+
+    registerShortcut({
+      key: 'd',
+      meta: true,
+      action: () => document.documentElement.classList.toggle('dark'),
+      description: 'Toggle dark mode',
+      category: 'General',
+    });
+
+    registerShortcut({
+      key: 'i',
+      meta: true,
+      action: () => document.querySelector<HTMLButtonElement>('[data-ai-trigger]')?.click(),
+      description: 'Open AI insights',
+      category: 'General',
+    });
+  }, [registerShortcut, openShortcutsModal]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -77,17 +245,37 @@ function AppHeader() {
         </div>
 
         {/* Right side actions */}
-        <div className="flex items-center gap-2">
-          {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative h-9 w-9">
-            <Bell className="h-[1.2rem] w-[1.2rem]" />
-            <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground flex items-center justify-center">
-              3
-            </span>
+        <div className="flex items-center gap-1">
+          {/* Command Palette Trigger */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="hidden sm:flex items-center gap-2 text-muted-foreground hover:text-foreground"
+            onClick={openCommandPalette}
+          >
+            <span className="text-sm">Search...</span>
+            <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+              <span className="text-xs">⌘</span>K
+            </kbd>
           </Button>
+
+          {/* AI Insights */}
+          <AIInsightsPanel />
+
+          {/* Notifications */}
+          <NotificationCenter />
 
           {/* Theme Toggle */}
           <ThemeToggle />
+
+          {/* Settings */}
+          <SettingsDialog
+            trigger={
+              <Button variant="ghost" size="icon" className="h-9 w-9" data-settings-trigger>
+                <Settings className="h-[1.2rem] w-[1.2rem]" />
+              </Button>
+            }
+          />
 
           {/* User Menu */}
           <DropdownMenu>
@@ -115,9 +303,13 @@ function AppHeader() {
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer">
+              <DropdownMenuItem className="cursor-pointer" onSelect={() => document.querySelector<HTMLButtonElement>('[data-settings-trigger]')?.click()}>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer" onSelect={openShortcutsModal}>
+                <Keyboard className="mr-2 h-4 w-4" />
+                <span>Keyboard shortcuts</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
@@ -131,6 +323,10 @@ function AppHeader() {
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Global Components */}
+      <CommandPalette />
+      <KeyboardShortcutsModal />
     </header>
   );
 }
@@ -205,9 +401,13 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <DataProvider>
-        <AppContent />
-      </DataProvider>
+      <SettingsProvider>
+        <DataProvider>
+          <PowerFeaturesProvider>
+            <AppContent />
+          </PowerFeaturesProvider>
+        </DataProvider>
+      </SettingsProvider>
     </AuthProvider>
   );
 }

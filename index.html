@@ -1,19 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Team Collaboration Hub | Task Management & Team Coordination</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans&family=IBM+Plex+Serif&family=Fira+Code&display=swap">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans&family=IBM+Plex+Serif&family=Fira+Code&display=swap"
+    />
     <link href="/src/main.css" rel="stylesheet" />
-</head>
+    <!-- Apply theme before React loads to prevent flash -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("teamhub_user_settings");
+          if (saved) {
+            var parsed = JSON.parse(saved);
+            var theme = parsed.appearance && parsed.appearance.theme;
+            if (theme === "dark") {
+              document.documentElement.classList.add("dark");
+            } else if (theme === "system") {
+              if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+                document.documentElement.classList.add("dark");
+              }
+            }
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
 
-<body>
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-</body>
-
+  </body>
 </html>
