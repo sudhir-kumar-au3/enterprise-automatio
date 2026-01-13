@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect } from 'react';
-import { CheckSquare, LogOut, User, Settings, Bell, Keyboard } from 'lucide-react';
+import { CheckSquare, LogOut, User, Settings, Bell, Keyboard, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { AuthProvider, DataProvider, useAuth, PowerFeaturesProvider, useCommandPalette, useShortcuts, useNotifications, useNavigation, SettingsProvider } from '@/contexts';
@@ -30,24 +30,24 @@ function ContentSkeleton() {
       {/* Stats skeleton */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-xl border bg-card p-6">
-            <Skeleton className="h-4 w-24 mb-2" />
+          <div key={i} className="rounded-xl border bg-card p-6 shadow-sm">
+            <Skeleton className="h-4 w-24 mb-3" />
             <Skeleton className="h-8 w-16" />
           </div>
         ))}
       </div>
       {/* Main content skeleton */}
-      <div className="rounded-xl border bg-card p-6">
-        <Skeleton className="h-6 w-48 mb-4" />
-        <div className="space-y-3">
+      <div className="rounded-xl border bg-card p-6 shadow-sm">
+        <Skeleton className="h-6 w-48 mb-6" />
+        <div className="space-y-4">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
-              <Skeleton className="h-10 w-10 rounded-full" />
-              <div className="flex-1 space-y-2">
+            <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-muted/30">
+              <Skeleton className="h-12 w-12 rounded-full" />
+              <div className="flex-1 space-y-2.5">
                 <Skeleton className="h-4 w-3/4" />
                 <Skeleton className="h-3 w-1/2" />
               </div>
-              <Skeleton className="h-8 w-20" />
+              <Skeleton className="h-9 w-24 rounded-lg" />
             </div>
           ))}
         </div>
@@ -80,7 +80,6 @@ function AppHeader() {
       category: 'settings',
       shortcut: ['⌘', ','],
       action: () => {
-        // Settings dialog handles its own open state
         document.querySelector<HTMLButtonElement>('[data-settings-trigger]')?.click();
       },
     });
@@ -231,30 +230,30 @@ function AppHeader() {
   }, [registerShortcut, openShortcutsModal]);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4 md:px-6">
         {/* Logo & Brand */}
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/25">
             <CheckSquare className="h-5 w-5" />
           </div>
           <div className="hidden sm:block">
-            <h1 className="text-lg font-semibold tracking-tight">Team Hub</h1>
+            <h1 className="text-base font-semibold tracking-tight">Team Hub</h1>
             <p className="text-xs text-muted-foreground">Enterprise Collaboration</p>
           </div>
         </div>
 
         {/* Right side actions */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           {/* Command Palette Trigger */}
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className="hidden sm:flex items-center gap-2 text-muted-foreground hover:text-foreground"
+            className="hidden sm:flex items-center gap-2 text-muted-foreground hover:text-foreground h-9 px-3 bg-muted/30"
             onClick={openCommandPalette}
           >
             <span className="text-sm">Search...</span>
-            <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+            <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded-md border bg-background px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
               <span className="text-xs">⌘</span>K
             </kbd>
           </Button>
@@ -271,8 +270,8 @@ function AppHeader() {
           {/* Settings */}
           <SettingsDialog
             trigger={
-              <Button variant="ghost" size="icon" className="h-9 w-9" data-settings-trigger>
-                <Settings className="h-[1.2rem] w-[1.2rem]" />
+              <Button variant="ghost" size="icon-sm" className="h-9 w-9" data-settings-trigger>
+                <Settings className="h-[1.15rem] w-[1.15rem]" />
               </Button>
             }
           />
@@ -280,8 +279,8 @@ function AppHeader() {
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                <Avatar className="h-9 w-9">
+              <Button variant="ghost" className="relative h-9 w-9 rounded-full ml-1">
+                <Avatar className="h-9 w-9 ring-2 ring-border">
                   <AvatarImage src={user?.avatarUrl} alt={user?.name} />
                   <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
                     {initials}
@@ -291,32 +290,32 @@ function AppHeader() {
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user?.name}</p>
+                <div className="flex flex-col space-y-1.5">
+                  <p className="text-sm font-semibold leading-none">{user?.name}</p>
                   <p className="text-xs leading-none text-muted-foreground">
                     {user?.email}
                   </p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer">
-                <User className="mr-2 h-4 w-4" />
+              <DropdownMenuItem className="cursor-pointer gap-2">
+                <User className="h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer" onSelect={() => document.querySelector<HTMLButtonElement>('[data-settings-trigger]')?.click()}>
-                <Settings className="mr-2 h-4 w-4" />
+              <DropdownMenuItem className="cursor-pointer gap-2" onSelect={() => document.querySelector<HTMLButtonElement>('[data-settings-trigger]')?.click()}>
+                <Settings className="h-4 w-4" />
                 <span>Settings</span>
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer" onSelect={openShortcutsModal}>
-                <Keyboard className="mr-2 h-4 w-4" />
+              <DropdownMenuItem className="cursor-pointer gap-2" onSelect={openShortcutsModal}>
+                <Keyboard className="h-4 w-4" />
                 <span>Keyboard shortcuts</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                className="cursor-pointer text-destructive focus:text-destructive"
+                className="cursor-pointer text-destructive focus:text-destructive gap-2"
                 onClick={logout}
               >
-                <LogOut className="mr-2 h-4 w-4" />
+                <LogOut className="h-4 w-4" />
                 <span>Sign out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -334,22 +333,25 @@ function AppHeader() {
 // App loading state
 function AppLoading() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25 animate-pulse">
-        <CheckSquare className="h-7 w-7" />
-      </div>
-      <div className="flex flex-col items-center gap-2">
-        <div className="h-1.5 w-32 rounded-full bg-muted overflow-hidden">
-          <div className="h-full w-1/2 bg-primary rounded-full animate-[shimmer_1s_ease-in-out_infinite]" 
-               style={{ animation: 'loading 1s ease-in-out infinite' }} />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-6">
+      <div className="relative">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-xl shadow-primary/30">
+          <CheckSquare className="h-8 w-8" />
         </div>
-        <p className="text-sm text-muted-foreground">Loading...</p>
+        <div className="absolute -inset-4 rounded-3xl bg-primary/10 animate-pulse" />
+      </div>
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-1.5 w-40 rounded-full bg-muted overflow-hidden">
+          <div className="h-full w-1/3 bg-gradient-to-r from-primary to-primary/60 rounded-full" 
+               style={{ animation: 'loading 1.5s ease-in-out infinite' }} />
+        </div>
+        <p className="text-sm text-muted-foreground font-medium">Loading your workspace...</p>
       </div>
       <style>{`
         @keyframes loading {
-          0% { transform: translateX(-100%); }
-          50% { transform: translateX(100%); }
-          100% { transform: translateX(-100%); }
+          0% { transform: translateX(-150%); }
+          50% { transform: translateX(250%); }
+          100% { transform: translateX(-150%); }
         }
       `}</style>
     </div>
@@ -370,10 +372,10 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <AppHeader />
       
-      <main className="container px-4 md:px-6 py-6 md:py-8">
+      <main className="flex-1 container px-4 md:px-6 py-8">
         <Suspense fallback={<ContentSkeleton />}>
           <div className="fade-in">
             <CollaborationView />
@@ -382,15 +384,15 @@ function AppContent() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t py-6 md:py-0">
-        <div className="container flex flex-col items-center justify-between gap-4 md:h-14 md:flex-row px-4 md:px-6">
+      <footer className="border-t bg-muted/30">
+        <div className="container flex flex-col items-center justify-between gap-4 py-6 md:h-16 md:flex-row md:py-0 px-4 md:px-6">
           <p className="text-center text-sm text-muted-foreground md:text-left">
-            © 2026 Team Hub. All rights reserved.
+            © 2026 Team Hub. Built with precision.
           </p>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
-            <a href="#" className="hover:text-foreground transition-colors">Terms</a>
-            <a href="#" className="hover:text-foreground transition-colors">Support</a>
+          <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            <a href="#" className="hover:text-foreground transition-colors duration-200">Privacy</a>
+            <a href="#" className="hover:text-foreground transition-colors duration-200">Terms</a>
+            <a href="#" className="hover:text-foreground transition-colors duration-200">Support</a>
           </div>
         </div>
       </footer>

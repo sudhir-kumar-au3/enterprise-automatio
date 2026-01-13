@@ -28,7 +28,7 @@ const SecurityView = () => {
 
         <TabsContent value="security" className="space-y-6">
           <div className="grid md:grid-cols-2 gap-4">
-            <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5">
+            <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 dark:from-green-500/20 dark:to-green-500/10">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <LockKey size={24} weight="duotone" />
@@ -56,7 +56,7 @@ const SecurityView = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5">
+            <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 dark:from-blue-500/20 dark:to-blue-500/10">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Lock size={24} weight="duotone" />
@@ -173,7 +173,7 @@ const SecurityView = () => {
 
         <TabsContent value="scalability" className="space-y-6">
           <div className="grid md:grid-cols-3 gap-4">
-            <Card className="bg-gradient-to-br from-accent/20 to-accent/5">
+            <Card className="bg-gradient-to-br from-primary/20 to-primary/5 dark:from-primary/30 dark:to-primary/10">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <CloudArrowUp size={24} weight="duotone" />
@@ -184,22 +184,22 @@ const SecurityView = () => {
                 <p className="text-muted-foreground">All services designed as stateless for linear scaling</p>
                 <div className="pt-2 space-y-1">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-accent" />
+                    <div className="w-2 h-2 rounded-full bg-primary" />
                     <span>Load balancing</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-accent" />
+                    <div className="w-2 h-2 rounded-full bg-primary" />
                     <span>Auto-scaling groups</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-accent" />
+                    <div className="w-2 h-2 rounded-full bg-primary" />
                     <span>Container orchestration</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5">
+            <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 dark:from-purple-500/20 dark:to-purple-500/10">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Database size={24} weight="duotone" />
@@ -225,7 +225,7 @@ const SecurityView = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5">
+            <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 dark:from-orange-500/20 dark:to-orange-500/10">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <ChartLine size={24} weight="duotone" />

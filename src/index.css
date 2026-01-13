@@ -8,44 +8,56 @@
   
   html {
     scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
   }
   
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   
-  /* Custom scrollbar */
+  /* Improved scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
   }
   
   ::-webkit-scrollbar-track {
-    @apply bg-muted/30;
+    @apply bg-transparent;
   }
   
   ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/20 rounded-full;
+    @apply bg-muted-foreground/15 rounded-full border-[3px] border-transparent;
+    background-clip: content-box;
   }
   
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/40;
+    @apply bg-muted-foreground/25;
+  }
+  
+  ::-webkit-scrollbar-corner {
+    @apply bg-transparent;
   }
 }
 
-/* Light Mode - Modern, clean aesthetic */
+/* ========================================
+   Design System - Light Mode
+   Modern, clean, professional aesthetic
+   ======================================== */
 :root {
-  --background: 0 0% 100%;
-  --foreground: 224 71% 4%;
+  --background: 0 0% 99%;
+  --foreground: 222 47% 11%;
 
   --card: 0 0% 100%;
-  --card-foreground: 224 71% 4%;
+  --card-foreground: 222 47% 11%;
   
   --popover: 0 0% 100%;
-  --popover-foreground: 224 71% 4%;
+  --popover-foreground: 222 47% 11%;
 
-  --primary: 220 90% 56%;
+  --primary: 221 83% 53%;
   --primary-foreground: 0 0% 100%;
   
   --secondary: 220 14% 96%;
@@ -55,12 +67,12 @@
   --muted-foreground: 220 9% 46%;
   
   --accent: 220 14% 96%;
-  --accent-foreground: 224 71% 4%;
+  --accent-foreground: 222 47% 11%;
   
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
   
-  --success: 142 76% 36%;
+  --success: 142 71% 45%;
   --success-foreground: 0 0% 100%;
   
   --warning: 38 92% 50%;
@@ -71,59 +83,67 @@
 
   --border: 220 13% 91%;
   --input: 220 13% 91%;
-  --ring: 220 90% 56%;
+  --ring: 221 83% 53%;
 
-  --radius: 0.625rem;
+  --radius: 0.75rem;
 
-  --chart-1: 220 90% 56%;
+  --chart-1: 221 83% 53%;
   --chart-2: 160 60% 45%;
   --chart-3: 30 80% 55%;
   --chart-4: 280 65% 60%;
   --chart-5: 340 75% 55%;
 
   --sidebar: 0 0% 98%;
-  --sidebar-foreground: 224 71% 4%;
-  --sidebar-primary: 220 90% 56%;
+  --sidebar-foreground: 222 47% 11%;
+  --sidebar-primary: 221 83% 53%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 220 14% 96%;
-  --sidebar-accent-foreground: 224 71% 4%;
+  --sidebar-accent-foreground: 222 47% 11%;
   --sidebar-border: 220 13% 91%;
-  --sidebar-ring: 220 90% 56%;
+  --sidebar-ring: 221 83% 53%;
   
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  /* Enhanced Shadows */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-md: 0 6px 12px -2px rgb(0 0 0 / 0.06), 0 3px 6px -3px rgb(0 0 0 / 0.06);
+  --shadow-lg: 0 12px 24px -4px rgb(0 0 0 / 0.08), 0 4px 8px -4px rgb(0 0 0 / 0.04);
+  --shadow-xl: 0 24px 48px -12px rgb(0 0 0 / 0.12), 0 12px 24px -8px rgb(0 0 0 / 0.06);
+  --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.04);
   
   /* Fonts */
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  
+  /* Spacing scale */
+  --spacing-unit: 4px;
 }
 
-/* Dark Mode - Rich, sophisticated dark aesthetic */
+/* ========================================
+   Design System - Dark Mode
+   Rich, sophisticated, premium aesthetic
+   ======================================== */
 .dark {
-  --background: 224 71% 4%;
-  --foreground: 213 31% 91%;
+  --background: 222 47% 6%;
+  --foreground: 210 40% 96%;
 
-  --card: 224 71% 6%;
-  --card-foreground: 213 31% 91%;
+  --card: 222 47% 8%;
+  --card-foreground: 210 40% 96%;
   
-  --popover: 224 71% 6%;
-  --popover-foreground: 213 31% 91%;
+  --popover: 222 47% 8%;
+  --popover-foreground: 210 40% 96%;
 
   --primary: 217 91% 60%;
   --primary-foreground: 0 0% 100%;
   
-  --secondary: 215 28% 17%;
-  --secondary-foreground: 213 31% 91%;
+  --secondary: 217 32% 14%;
+  --secondary-foreground: 210 40% 85%;
   
-  --muted: 215 28% 17%;
-  --muted-foreground: 215 20% 65%;
+  --muted: 217 32% 14%;
+  --muted-foreground: 215 20% 55%;
   
-  --accent: 215 28% 17%;
-  --accent-foreground: 213 31% 91%;
+  --accent: 217 32% 14%;
+  --accent-foreground: 210 40% 96%;
   
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
@@ -137,8 +157,8 @@
   --info: 199 89% 48%;
   --info-foreground: 0 0% 100%;
 
-  --border: 215 28% 17%;
-  --input: 215 28% 17%;
+  --border: 217 32% 16%;
+  --input: 217 32% 16%;
   --ring: 217 91% 60%;
 
   --chart-1: 217 91% 60%;
@@ -147,21 +167,23 @@
   --chart-4: 280 65% 60%;
   --chart-5: 340 75% 55%;
 
-  --sidebar: 224 71% 5%;
-  --sidebar-foreground: 213 31% 91%;
+  --sidebar: 222 47% 5%;
+  --sidebar-foreground: 210 40% 96%;
   --sidebar-primary: 217 91% 60%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 215 28% 17%;
-  --sidebar-accent-foreground: 213 31% 91%;
-  --sidebar-border: 215 28% 17%;
+  --sidebar-accent: 217 32% 14%;
+  --sidebar-accent-foreground: 210 40% 96%;
+  --sidebar-border: 217 32% 16%;
   --sidebar-ring: 217 91% 60%;
   
-  /* Dark shadows with glow effect */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+  /* Dark shadows with subtle glow */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.25), 0 1px 2px -1px rgb(0 0 0 / 0.2);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+  --shadow-md: 0 6px 12px -2px rgb(0 0 0 / 0.35), 0 3px 6px -3px rgb(0 0 0 / 0.25);
+  --shadow-lg: 0 12px 24px -4px rgb(0 0 0 / 0.4), 0 4px 8px -4px rgb(0 0 0 / 0.3);
+  --shadow-xl: 0 24px 48px -12px rgb(0 0 0 / 0.5), 0 12px 24px -8px rgb(0 0 0 / 0.35);
+  --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.2);
 }
 
 @theme inline {
@@ -207,66 +229,138 @@
   --radius-full: 9999px;
 }
 
+/* ========================================
+   Typography System
+   ======================================== */
 body {
   font-family: var(--font-sans);
-  transition: background-color 0.3s ease, color 0.3s ease;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
-  letter-spacing: -0.025em;
-  line-height: 1.25;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  color: hsl(var(--foreground));
 }
 
-/* Glass morphism effect for cards */
+h1 { font-size: 2rem; font-weight: 700; }
+h2 { font-size: 1.5rem; font-weight: 600; }
+h3 { font-size: 1.25rem; font-weight: 600; }
+h4 { font-size: 1.125rem; font-weight: 600; }
+h5 { font-size: 1rem; font-weight: 600; }
+h6 { font-size: 0.875rem; font-weight: 600; }
+
+p {
+  line-height: 1.7;
+}
+
+small {
+  font-size: 0.8125rem;
+}
+
+/* ========================================
+   Enhanced Visual Effects
+   ======================================== */
+
+/* Premium glass morphism */
 .glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
 .dark .glass {
-  background: rgba(30, 41, 59, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Subtle glass for cards */
+.glass-subtle {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.dark .glass-subtle {
+  background: rgba(30, 41, 59, 0.6);
 }
 
 /* Gradient text utility */
 .gradient-text {
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--info)) 100%);
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(221 83% 65%) 50%, hsl(var(--info)) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
+/* Grid pattern for backgrounds */
+.bg-grid {
+  background-image: 
+    linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.dark .bg-grid {
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+}
+
+.bg-grid-white\/5 {
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.bg-grid-white\/10 {
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Dot pattern */
+.bg-dots {
+  background-image: radial-gradient(circle, rgba(0,0,0,0.08) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.dark .bg-dots {
+  background-image: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+}
+
+/* ========================================
+   Animation System
+   ======================================== */
+
 /* Skeleton loading animation */
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 .skeleton {
   background: linear-gradient(
     90deg,
-    hsl(var(--muted)) 25%,
-    hsl(var(--muted-foreground) / 0.1) 50%,
-    hsl(var(--muted)) 75%
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted-foreground) / 0.08) 50%,
+    hsl(var(--muted)) 100%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  animation: shimmer 2s ease-in-out infinite;
 }
 
-/* Fade in animation for lazy loaded components */
+/* Fade in animation */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -275,77 +369,300 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
+  animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-/* Pulse animation for loading states */
-@keyframes pulse {
-  0%, 100% {
+/* Slide up animation */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
     opacity: 1;
+    transform: translateY(0);
   }
-  50% {
-    opacity: 0.5;
+}
+
+.slide-up {
+  animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Scale in animation */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
   }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.scale-in {
+  animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Pulse animation */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 .pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Smooth transitions for interactive elements */
+/* Subtle bounce */
+@keyframes subtleBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.subtle-bounce {
+  animation: subtleBounce 2s ease-in-out infinite;
+}
+
+/* Glow pulse for notifications */
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4); }
+  50% { box-shadow: 0 0 0 8px hsl(var(--primary) / 0); }
+}
+
+.glow-pulse {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+/* ========================================
+   Transition Utilities
+   ======================================== */
+
 .transition-smooth {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Focus ring utility */
-.focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background;
+.transition-colors-smooth {
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
 }
 
-/* Card hover effect */
-.card-hover {
-  @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5;
+.transition-transform-smooth {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Status colors */
-.status-todo {
-  @apply bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300;
-}
-
-.status-in-progress {
-  @apply bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300;
-}
-
-.status-review {
-  @apply bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300;
-}
-
-.status-done {
-  @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300;
-}
-
-/* Priority colors */
-.priority-low {
-  @apply text-slate-500 dark:text-slate-400;
-}
-
-.priority-medium {
-  @apply text-blue-500 dark:text-blue-400;
-}
-
-.priority-high {
-  @apply text-amber-500 dark:text-amber-400;
-}
-
-.priority-critical {
-  @apply text-red-500 dark:text-red-400;
+.transition-shadow-smooth {
+  transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ========================================
-   Settings-based Styles
+   Focus States
    ======================================== */
 
-/* Compact Mode - reduces spacing throughout the app */
+.focus-ring {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+}
+
+.focus-ring-inset {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset;
+}
+
+/* ========================================
+   Card System
+   ======================================== */
+
+.card-interactive {
+  @apply transition-all duration-200 cursor-pointer;
+  @apply hover:shadow-md hover:-translate-y-0.5 hover:border-primary/20;
+  @apply active:translate-y-0 active:shadow-sm;
+}
+
+.card-elevated {
+  box-shadow: var(--shadow-sm);
+  @apply hover:shadow-md;
+}
+
+.card-flat {
+  @apply shadow-none border-transparent bg-muted/50;
+  @apply hover:bg-muted;
+}
+
+/* ========================================
+   Status Colors
+   ======================================== */
+
+.status-todo {
+  @apply bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300;
+}
+
+.status-in-progress {
+  @apply bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300;
+}
+
+.status-review {
+  @apply bg-violet-50 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300;
+}
+
+.status-done {
+  @apply bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300;
+}
+
+/* ========================================
+   Priority Colors
+   ======================================== */
+
+.priority-low {
+  @apply text-blue-600 dark:text-blue-400;
+}
+
+.priority-medium {
+  @apply text-amber-600 dark:text-amber-400;
+}
+
+.priority-high {
+  @apply text-orange-600 dark:text-orange-400;
+}
+
+.priority-critical {
+  @apply text-red-600 dark:text-red-400;
+}
+
+.priority-low-bg {
+  @apply bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800;
+}
+
+.priority-medium-bg {
+  @apply bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800;
+}
+
+.priority-high-bg {
+  @apply bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800;
+}
+
+.priority-critical-bg {
+  @apply bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800;
+}
+
+/* ========================================
+   Role Colors
+   ======================================== */
+
+.role-architect {
+  @apply bg-purple-50 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300;
+}
+
+.role-developer {
+  @apply bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300;
+}
+
+.role-devops {
+  @apply bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300;
+}
+
+.role-product {
+  @apply bg-orange-50 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300;
+}
+
+.role-designer {
+  @apply bg-pink-50 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300;
+}
+
+.role-manager {
+  @apply bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300;
+}
+
+/* ========================================
+   Gradient Cards
+   ======================================== */
+
+.gradient-card-blue {
+  @apply bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200/50 dark:from-blue-900/20 dark:to-blue-800/10 dark:border-blue-700/30;
+}
+
+.gradient-card-green {
+  @apply bg-gradient-to-br from-emerald-50 to-emerald-100/50 border-emerald-200/50 dark:from-emerald-900/20 dark:to-emerald-800/10 dark:border-emerald-700/30;
+}
+
+.gradient-card-red {
+  @apply bg-gradient-to-br from-red-50 to-red-100/50 border-red-200/50 dark:from-red-900/20 dark:to-red-800/10 dark:border-red-700/30;
+}
+
+.gradient-card-purple {
+  @apply bg-gradient-to-br from-purple-50 to-purple-100/50 border-purple-200/50 dark:from-purple-900/20 dark:to-purple-800/10 dark:border-purple-700/30;
+}
+
+.gradient-card-orange {
+  @apply bg-gradient-to-br from-orange-50 to-orange-100/50 border-orange-200/50 dark:from-orange-900/20 dark:to-orange-800/10 dark:border-orange-700/30;
+}
+
+.gradient-card-amber {
+  @apply bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-200/50 dark:from-amber-900/20 dark:to-amber-800/10 dark:border-amber-700/30;
+}
+
+.gradient-card-violet {
+  @apply bg-gradient-to-br from-violet-50 to-violet-100/50 border-violet-200/50 dark:from-violet-900/20 dark:to-violet-800/10 dark:border-violet-700/30;
+}
+
+.gradient-card-emerald {
+  @apply bg-gradient-to-br from-emerald-50 to-emerald-100/50 border-emerald-200/50 dark:from-emerald-900/20 dark:to-emerald-800/10 dark:border-emerald-700/30;
+}
+
+/* ========================================
+   Insight & Alert Styles
+   ======================================== */
+
+.insight-warning {
+  @apply bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-800/50;
+}
+
+.insight-optimization {
+  @apply bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800/50;
+}
+
+.insight-suggestion {
+  @apply bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-800/50;
+}
+
+.insight-prediction {
+  @apply bg-purple-50 border-purple-200 dark:bg-purple-950/20 dark:border-purple-800/50;
+}
+
+.alert-critical {
+  @apply bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800/50 text-red-700 dark:text-red-300;
+}
+
+.alert-high {
+  @apply bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-800/50 text-orange-700 dark:text-orange-300;
+}
+
+.alert-medium {
+  @apply bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800/50 text-amber-700 dark:text-amber-300;
+}
+
+.alert-low {
+  @apply bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800/50 text-blue-700 dark:text-blue-300;
+}
+
+/* ========================================
+   Leaderboard Styles
+   ======================================== */
+
+.leaderboard-first {
+  @apply bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 dark:from-amber-900/20 dark:to-yellow-900/20 dark:border-amber-700/50;
+}
+
+.leaderboard-second {
+  @apply bg-gradient-to-r from-slate-50 to-gray-50 border border-slate-200 dark:from-slate-800/40 dark:to-gray-800/40 dark:border-slate-600;
+}
+
+.leaderboard-third {
+  @apply bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 dark:from-orange-900/20 dark:to-amber-900/20 dark:border-orange-700/50;
+}
+
+/* ========================================
+   Settings & Accessibility
+   ======================================== */
+
+/* Compact Mode */
 html.compact-mode {
   --spacing-scale: 0.85;
 }
@@ -354,56 +671,7 @@ html.compact-mode .container {
   @apply px-3 md:px-4;
 }
 
-html.compact-mode .p-4 {
-  padding: calc(1rem * var(--spacing-scale, 1));
-}
-
-html.compact-mode .p-6 {
-  padding: calc(1.5rem * var(--spacing-scale, 1));
-}
-
-html.compact-mode .py-6 {
-  padding-top: calc(1.5rem * var(--spacing-scale, 1));
-  padding-bottom: calc(1.5rem * var(--spacing-scale, 1));
-}
-
-html.compact-mode .gap-4 {
-  gap: calc(1rem * var(--spacing-scale, 1));
-}
-
-html.compact-mode .gap-6 {
-  gap: calc(1.5rem * var(--spacing-scale, 1));
-}
-
-html.compact-mode .space-y-4 > * + * {
-  margin-top: calc(1rem * var(--spacing-scale, 1));
-}
-
-html.compact-mode .space-y-6 > * + * {
-  margin-top: calc(1.5rem * var(--spacing-scale, 1));
-}
-
-html.compact-mode .mb-4 {
-  margin-bottom: calc(1rem * var(--spacing-scale, 1));
-}
-
-html.compact-mode .mb-6 {
-  margin-bottom: calc(1.5rem * var(--spacing-scale, 1));
-}
-
-html.compact-mode .text-lg {
-  font-size: 1rem;
-}
-
-html.compact-mode .text-xl {
-  font-size: 1.125rem;
-}
-
-html.compact-mode .h-16 {
-  height: 3.5rem;
-}
-
-/* Reduced Motion - disables animations */
+/* Reduced Motion */
 html.reduce-motion,
 html.reduce-motion * {
   animation-duration: 0.01ms !important;
@@ -412,22 +680,14 @@ html.reduce-motion * {
   scroll-behavior: auto !important;
 }
 
-html.reduce-motion .fade-in {
+html.reduce-motion .fade-in,
+html.reduce-motion .slide-up,
+html.reduce-motion .scale-in {
   animation: none;
   opacity: 1;
   transform: none;
 }
 
-html.reduce-motion .pulse {
-  animation: none;
-}
-
-html.reduce-motion .skeleton {
-  animation: none;
-  background: hsl(var(--muted));
-}
-
-/* Respect user's system preference for reduced motion */
 @media (prefers-reduced-motion: reduce) {
   html:not(.animations-enabled) *,
   html:not(.animations-enabled) *::before,
@@ -439,24 +699,10 @@ html.reduce-motion .skeleton {
   }
 }
 
-/* Font Size Adjustments are handled via inline styles in SettingsContext */
-/* Base sizes: small=14px, medium=16px, large=18px */
-
 /* ========================================
-   Accent Color Overrides (applied via CSS custom properties)
-   The SettingsContext applies these via inline styles
+   Interactive Elements
    ======================================== */
 
-/* Smooth theme transitions */
-html {
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-html.reduce-motion {
-  transition: none;
-}
-
-/* Better button and interactive element styling */
 button, 
 [role="button"],
 .cursor-pointer {
@@ -470,34 +716,47 @@ button:disabled,
   opacity: 0.5;
 }
 
-/* Ensure accent color changes are visible */
-.bg-primary {
-  background-color: hsl(var(--primary));
-}
-
-.text-primary {
+/* Better link styling */
+a:not([class]) {
   color: hsl(var(--primary));
+  text-decoration: none;
+  transition: color 0.15s ease;
 }
 
-.border-primary {
-  border-color: hsl(var(--primary));
+a:not([class]):hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
-.ring-primary {
-  --tw-ring-color: hsl(var(--primary));
+/* Selection styling */
+::selection {
+  background: hsl(var(--primary) / 0.2);
+  color: inherit;
 }
 
-/* Settings preview indicators */
-.settings-preview {
-  @apply border-2 border-dashed border-primary/30 rounded-lg p-2;
+/* ========================================
+   Scrollbar Variants
+   ======================================== */
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-/* Toast/notification styling improvements */
-[data-sonner-toast] {
-  font-family: var(--font-sans);
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/15 rounded-full;
 }
 
-/* Scrollbar styling for settings panel */
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Settings panel scrollbar */
 .settings-scroll::-webkit-scrollbar {
   width: 6px;
 }
@@ -507,9 +766,78 @@ button:disabled,
 }
 
 .settings-scroll::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/20 rounded-full;
+  @apply bg-muted-foreground/15 rounded-full;
 }
 
 .settings-scroll::-webkit-scrollbar-thumb:hover {
-  @apply bg-muted-foreground/30;
+  @apply bg-muted-foreground/25;
+}
+
+/* ========================================
+   Toast/Notification Styling
+   ======================================== */
+
+[data-sonner-toast] {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+}
+
+[data-sonner-toast] [data-title] {
+  font-weight: 600;
+}
+
+[data-sonner-toast] [data-description] {
+  color: hsl(var(--muted-foreground));
+}
+
+/* ========================================
+   Form Elements Enhancement
+   ======================================== */
+
+input::placeholder,
+textarea::placeholder {
+  color: hsl(var(--muted-foreground) / 0.6);
+}
+
+input:focus::placeholder,
+textarea:focus::placeholder {
+  color: hsl(var(--muted-foreground) / 0.4);
+}
+
+/* ========================================
+   Utility Classes
+   ======================================== */
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.truncate-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.truncate-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Hide on print */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Smooth theme transitions */
+html {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+html.reduce-motion {
+  transition: none;
 }

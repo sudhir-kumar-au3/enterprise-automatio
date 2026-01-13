@@ -1,4 +1,3 @@
-// filepath: /Users/sudhirkumar/Documents/GitHub/enterprise-automatio/src/components/CommandPalette.tsx
 import React, { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -37,11 +36,11 @@ const categoryIcons: Record<string, React.ReactNode> = {
 };
 
 const categoryColors: Record<string, string> = {
-  navigation: 'bg-blue-500/10 text-blue-500',
-  actions: 'bg-green-500/10 text-green-500',
-  settings: 'bg-gray-500/10 text-gray-500',
-  search: 'bg-purple-500/10 text-purple-500',
-  ai: 'bg-amber-500/10 text-amber-500',
+  navigation: 'bg-blue-500/10 text-blue-500 dark:bg-blue-500/20',
+  actions: 'bg-green-500/10 text-green-500 dark:bg-green-500/20',
+  settings: 'bg-slate-500/10 text-slate-500 dark:bg-slate-500/20 dark:text-slate-400',
+  search: 'bg-purple-500/10 text-purple-500 dark:bg-purple-500/20',
+  ai: 'bg-amber-500/10 text-amber-500 dark:bg-amber-500/20',
 };
 
 export function CommandPalette() {

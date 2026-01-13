@@ -219,7 +219,7 @@ export function AnalyticsDashboard({ tasks, teamMembers, comments }: AnalyticsDa
   };
 
   const statusColors = {
-    todo: 'bg-gray-500',
+    todo: 'bg-slate-500 dark:bg-slate-400',
     'in-progress': 'bg-blue-500',
     review: 'bg-purple-500',
     done: 'bg-green-500',
@@ -499,9 +499,9 @@ export function AnalyticsDashboard({ tasks, teamMembers, comments }: AnalyticsDa
                       key={item.member.id}
                       className={cn(
                         "flex items-center gap-3 p-3 rounded-lg",
-                        index === 0 && "bg-yellow-50 border border-yellow-200 dark:bg-yellow-950/20",
-                        index === 1 && "bg-gray-50 border border-gray-200 dark:bg-gray-800/50",
-                        index === 2 && "bg-orange-50 border border-orange-200 dark:bg-orange-950/20",
+                        index === 0 && "bg-yellow-50 border border-yellow-200 dark:bg-yellow-950/30 dark:border-yellow-800",
+                        index === 1 && "bg-slate-50 border border-slate-200 dark:bg-slate-800/50 dark:border-slate-700",
+                        index === 2 && "bg-orange-50 border border-orange-200 dark:bg-orange-950/30 dark:border-orange-800",
                         index > 2 && "hover:bg-muted/50"
                       )}
                     >

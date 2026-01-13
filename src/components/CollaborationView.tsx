@@ -92,31 +92,37 @@ const CollaborationView = () => {
 
   if (tasksLoading || commentsLoading || teamMembersLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="animate-spin" size={48} />
+      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+        <div className="relative">
+          <Loader2 className="animate-spin text-primary" size={40} />
+          <div className="absolute inset-0 blur-xl bg-primary/20 animate-pulse" />
+        </div>
+        <p className="text-sm text-muted-foreground font-medium">Loading workspace data...</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold mb-1">
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-bold tracking-tight">
             Team Collaboration
           </h2>
           <p className="text-sm text-muted-foreground">
-            Coordinate tasks, share feedback, and track progress
+            Coordinate tasks, share feedback, and track progress across your team
           </p>
         </div>
         <Dialog open={isCreateTaskOpen} onOpenChange={setIsCreateTaskOpen}>
           <DialogTrigger asChild>
             <Button 
-              className="gap-2"
+              size="lg"
+              className="gap-2 shadow-lg shadow-primary/20"
               disabled={!hasPermission(currentUser, 'create_tasks')}
             >
               <Plus size={18} weight="bold" />
-              <span className="hidden sm:inline">Create Task</span>
+              <span>Create Task</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
@@ -154,48 +160,72 @@ const CollaborationView = () => {
         </Dialog>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-3 sm:grid-cols-7 w-full max-w-5xl h-auto gap-1 bg-muted p-1">
-          <TabsTrigger value="overview" className="gap-2 data-[state=active]:bg-background">
-            <Users size={16} weight="regular" />
-            <span className="hidden sm:inline text-sm">Overview</span>
-          </TabsTrigger>
-          <TabsTrigger value="tasks" className="gap-2 data-[state=active]:bg-background">
-            <CheckSquare size={16} weight="regular" />
-            <span className="hidden sm:inline text-sm">Tasks</span>
-            <Badge variant="secondary" className="ml-1 text-xs">
-              {(tasks || []).filter(t => t.status !== 'done').length}
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger value="workload" className="gap-2 data-[state=active]:bg-background">
-            <ArrowsDownUp size={16} weight="regular" />
-            <span className="hidden sm:inline text-sm">Workload</span>
-          </TabsTrigger>
-          <TabsTrigger value="calendar" className="gap-2 data-[state=active]:bg-background">
-            <CalendarBlank size={16} weight="regular" />
-            <span className="hidden sm:inline text-sm">Calendar</span>
-          </TabsTrigger>
-          <TabsTrigger value="comments" className="gap-2 data-[state=active]:bg-background">
-            <ChatCircleDots size={16} weight="regular" />
-            <span className="hidden sm:inline text-sm">Comments</span>
-            <Badge variant="secondary" className="ml-1 text-xs">
-              {(comments || []).length}
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger value="team" className="gap-2 data-[state=active]:bg-background">
-            <Users size={16} weight="regular" />
-            <span className="hidden sm:inline text-sm">Team</span>
-            <Badge variant="secondary" className="ml-1 text-xs">
-              {allMembers.length}
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger value="data" className="gap-2 data-[state=active]:bg-background">
-            <Database size={16} weight="regular" />
-            <span className="hidden sm:inline text-sm">Data</span>
-          </TabsTrigger>
-        </TabsList>
+      {/* Navigation Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <div className="border-b">
+          <TabsList className="h-12 w-full max-w-4xl justify-start gap-1 bg-transparent p-0">
+            <TabsTrigger 
+              value="overview" 
+              className="relative h-12 rounded-none border-b-2 border-transparent px-4 font-medium text-muted-foreground data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none hover:text-foreground transition-colors"
+            >
+              <Users size={18} weight="regular" className="mr-2" />
+              <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="tasks" 
+              className="relative h-12 rounded-none border-b-2 border-transparent px-4 font-medium text-muted-foreground data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none hover:text-foreground transition-colors"
+            >
+              <CheckSquare size={18} weight="regular" className="mr-2" />
+              <span className="hidden sm:inline">Tasks</span>
+              <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px] font-semibold">
+                {(tasks || []).filter(t => t.status !== 'done').length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="workload" 
+              className="relative h-12 rounded-none border-b-2 border-transparent px-4 font-medium text-muted-foreground data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none hover:text-foreground transition-colors"
+            >
+              <ArrowsDownUp size={18} weight="regular" className="mr-2" />
+              <span className="hidden sm:inline">Workload</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="calendar" 
+              className="relative h-12 rounded-none border-b-2 border-transparent px-4 font-medium text-muted-foreground data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none hover:text-foreground transition-colors"
+            >
+              <CalendarBlank size={18} weight="regular" className="mr-2" />
+              <span className="hidden sm:inline">Calendar</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="comments" 
+              className="relative h-12 rounded-none border-b-2 border-transparent px-4 font-medium text-muted-foreground data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none hover:text-foreground transition-colors"
+            >
+              <ChatCircleDots size={18} weight="regular" className="mr-2" />
+              <span className="hidden sm:inline">Comments</span>
+              <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px] font-semibold">
+                {(comments || []).length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="team" 
+              className="relative h-12 rounded-none border-b-2 border-transparent px-4 font-medium text-muted-foreground data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none hover:text-foreground transition-colors"
+            >
+              <Users size={18} weight="regular" className="mr-2" />
+              <span className="hidden sm:inline">Team</span>
+              <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px] font-semibold">
+                {allMembers.length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="data" 
+              className="relative h-12 rounded-none border-b-2 border-transparent px-4 font-medium text-muted-foreground data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none hover:text-foreground transition-colors"
+            >
+              <Database size={18} weight="regular" className="mr-2" />
+              <span className="hidden sm:inline">Data</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        <TabsContent value="overview" className="space-y-6 mt-6">
+        <TabsContent value="overview" className="mt-0 space-y-6 fade-in">
           <OverviewTab
             currentUser={currentUser}
             allMembers={allMembers}
@@ -204,7 +234,7 @@ const CollaborationView = () => {
           />
         </TabsContent>
 
-        <TabsContent value="tasks" className="space-y-6">
+        <TabsContent value="tasks" className="mt-0 space-y-6 fade-in">
           <TasksView
             tasks={tasks || []}
             setTasks={setTasks}
@@ -215,7 +245,7 @@ const CollaborationView = () => {
           />
         </TabsContent>
 
-        <TabsContent value="workload" className="space-y-6">
+        <TabsContent value="workload" className="mt-0 space-y-6 fade-in">
           <WorkloadBalancing
             tasks={tasks || []}
             teamMembers={allMembers}
@@ -237,14 +267,14 @@ const CollaborationView = () => {
           />
         </TabsContent>
 
-        <TabsContent value="calendar" className="space-y-6">
+        <TabsContent value="calendar" className="mt-0 space-y-6 fade-in">
           <CalendarView
             tasks={tasks || []}
             teamMembers={allMembers}
           />
         </TabsContent>
 
-        <TabsContent value="comments" className="space-y-6">
+        <TabsContent value="comments" className="mt-0 space-y-6 fade-in">
           <CommentsView
             comments={comments || []}
             setComments={setComments}
@@ -255,7 +285,7 @@ const CollaborationView = () => {
           />
         </TabsContent>
 
-        <TabsContent value="team" className="space-y-6">
+        <TabsContent value="team" className="mt-0 space-y-6 fade-in">
           <TeamView 
             teamMembers={allMembers} 
             setTeamMembers={setTeamMembers}
@@ -267,7 +297,7 @@ const CollaborationView = () => {
           />
         </TabsContent>
 
-        <TabsContent value="data" className="space-y-6">
+        <TabsContent value="data" className="mt-0 space-y-6 fade-in">
           <DataManagement
             tasks={tasks || []}
             comments={comments || []}

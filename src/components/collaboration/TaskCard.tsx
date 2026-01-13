@@ -414,35 +414,35 @@ const TaskCard = ({
             {/* Due Date & Time Info */}
             {dueDateInfo && (
               <div className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200",
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
                 dueDateInfo.isOverdue 
-                  ? "bg-gradient-to-r from-red-500/15 to-red-500/5 border border-red-500/30" 
+                  ? "bg-red-500/10 border border-red-500/20 dark:bg-red-500/15 dark:border-red-500/30" 
                   : dueDateInfo.daysUntilDue <= 1 
-                    ? "bg-gradient-to-r from-orange-500/15 to-orange-500/5 border border-orange-500/30" 
+                    ? "bg-orange-500/10 border border-orange-500/20 dark:bg-orange-500/15 dark:border-orange-500/30" 
                     : dueDateInfo.daysUntilDue <= 3 
-                      ? "bg-gradient-to-r from-amber-500/15 to-amber-500/5 border border-amber-500/30" 
-                      : "bg-muted/50 border border-border/50"
+                      ? "bg-amber-500/10 border border-amber-500/20 dark:bg-amber-500/15 dark:border-amber-500/30" 
+                      : "bg-muted/40 border border-border/40 dark:bg-muted/20"
               )}>
                 <div className={cn(
-                  "h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0",
+                  "h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0",
                   dueDateInfo.isOverdue 
-                    ? "bg-red-500/20" 
+                    ? "bg-red-500/20 dark:bg-red-500/30" 
                     : dueDateInfo.daysUntilDue <= 1 
-                      ? "bg-orange-500/20" 
+                      ? "bg-orange-500/20 dark:bg-orange-500/30" 
                       : dueDateInfo.daysUntilDue <= 3 
-                        ? "bg-amber-500/20" 
-                        : "bg-muted"
+                        ? "bg-amber-500/20 dark:bg-amber-500/30" 
+                        : "bg-muted dark:bg-muted/50"
                 )}>
                   <CalendarBlank 
-                    size={14} 
+                    size={16} 
                     weight={dueDateInfo.isOverdue ? 'fill' : 'bold'} 
                     className={cn(
                       dueDateInfo.isOverdue 
-                        ? "text-red-500" 
+                        ? "text-red-500 dark:text-red-400" 
                         : dueDateInfo.daysUntilDue <= 1 
-                          ? "text-orange-500" 
+                          ? "text-orange-500 dark:text-orange-400" 
                           : dueDateInfo.daysUntilDue <= 3 
-                            ? "text-amber-500" 
+                            ? "text-amber-500 dark:text-amber-400" 
                             : "text-muted-foreground"
                     )}
                   />

@@ -61,10 +61,10 @@ const priorityColors = {
 }
 
 const statusColors = {
-  pending: 'bg-gray-400',
+  pending: 'bg-slate-400 dark:bg-slate-500',
   'in-progress': 'bg-blue-500',
   completed: 'bg-green-500',
-  todo: 'bg-gray-400',
+  todo: 'bg-slate-400 dark:bg-slate-500',
   review: 'bg-purple-500',
   done: 'bg-green-500'
 }
@@ -355,11 +355,11 @@ export default function GanttChart({ phases, tasks = [], teamMembers = [], showT
                 <span className="text-xs text-muted-foreground">In Progress</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="h-3 w-6 rounded bg-gray-400" />
+                <div className="h-3 w-6 rounded bg-slate-400 dark:bg-slate-500" />
                 <span className="text-xs text-muted-foreground">Pending</span>
               </div>
               <div className="flex items-center gap-2">
-                <ArrowRight size={16} weight="bold" className="text-accent" />
+                <ArrowRight size={16} weight="bold" className="text-primary" />
                 <span className="text-xs text-muted-foreground">Dependency Link</span>
               </div>
             </div>

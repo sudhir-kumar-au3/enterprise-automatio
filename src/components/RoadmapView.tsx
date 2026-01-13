@@ -21,9 +21,9 @@ import GanttChart from '@/components/GanttChart'
 import { useState } from 'react'
 
 const priorityColors = {
-  critical: 'bg-red-500/10 text-red-700 border-red-500/20',
-  high: 'bg-orange-500/10 text-orange-700 border-orange-500/20',
-  medium: 'bg-blue-500/10 text-blue-700 border-blue-500/20'
+  critical: 'bg-red-500/10 text-red-700 border-red-500/20 dark:text-red-300',
+  high: 'bg-orange-500/10 text-orange-700 border-orange-500/20 dark:text-orange-300',
+  medium: 'bg-blue-500/10 text-blue-700 border-blue-500/20 dark:text-blue-300'
 }
 
 const statusIcons = {
@@ -33,8 +33,8 @@ const statusIcons = {
 }
 
 const statusColors = {
-  completed: 'text-green-600',
-  'in-progress': 'text-yellow-600',
+  completed: 'text-green-600 dark:text-green-400',
+  'in-progress': 'text-yellow-600 dark:text-yellow-400',
   pending: 'text-muted-foreground'
 }
 
@@ -290,8 +290,8 @@ const RoadmapView = () => {
                                   <Badge 
                                     variant="outline" 
                                     className={`text-xs ${
-                                      task.status === 'completed' ? 'border-green-500/50 text-green-700' :
-                                      task.status === 'in-progress' ? 'border-yellow-500/50 text-yellow-700' :
+                                      task.status === 'completed' ? 'border-green-500/50 text-green-700 dark:text-green-300' :
+                                      task.status === 'in-progress' ? 'border-yellow-500/50 text-yellow-700 dark:text-yellow-300' :
                                       'border-muted'
                                     }`}
                                   >
