@@ -25,6 +25,25 @@ export interface ChangePasswordData {
   newPassword: string;
 }
 
+export interface ForgotPasswordData {
+  email: string;
+}
+
+export interface VerifyResetCodeData {
+  email: string;
+  code: string;
+}
+
+export interface ResetPasswordData {
+  email: string;
+  code: string;
+  newPassword: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+}
+
 export const authService = {
   async login(
     credentials: LoginCredentials
@@ -80,6 +99,18 @@ export const authService = {
 
   async changePassword(data: ChangePasswordData): Promise<ApiResponse<void>> {
     return apiClient.put("/auth/change-password", data);
+  },
+
+  async forgotPassword(data: ForgotPasswordData): Promise<ApiResponse<ForgotPasswordResponse>> {
+    return apiClient.post<ForgotPasswordResponse>("/auth/forgot-password", data);
+  },
+
+  async verifyResetCode(data: VerifyResetCodeData): Promise<ApiResponse<{ valid: boolean }>> {
+    return apiClient.post<{ valid: boolean }>("/auth/verify-reset-code", data);
+  },
+
+  async resetPassword(data: ResetPasswordData): Promise<ApiResponse<ForgotPasswordResponse>> {
+    return apiClient.post<ForgotPasswordResponse>("/auth/reset-password", data);
   },
 
   getStoredUser(): TeamMember | null {
