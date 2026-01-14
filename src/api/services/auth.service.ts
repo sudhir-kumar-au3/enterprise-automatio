@@ -29,19 +29,15 @@ export interface ForgotPasswordData {
   email: string;
 }
 
-export interface VerifyResetCodeData {
-  email: string;
-  code: string;
-}
-
 export interface ResetPasswordData {
-  email: string;
-  code: string;
-  newPassword: string;
+  token: string;
+  password: string;
 }
 
 export interface ForgotPasswordResponse {
   message: string;
+  resetToken?: string; // Only in development
+  resetUrl?: string; // Only in development
 }
 
 export const authService = {
@@ -110,16 +106,18 @@ export const authService = {
     );
   },
 
-  async verifyResetCode(
-    data: VerifyResetCodeData
-  ): Promise<ApiResponse<{ valid: boolean }>> {
-    return apiClient.post<{ valid: boolean }>("/auth/verify-reset-code", data);
+  async verifyResetToken(
+    token: string
+  ): Promise<ApiResponse<{ message: string }>> {
+    return apiClient.get<{ message: string }>(
+      `/auth/verify-reset-token/${token}`
+    );
   },
 
   async resetPassword(
     data: ResetPasswordData
-  ): Promise<ApiResponse<ForgotPasswordResponse>> {
-    return apiClient.post<ForgotPasswordResponse>("/auth/reset-password", data);
+  ): Promise<ApiResponse<{ message: string }>> {
+    return apiClient.post<{ message: string }>("/auth/reset-password", data);
   },
 
   getStoredUser(): TeamMember | null {

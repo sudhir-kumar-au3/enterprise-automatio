@@ -49,8 +49,12 @@ const CollaborationView = () => {
     setComments, 
     isLoading: commentsLoading,
     createComment: createCommentApi,
+    updateComment: updateCommentApi,
+    deleteComment: deleteCommentApi,
     toggleResolve: toggleResolveApi,
-    deleteComment: deleteCommentApi
+    addReaction: addReactionApi,
+    removeReaction: removeReactionApi,
+    addReply: addReplyApi
   } = useComments()
   const { 
     members: teamMembers, 
@@ -283,7 +287,12 @@ const CollaborationView = () => {
             teamMembers={allMembers}
             currentUser={currentUser}
             createCommentApi={createCommentApi}
+            updateCommentApi={updateCommentApi}
+            deleteCommentApi={deleteCommentApi}
             toggleResolveApi={toggleResolveApi}
+            addReactionApi={addReactionApi}
+            removeReactionApi={removeReactionApi}
+            addReplyApi={addReplyApi}
           />
         </TabsContent>
 

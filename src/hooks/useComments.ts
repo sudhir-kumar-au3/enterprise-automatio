@@ -62,6 +62,12 @@ export function useComments(initialFilters?: CommentFilters) {
     commentService.removeReaction(id)
   );
 
+  // Reply mutation
+  const addReplyMutation = useMutation<
+    Comment,
+    [string, { content: string; mentions?: string[] }]
+  >((id, data) => commentService.addReply(id, data));
+
   const createComment = useCallback(
     async (data: CreateCommentData) => {
       const result = await createMutation.mutate(data);
@@ -128,6 +134,18 @@ export function useComments(initialFilters?: CommentFilters) {
     [removeReactionMutation, updateItem]
   );
 
+  const addReply = useCallback(
+    async (id: string, data: { content: string; mentions?: string[] }) => {
+      const result = await addReplyMutation.mutate(id, data);
+      if (result.success && result.data) {
+        // Add reply to the comments list
+        addItem(result.data);
+      }
+      return result;
+    },
+    [addReplyMutation, addItem]
+  );
+
   return {
     comments,
     pagination,
@@ -145,11 +163,14 @@ export function useComments(initialFilters?: CommentFilters) {
     toggleResolve,
     addReaction,
     removeReaction,
+    addReply,
     setComments: setItems,
     // Mutation states
     isCreating: createMutation.isLoading,
     isUpdating: updateMutation.isLoading,
     isDeleting: deleteMutation.isLoading,
+    isAddingReaction: addReactionMutation.isLoading,
+    isAddingReply: addReplyMutation.isLoading,
   };
 }
 

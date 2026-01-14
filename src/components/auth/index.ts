@@ -1,2 +1,8 @@
-export { LoginForm, RegisterForm, AuthPage } from "./AuthPage";
+export {
+  LoginForm,
+  RegisterForm,
+  AuthPage,
+  TermsOfService,
+  PrivacyPolicy,
+} from "./AuthPage";
 export { default } from "./AuthPage";

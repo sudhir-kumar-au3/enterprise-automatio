@@ -1,5 +1,6 @@
 import { Response } from "express";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import { validationResult } from "express-validator";
 import { TeamMember } from "../models";
 import config from "../config";
@@ -255,6 +256,121 @@ export const changePassword = asyncHandler(
     res.json({
       success: true,
       message: "Password changed successfully",
+    } as ApiResponse);
+  }
+);
+
+// Forgot password - request reset token
+export const forgotPassword = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { email } = req.body;
+
+    if (!email) {
+      throw new AppError("Email is required", 400);
+    }
+
+    const user = await TeamMember.findOne({ email });
+
+    // Always return success to prevent email enumeration
+    if (!user) {
+      logger.info(`Password reset requested for non-existent email: ${email}`);
+      return res.json({
+        success: true,
+        message:
+          "If an account with that email exists, a password reset link has been sent.",
+      } as ApiResponse);
+    }
+
+    // Generate reset token
+    const resetToken = user.createPasswordResetToken();
+    await user.save({ validateBeforeSave: false });
+
+    // In production, send email with reset link
+    // For now, we'll return the token in development
+    const resetUrl = `${
+      process.env.FRONTEND_URL || "http://localhost:5173"
+    }/reset-password?token=${resetToken}`;
+
+    logger.info(`Password reset token generated for: ${email}`);
+
+    // In production, you would send an email here
+    // await sendEmail({ to: email, subject: 'Password Reset', html: `...${resetUrl}...` });
+
+    res.json({
+      success: true,
+      message:
+        "If an account with that email exists, a password reset link has been sent.",
+      // Only include in development for testing
+      ...(process.env.NODE_ENV === "development" && { resetToken, resetUrl }),
+    } as ApiResponse);
+  }
+);
+
+// Reset password with token
+export const resetPassword = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      throw new AppError("Token and new password are required", 400);
+    }
+
+    if (password.length < 6) {
+      throw new AppError("Password must be at least 6 characters", 400);
+    }
+
+    // Hash the token to compare with stored hash
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    // Find user with valid token
+    const user = await TeamMember.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: Date.now() },
+    }).select("+password +passwordResetToken +passwordResetExpires");
+
+    if (!user) {
+      throw new AppError("Invalid or expired reset token", 400);
+    }
+
+    // Update password and clear reset token
+    user.password = password;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+
+    logger.info(`Password reset successful for: ${user.email}`);
+
+    res.json({
+      success: true,
+      message:
+        "Password has been reset successfully. You can now log in with your new password.",
+    } as ApiResponse);
+  }
+);
+
+// Verify reset token (check if token is valid before showing reset form)
+export const verifyResetToken = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { token } = req.params;
+
+    if (!token) {
+      throw new AppError("Token is required", 400);
+    }
+
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    const user = await TeamMember.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      throw new AppError("Invalid or expired reset token", 400);
+    }
+
+    res.json({
+      success: true,
+      message: "Token is valid",
     } as ApiResponse);
   }
 );

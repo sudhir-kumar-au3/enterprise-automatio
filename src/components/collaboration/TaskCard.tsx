@@ -510,12 +510,12 @@ const TaskCard = ({
             )}
             
             {/* Footer Row - Assignee & Status */}
-            <div className="flex items-center justify-between gap-3 pt-3 border-t border-border/50">
+            <div className="flex items-center justify-between gap-2 pt-3 border-t border-border/50">
               {/* Assignee */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   {assignee ? (
-                    <div className="flex items-center gap-2.5 group/assignee min-w-0 flex-1">
+                    <div className="flex items-center gap-2 group/assignee min-w-0 flex-1 overflow-hidden">
                       <div className="relative flex-shrink-0">
                         <Avatar className="h-7 w-7 ring-2 ring-background shadow-sm">
                           <AvatarImage src={assignee.avatarUrl} alt={assignee.name} />
@@ -532,7 +532,7 @@ const TaskCard = ({
                           </span>
                         )}
                       </div>
-                      <div className="min-w-0 flex-1">
+                      <div className="min-w-0 overflow-hidden">
                         <p className="text-xs font-medium truncate group-hover/assignee:text-primary transition-colors">
                           {assignee.name}
                         </p>
@@ -542,13 +542,13 @@ const TaskCard = ({
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2.5 text-muted-foreground hover:text-foreground transition-colors group/unassigned">
-                      <div className="h-7 w-7 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center group-hover/unassigned:border-primary/50 transition-colors">
+                    <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group/unassigned min-w-0 flex-1">
+                      <div className="h-7 w-7 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center group-hover/unassigned:border-primary/50 transition-colors flex-shrink-0">
                         <Users size={12} className="opacity-50 group-hover/unassigned:opacity-100" />
                       </div>
-                      <div>
-                        <p className="text-xs font-medium">Unassigned</p>
-                        <p className="text-[10px] text-muted-foreground">Click to assign</p>
+                      <div className="min-w-0 overflow-hidden">
+                        <p className="text-xs font-medium truncate">Unassigned</p>
+                        <p className="text-[10px] text-muted-foreground truncate">Click to assign</p>
                       </div>
                     </div>
                   )}
@@ -573,60 +573,47 @@ const TaskCard = ({
                 >
                   <SelectTrigger 
                     className={cn(
-                      "h-8 w-auto gap-2 text-xs font-medium border-0 shadow-sm",
+                      "h-7 min-w-0 max-w-[120px] gap-1.5 px-2 text-[11px] font-medium border-0 shadow-sm flex-shrink-0",
                       `bg-gradient-to-r ${status.gradient} text-white`,
-                      "hover:opacity-90 transition-all duration-200 hover:scale-105"
+                      "hover:opacity-90 transition-all duration-200"
                     )} 
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <StatusIcon size={12} weight="fill" />
-                    <SelectValue />
-                    <CaretRight size={10} className="opacity-70" />
+                    <StatusIcon size={11} weight="fill" className="flex-shrink-0" />
+                    <span className="truncate flex-1">{status.label}</span>
                   </SelectTrigger>
                   <SelectContent align="end" className="w-44">
                     <DropdownMenuLabel className="text-xs text-muted-foreground px-2 py-1.5">Change Status</DropdownMenuLabel>
                     <SelectItem value="todo" className="gap-2">
-                      <div className="flex items-center gap-2 w-full">
-                        <div className="h-5 w-5 rounded bg-gradient-to-br from-slate-500 to-gray-500 flex items-center justify-center">
+                      <div className="flex items-center gap-2">
+                        <div className="h-5 w-5 rounded bg-gradient-to-br from-slate-500 to-gray-500 flex items-center justify-center flex-shrink-0">
                           <Circle size={10} weight="bold" className="text-white" />
                         </div>
-                        <div className="flex-1">
-                          <span className="font-medium">To Do</span>
-                        </div>
-                        {task.status === 'todo' && <Check size={12} className="text-primary" />}
+                        <span className="font-medium">To Do</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="in-progress" className="gap-2">
-                      <div className="flex items-center gap-2 w-full">
-                        <div className="h-5 w-5 rounded bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                      <div className="flex items-center gap-2">
+                        <div className="h-5 w-5 rounded bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
                           <Lightning size={10} weight="fill" className="text-white" />
                         </div>
-                        <div className="flex-1">
-                          <span className="font-medium">In Progress</span>
-                        </div>
-                        {task.status === 'in-progress' && <Check size={12} className="text-primary" />}
+                        <span className="font-medium">In Progress</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="review" className="gap-2">
-                      <div className="flex items-center gap-2 w-full">
-                        <div className="h-5 w-5 rounded bg-gradient-to-br from-purple-500 to-violet-500 flex items-center justify-center">
+                      <div className="flex items-center gap-2">
+                        <div className="h-5 w-5 rounded bg-gradient-to-br from-purple-500 to-violet-500 flex items-center justify-center flex-shrink-0">
                           <Eye size={10} weight="fill" className="text-white" />
                         </div>
-                        <div className="flex-1">
-                          <span className="font-medium">In Review</span>
-                        </div>
-                        {task.status === 'review' && <Check size={12} className="text-primary" />}
+                        <span className="font-medium">In Review</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="done" className="gap-2">
-                      <div className="flex items-center gap-2 w-full">
-                        <div className="h-5 w-5 rounded bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                      <div className="flex items-center gap-2">
+                        <div className="h-5 w-5 rounded bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0">
                           <CheckCircle size={10} weight="fill" className="text-white" />
                         </div>
-                        <div className="flex-1">
-                          <span className="font-medium">Done</span>
-                        </div>
-                        {task.status === 'done' && <Check size={12} className="text-primary" />}
+                        <span className="font-medium">Done</span>
                       </div>
                     </SelectItem>
                   </SelectContent>
@@ -635,11 +622,11 @@ const TaskCard = ({
                 <Badge 
                   variant="secondary" 
                   className={cn(
-                    "h-7 px-2.5 gap-1.5 text-xs font-medium border-0 shadow-sm",
+                    "h-7 px-2 gap-1.5 text-[11px] font-medium border-0 shadow-sm flex-shrink-0",
                     `bg-gradient-to-r ${status.gradient} text-white`
                   )}
                 >
-                  <StatusIcon size={12} weight="fill" />
+                  <StatusIcon size={11} weight="fill" />
                   {status.label}
                 </Badge>
               )}

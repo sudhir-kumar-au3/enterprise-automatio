@@ -188,12 +188,16 @@ export function NotificationCenter() {
         <ScrollArea className="max-h-[400px]">
           {filteredNotifications.length === 0 ? (
             <div className="py-12 text-center">
-              <Bell className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
-              <p className="text-sm text-muted-foreground">
-                {filter === 'unread' ? 'No unread notifications' : 'No notifications yet'}
+              <div className="h-16 w-16 mx-auto rounded-full bg-green-500/10 flex items-center justify-center mb-4">
+                <CheckCircle2 className="h-8 w-8 text-green-500" />
+              </div>
+              <p className="text-sm font-medium text-foreground">
+                {filter === 'unread' ? 'No unread notifications' : 'All caught up!'}
               </p>
-              <p className="text-xs text-muted-foreground/60 mt-1">
-                You're all caught up!
+              <p className="text-xs text-muted-foreground mt-1">
+                {filter === 'unread' 
+                  ? 'You have no unread notifications' 
+                  : 'You have no notifications at the moment'}
               </p>
             </div>
           ) : (

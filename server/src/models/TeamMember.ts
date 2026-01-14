@@ -1,9 +1,13 @@
 import mongoose, { Schema, Document } from "mongoose";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { ITeamMember, AccessLevel, TeamRole, Permission } from "../types";
 
 export interface TeamMemberDocument extends Omit<ITeamMember, "id">, Document {
   comparePassword(candidatePassword: string): Promise<boolean>;
+  createPasswordResetToken(): string;
+  passwordResetToken?: string;
+  passwordResetExpires?: Date;
 }
 
 const teamMemberSchema = new Schema<TeamMemberDocument>(
@@ -26,6 +30,14 @@ const teamMemberSchema = new Schema<TeamMemberDocument>(
       type: String,
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters"],
+      select: false,
+    },
+    passwordResetToken: {
+      type: String,
+      select: false,
+    },
+    passwordResetExpires: {
+      type: Date,
       select: false,
     },
     role: {
@@ -113,6 +125,21 @@ teamMemberSchema.methods.comparePassword = async function (
   candidatePassword: string
 ): Promise<boolean> {
   return bcrypt.compare(candidatePassword, this.password);
+};
+
+// Create password reset token
+teamMemberSchema.methods.createPasswordResetToken = function (): string {
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  this.passwordResetToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  // Token expires in 10 minutes
+  this.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+  return resetToken;
 };
 
 const TeamMember = mongoose.model<TeamMemberDocument>(

@@ -1,9 +1,9 @@
-import React, { Suspense, lazy, useEffect } from 'react';
-import { CheckSquare, LogOut, User, Settings, Bell, Keyboard, Sparkles } from 'lucide-react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
+import { Activity, LogOut, User, Settings, Bell, Keyboard, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { AuthProvider, DataProvider, useAuth, PowerFeaturesProvider, useCommandPalette, useShortcuts, useNotifications, useNavigation, SettingsProvider } from '@/contexts';
-import { AuthPage } from '@/components/auth';
+import { AuthPage, TermsOfService, PrivacyPolicy } from '@/components/auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
@@ -233,13 +233,13 @@ function AppHeader() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4 md:px-6">
         {/* Logo & Brand */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/25">
-            <CheckSquare className="h-5 w-5" />
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <Activity className="h-5 w-5" />
           </div>
-          <div className="hidden sm:block">
-            <h1 className="text-base font-semibold tracking-tight">Pulsework.io</h1>
-            <p className="text-xs text-muted-foreground">Enterprise Collaboration</p>
+          <div className="hidden sm:flex flex-col justify-center h-10">
+            <span className="text-lg font-bold leading-tight">Pulsework.io</span>
+            <span className="text-[10px] text-muted-foreground leading-tight">Your team's rhythm</span>
           </div>
         </div>
 
@@ -330,13 +330,181 @@ function AppHeader() {
   );
 }
 
+// Support Page component
+function SupportPage({ onBack }: { onBack: () => void }) {
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container max-w-4xl mx-auto px-4 py-8">
+        <Button variant="ghost" onClick={onBack} className="mb-6 gap-2">
+          <Activity className="h-4 w-4" />
+          Back to App
+        </Button>
+        
+        <div className="space-y-8">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Support Center</h1>
+            <p className="text-muted-foreground">We're here to help you get the most out of Pulsework.io</p>
+          </div>
+
+          {/* Contact Options */}
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="p-6 rounded-xl border bg-card hover:shadow-lg transition-shadow">
+              <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4">
+                <svg className="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 className="font-semibold mb-2">Email Support</h3>
+              <p className="text-sm text-muted-foreground mb-3">Get help via email within 24 hours</p>
+              <a href="mailto:support@pulsework.io" className="text-sm text-primary hover:underline">
+                support@pulsework.io
+              </a>
+            </div>
+
+            <div className="p-6 rounded-xl border bg-card hover:shadow-lg transition-shadow">
+              <div className="h-12 w-12 rounded-xl bg-green-500/10 flex items-center justify-center mb-4">
+                <svg className="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <h3 className="font-semibold mb-2">Live Chat</h3>
+              <p className="text-sm text-muted-foreground mb-3">Chat with our team in real-time</p>
+              <span className="text-sm text-muted-foreground">Available Mon-Fri, 9am-6pm EST</span>
+            </div>
+
+            <div className="p-6 rounded-xl border bg-card hover:shadow-lg transition-shadow">
+              <div className="h-12 w-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-4">
+                <svg className="h-6 w-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+              </div>
+              <h3 className="font-semibold mb-2">Documentation</h3>
+              <p className="text-sm text-muted-foreground mb-3">Browse our guides and tutorials</p>
+              <span className="text-sm text-primary hover:underline cursor-pointer">View Docs →</span>
+            </div>
+          </div>
+
+          {/* FAQ Section */}
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Frequently Asked Questions</h2>
+            <div className="space-y-4">
+              {[
+                {
+                  q: "How do I reset my password?",
+                  a: "Click 'Forgot password?' on the login page and enter your email. You'll receive a reset link within minutes."
+                },
+                {
+                  q: "Can I invite team members to my workspace?",
+                  a: "Yes! Go to the Team tab and click 'Invite Member'. You can invite users by email and assign them roles."
+                },
+                {
+                  q: "How do I export my tasks?",
+                  a: "Navigate to the Tasks view, click the export button, and choose your preferred format (CSV, JSON, or PDF)."
+                },
+                {
+                  q: "Is my data secure?",
+                  a: "Absolutely. We use AES-256 encryption for data at rest and TLS 1.3 for data in transit. Read our Privacy Policy for more details."
+                },
+                {
+                  q: "What browsers are supported?",
+                  a: "Pulsework.io works best on the latest versions of Chrome, Firefox, Safari, and Edge."
+                },
+                {
+                  q: "How do I cancel my subscription?",
+                  a: "Go to Settings > Billing > Cancel Subscription. Your data will be retained for 30 days after cancellation."
+                }
+              ].map((faq, i) => (
+                <div key={i} className="p-4 rounded-xl border bg-card">
+                  <h4 className="font-medium mb-2">{faq.q}</h4>
+                  <p className="text-sm text-muted-foreground">{faq.a}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* System Status */}
+          <div className="p-6 rounded-xl border bg-card">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">System Status</h2>
+              <div className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-sm text-green-600 dark:text-green-400 font-medium">All Systems Operational</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-green-500" />
+                <span className="text-muted-foreground">API</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-green-500" />
+                <span className="text-muted-foreground">Web App</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-green-500" />
+                <span className="text-muted-foreground">Database</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-green-500" />
+                <span className="text-muted-foreground">Real-time</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Contact Form */}
+          <div className="p-6 rounded-xl border bg-card">
+            <h2 className="text-xl font-semibold mb-4">Send us a message</h2>
+            <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">Name</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    placeholder="Your name"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">Email</label>
+                  <input 
+                    type="email" 
+                    className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    placeholder="you@example.com"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Subject</label>
+                <input 
+                  type="text" 
+                  className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  placeholder="How can we help?"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Message</label>
+                <textarea 
+                  rows={4}
+                  className="w-full px-3 py-2 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                  placeholder="Describe your issue or question..."
+                />
+              </div>
+              <Button className="w-full md:w-auto">Send Message</Button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // App loading state
 function AppLoading() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-6">
       <div className="relative">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-xl shadow-primary/30">
-          <CheckSquare className="h-8 w-8" />
+          <Activity className="h-8 w-8" />
         </div>
         <div className="absolute -inset-4 rounded-3xl bg-primary/10 animate-pulse" />
       </div>
@@ -360,6 +528,7 @@ function AppLoading() {
 
 function AppContent() {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const [showPage, setShowPage] = useState<'main' | 'privacy' | 'terms' | 'support'>('main');
 
   // Show loading spinner while checking auth state
   if (isLoading) {
@@ -369,6 +538,21 @@ function AppContent() {
   // Show auth page if not authenticated
   if (!isAuthenticated) {
     return <AuthPage />;
+  }
+
+  // Show Privacy Policy page
+  if (showPage === 'privacy') {
+    return <PrivacyPolicy onBack={() => setShowPage('main')} />;
+  }
+
+  // Show Terms of Service page
+  if (showPage === 'terms') {
+    return <TermsOfService onBack={() => setShowPage('main')} />;
+  }
+
+  // Show Support page
+  if (showPage === 'support') {
+    return <SupportPage onBack={() => setShowPage('main')} />;
   }
 
   return (
@@ -390,9 +574,24 @@ function AppContent() {
             © 2026 Pulsework.io. Built with precision.
           </p>
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
-            <a href="#" className="hover:text-foreground transition-colors duration-200">Privacy</a>
-            <a href="#" className="hover:text-foreground transition-colors duration-200">Terms</a>
-            <a href="#" className="hover:text-foreground transition-colors duration-200">Support</a>
+            <button 
+              onClick={() => setShowPage('privacy')}
+              className="hover:text-foreground transition-colors duration-200"
+            >
+              Privacy
+            </button>
+            <button 
+              onClick={() => setShowPage('terms')}
+              className="hover:text-foreground transition-colors duration-200"
+            >
+              Terms
+            </button>
+            <button 
+              onClick={() => setShowPage('support')}
+              className="hover:text-foreground transition-colors duration-200"
+            >
+              Support
+            </button>
           </div>
         </div>
       </footer>
