@@ -10,6 +10,7 @@ import logger from "../utils/logger";
 import { ITask, TaskStatus, TaskPriority } from "../types";
 
 export interface TaskFilters {
+  organizationId: string; // Required for multi-tenancy
   status?: TaskStatus;
   priority?: TaskPriority;
   assigneeId?: string;
@@ -38,6 +39,7 @@ export interface PaginatedResult<T> {
 }
 
 export interface TaskCreateInput {
+  organizationId: string; // Required for multi-tenancy
   title: string;
   description?: string;
   status?: TaskStatus;
@@ -95,10 +97,13 @@ class TaskService {
   }
 
   /**
-   * Get a single task by ID
+   * Get a single task by ID - requires organizationId for security
    */
-  async getTaskById(taskId: string): Promise<TaskDocument> {
-    const task = await Task.findById(taskId);
+  async getTaskById(
+    taskId: string,
+    organizationId: string
+  ): Promise<TaskDocument> {
+    const task = await Task.findOne({ _id: taskId, organizationId });
     if (!task) {
       throw new AppError("Task not found", 404);
     }
@@ -112,14 +117,14 @@ class TaskService {
     input: TaskCreateInput,
     userId: string
   ): Promise<TaskDocument> {
-    // Validate dependencies exist
+    // Validate dependencies exist within the same organization
     if (input.dependencies?.length) {
-      await this.validateDependencies(input.dependencies);
+      await this.validateDependencies(input.dependencies, input.organizationId);
     }
 
-    // Validate assignee exists
+    // Validate assignee exists within the same organization
     if (input.assigneeId) {
-      await this.validateAssignee(input.assigneeId);
+      await this.validateAssignee(input.assigneeId, input.organizationId);
     }
 
     const taskData = {
@@ -133,9 +138,10 @@ class TaskService {
 
     const task = await Task.create(taskData);
 
-    // Log activity
+    // Log activity with organizationId
     await this.logActivity({
       userId,
+      organizationId: input.organizationId,
       type: "task-created",
       contextType: task.contextType,
       contextId: task._id.toString(),
@@ -152,21 +158,26 @@ class TaskService {
    */
   async updateTask(
     taskId: string,
+    organizationId: string,
     input: TaskUpdateInput,
     userId: string
   ): Promise<TaskDocument> {
-    const task = await this.getTaskById(taskId);
+    const task = await this.getTaskById(taskId, organizationId);
     const oldStatus = task.status;
     const oldAssignee = task.assigneeId;
 
-    // Validate dependencies if updating
+    // Validate dependencies if updating - scope to organization
     if (input.dependencies?.length) {
-      await this.validateDependencies(input.dependencies, taskId);
+      await this.validateDependencies(
+        input.dependencies,
+        organizationId,
+        taskId
+      );
     }
 
-    // Validate assignee if updating
+    // Validate assignee if updating - scope to organization
     if (input.assigneeId) {
-      await this.validateAssignee(input.assigneeId);
+      await this.validateAssignee(input.assigneeId, organizationId);
     }
 
     const updateData = {
@@ -174,10 +185,11 @@ class TaskService {
       updatedAt: Date.now(),
     };
 
-    const updatedTask = await Task.findByIdAndUpdate(taskId, updateData, {
-      new: true,
-      runValidators: true,
-    });
+    const updatedTask = await Task.findOneAndUpdate(
+      { _id: taskId, organizationId },
+      updateData,
+      { new: true, runValidators: true }
+    );
 
     if (!updatedTask) {
       throw new AppError("Task not found", 404);
@@ -187,6 +199,7 @@ class TaskService {
     if (input.status && input.status !== oldStatus) {
       await this.logActivity({
         userId,
+        organizationId,
         type: input.status === "done" ? "task-completed" : "status-changed",
         contextType: task.contextType,
         contextId: taskId,
@@ -199,6 +212,7 @@ class TaskService {
     if (input.assigneeId && input.assigneeId !== oldAssignee) {
       await this.logActivity({
         userId,
+        organizationId,
         type: "task-assigned",
         contextType: task.contextType,
         contextId: taskId,
@@ -214,11 +228,18 @@ class TaskService {
   /**
    * Delete a task
    */
-  async deleteTask(taskId: string, userId: string): Promise<void> {
-    const task = await this.getTaskById(taskId);
+  async deleteTask(
+    taskId: string,
+    organizationId: string,
+    userId: string
+  ): Promise<void> {
+    const task = await this.getTaskById(taskId, organizationId);
 
-    // Check if other tasks depend on this one
-    const dependentTasks = await Task.find({ dependencies: taskId });
+    // Check if other tasks depend on this one - scope to organization
+    const dependentTasks = await Task.find({
+      organizationId,
+      dependencies: taskId,
+    });
     if (dependentTasks.length > 0) {
       throw new AppError(
         `Cannot delete task: ${dependentTasks.length} other task(s) depend on it`,
@@ -226,10 +247,11 @@ class TaskService {
       );
     }
 
-    await Task.findByIdAndDelete(taskId);
+    await Task.findOneAndDelete({ _id: taskId, organizationId });
 
     await this.logActivity({
       userId,
+      organizationId,
       type: "task-deleted",
       contextType: task.contextType,
       contextId: taskId,
@@ -245,6 +267,7 @@ class TaskService {
    */
   async updateTaskStatus(
     taskId: string,
+    organizationId: string,
     status: TaskStatus,
     userId: string
   ): Promise<TaskDocument> {
@@ -258,12 +281,13 @@ class TaskService {
       throw new AppError("Invalid status", 400);
     }
 
-    // Check for blocking dependencies
+    // Check for blocking dependencies - scope to organization
     if (status === "in-progress" || status === "done") {
-      const task = await this.getTaskById(taskId);
+      const task = await this.getTaskById(taskId, organizationId);
       if (task.dependencies?.length) {
         const blockingDeps = await Task.find({
           _id: { $in: task.dependencies },
+          organizationId,
           status: { $ne: "done" },
         });
         if (blockingDeps.length > 0) {
@@ -275,7 +299,7 @@ class TaskService {
       }
     }
 
-    return this.updateTask(taskId, { status }, userId);
+    return this.updateTask(taskId, organizationId, { status }, userId);
   }
 
   /**
@@ -283,11 +307,12 @@ class TaskService {
    */
   async updateTaskDependencies(
     taskId: string,
+    organizationId: string,
     dependencies: string[],
     userId: string
   ): Promise<TaskDocument> {
-    await this.validateDependencies(dependencies, taskId);
-    return this.updateTask(taskId, { dependencies }, userId);
+    await this.validateDependencies(dependencies, organizationId, taskId);
+    return this.updateTask(taskId, organizationId, { dependencies }, userId);
   }
 
   /**
@@ -295,6 +320,7 @@ class TaskService {
    */
   async bulkUpdateTasks(
     taskIds: string[],
+    organizationId: string,
     updates: Partial<TaskUpdateInput>,
     userId: string
   ): Promise<{ modifiedCount: number }> {
@@ -303,7 +329,7 @@ class TaskService {
     }
 
     const result = await Task.updateMany(
-      { _id: { $in: taskIds } },
+      { _id: { $in: taskIds }, organizationId },
       { ...updates, updatedAt: Date.now() }
     );
 
@@ -312,9 +338,9 @@ class TaskService {
   }
 
   /**
-   * Get task statistics for dashboard
+   * Get task statistics for dashboard - scoped by organization
    */
-  async getTaskStatistics(): Promise<{
+  async getTaskStatistics(organizationId: string): Promise<{
     total: number;
     byStatus: Record<TaskStatus, number>;
     byPriority: Record<TaskPriority, number>;
@@ -327,18 +353,26 @@ class TaskService {
 
     const [total, statusCounts, priorityCounts, overdue, dueSoon, unassigned] =
       await Promise.all([
-        Task.countDocuments(),
-        Task.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
-        Task.aggregate([{ $group: { _id: "$priority", count: { $sum: 1 } } }]),
+        Task.countDocuments({ organizationId }),
+        Task.aggregate([
+          { $match: { organizationId } },
+          { $group: { _id: "$status", count: { $sum: 1 } } },
+        ]),
+        Task.aggregate([
+          { $match: { organizationId } },
+          { $group: { _id: "$priority", count: { $sum: 1 } } },
+        ]),
         Task.countDocuments({
+          organizationId,
           dueDate: { $lt: now },
           status: { $ne: "done" },
         }),
         Task.countDocuments({
+          organizationId,
           dueDate: { $gte: now, $lte: weekFromNow },
           status: { $ne: "done" },
         }),
-        Task.countDocuments({ assigneeId: null }),
+        Task.countDocuments({ organizationId, assigneeId: null }),
       ]);
 
     const byStatus = statusCounts.reduce(
@@ -355,9 +389,9 @@ class TaskService {
   }
 
   /**
-   * Get workload distribution by team member
+   * Get workload distribution by team member - scoped by organization
    */
-  async getWorkloadByMember(): Promise<
+  async getWorkloadByMember(organizationId: string): Promise<
     Array<{
       memberId: string;
       taskCount: number;
@@ -365,7 +399,7 @@ class TaskService {
     }>
   > {
     const workload = await Task.aggregate([
-      { $match: { assigneeId: { $ne: null } } },
+      { $match: { organizationId, assigneeId: { $ne: null } } },
       {
         $group: {
           _id: { assigneeId: "$assigneeId", status: "$status" },
@@ -402,7 +436,9 @@ class TaskService {
   // Private helper methods
 
   private buildFilterQuery(filters: TaskFilters): Record<string, any> {
-    const query: Record<string, any> = {};
+    const query: Record<string, any> = {
+      organizationId: filters.organizationId, // Always filter by organization
+    };
     const now = Date.now();
 
     if (filters.status) query.status = filters.status;
@@ -438,6 +474,7 @@ class TaskService {
 
   private async validateDependencies(
     dependencies: string[],
+    organizationId: string,
     excludeTaskId?: string
   ): Promise<void> {
     // Check for self-reference
@@ -445,8 +482,11 @@ class TaskService {
       throw new AppError("Task cannot depend on itself", 400);
     }
 
-    // Check all dependencies exist
-    const existingTasks = await Task.find({ _id: { $in: dependencies } });
+    // Check all dependencies exist within the same organization
+    const existingTasks = await Task.find({
+      _id: { $in: dependencies },
+      organizationId,
+    });
     if (existingTasks.length !== dependencies.length) {
       throw new AppError("One or more dependency tasks not found", 404);
     }
@@ -455,6 +495,7 @@ class TaskService {
     if (excludeTaskId) {
       const hasCircular = await this.detectCircularDependency(
         excludeTaskId,
+        organizationId,
         dependencies
       );
       if (hasCircular) {
@@ -465,6 +506,7 @@ class TaskService {
 
   private async detectCircularDependency(
     taskId: string,
+    organizationId: string,
     newDependencies: string[],
     visited: Set<string> = new Set()
   ): Promise<boolean> {
@@ -472,13 +514,14 @@ class TaskService {
     visited.add(taskId);
 
     for (const depId of newDependencies) {
-      const depTask = await Task.findById(depId);
+      const depTask = await Task.findOne({ _id: depId, organizationId });
       if (!depTask?.dependencies?.length) continue;
 
       if (depTask.dependencies.includes(taskId)) return true;
 
       const hasCircular = await this.detectCircularDependency(
         taskId,
+        organizationId,
         depTask.dependencies.map((d) => d.toString()),
         new Set(visited)
       );
@@ -488,8 +531,14 @@ class TaskService {
     return false;
   }
 
-  private async validateAssignee(assigneeId: string): Promise<void> {
-    const member = await TeamMember.findById(assigneeId);
+  private async validateAssignee(
+    assigneeId: string,
+    organizationId: string
+  ): Promise<void> {
+    const member = await TeamMember.findOne({
+      _id: assigneeId,
+      organizationId,
+    });
     if (!member) {
       throw new AppError("Assignee not found", 404);
     }
@@ -497,6 +546,7 @@ class TaskService {
 
   private async logActivity(data: {
     userId: string;
+    organizationId: string;
     type: string;
     contextType?: string;
     contextId: string;

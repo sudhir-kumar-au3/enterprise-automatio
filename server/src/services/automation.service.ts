@@ -13,6 +13,7 @@ export interface AutomationContext {
   user?: any;
   comment?: any;
   changes?: Record<string, { old: any; new: any }>;
+  organizationId?: string; // Added for multi-tenancy
 }
 
 class AutomationService {
@@ -20,9 +21,10 @@ class AutomationService {
    * Create a new automation rule
    */
   async createRule(
-    data: Partial<IAutomationRule>
+    data: Partial<IAutomationRule>,
+    organizationId: string
   ): Promise<AutomationRuleDocument> {
-    const rule = new AutomationRule(data);
+    const rule = new AutomationRule({ ...data, organizationId });
     await rule.save();
     logger.info(`Automation rule created: ${rule.name}`);
     return rule;
@@ -33,11 +35,14 @@ class AutomationService {
    */
   async updateRule(
     ruleId: string,
-    updates: Partial<IAutomationRule>
+    updates: Partial<IAutomationRule>,
+    organizationId: string
   ): Promise<AutomationRuleDocument | null> {
-    const rule = await AutomationRule.findByIdAndUpdate(ruleId, updates, {
-      new: true,
-    });
+    const rule = await AutomationRule.findOneAndUpdate(
+      { _id: ruleId, organizationId },
+      updates,
+      { new: true }
+    );
     if (rule) {
       logger.info(`Automation rule updated: ${rule.name}`);
     }
@@ -47,18 +52,22 @@ class AutomationService {
   /**
    * Delete an automation rule
    */
-  async deleteRule(ruleId: string): Promise<boolean> {
-    const result = await AutomationRule.findByIdAndDelete(ruleId);
+  async deleteRule(ruleId: string, organizationId: string): Promise<boolean> {
+    const result = await AutomationRule.findOneAndDelete({
+      _id: ruleId,
+      organizationId,
+    });
     return !!result;
   }
 
   /**
-   * Get all automation rules
+   * Get all automation rules for an organization
    */
-  async getRules(filters?: {
-    isActive?: boolean;
-  }): Promise<AutomationRuleDocument[]> {
-    const query: Record<string, any> = {};
+  async getRules(
+    organizationId: string,
+    filters?: { isActive?: boolean }
+  ): Promise<AutomationRuleDocument[]> {
+    const query: Record<string, any> = { organizationId };
     if (filters?.isActive !== undefined) {
       query.isActive = filters.isActive;
     }
@@ -68,8 +77,11 @@ class AutomationService {
   /**
    * Get a single rule by ID
    */
-  async getRule(ruleId: string): Promise<AutomationRuleDocument | null> {
-    return AutomationRule.findById(ruleId);
+  async getRule(
+    ruleId: string,
+    organizationId: string
+  ): Promise<AutomationRuleDocument | null> {
+    return AutomationRule.findOne({ _id: ruleId, organizationId });
   }
 
   /**
@@ -80,7 +92,13 @@ class AutomationService {
     context: AutomationContext
   ): Promise<void> {
     try {
+      if (!context.organizationId) {
+        logger.warn("No organizationId in automation context, skipping");
+        return;
+      }
+
       const rules = await AutomationRule.find({
+        organizationId: context.organizationId,
         isActive: true,
         trigger: triggerType,
       }).sort({ createdAt: -1 });
@@ -230,54 +248,60 @@ class AutomationService {
     action: IAutomationRule["actions"][0],
     context: AutomationContext
   ): Promise<void> {
-    const { task } = context;
+    const { task, organizationId } = context;
 
     switch (action.type) {
       case "update_field":
         if (task && action.config.field && action.config.value !== undefined) {
-          await Task.findByIdAndUpdate(task._id || task.id, {
-            [action.config.field]: action.config.value,
-          });
+          await Task.findOneAndUpdate(
+            { _id: task._id || task.id, organizationId },
+            { [action.config.field]: action.config.value }
+          );
         }
         break;
 
       case "assign_task":
         if (task && action.config.assigneeId) {
-          await Task.findByIdAndUpdate(task._id || task.id, {
-            assigneeId: action.config.assigneeId,
-          });
+          await Task.findOneAndUpdate(
+            { _id: task._id || task.id, organizationId },
+            { assigneeId: action.config.assigneeId }
+          );
         }
         break;
 
       case "update_task_status":
         if (task && action.config.status) {
-          await Task.findByIdAndUpdate(task._id || task.id, {
-            status: action.config.status,
-          });
+          await Task.findOneAndUpdate(
+            { _id: task._id || task.id, organizationId },
+            { status: action.config.status }
+          );
         }
         break;
 
       case "update_task_priority":
         if (task && action.config.priority) {
-          await Task.findByIdAndUpdate(task._id || task.id, {
-            priority: action.config.priority,
-          });
+          await Task.findOneAndUpdate(
+            { _id: task._id || task.id, organizationId },
+            { priority: action.config.priority }
+          );
         }
         break;
 
       case "add_tag":
         if (task && action.config.tag) {
-          await Task.findByIdAndUpdate(task._id || task.id, {
-            $addToSet: { tags: action.config.tag },
-          });
+          await Task.findOneAndUpdate(
+            { _id: task._id || task.id, organizationId },
+            { $addToSet: { tags: action.config.tag } }
+          );
         }
         break;
 
       case "remove_tag":
         if (task && action.config.tag) {
-          await Task.findByIdAndUpdate(task._id || task.id, {
-            $pull: { tags: action.config.tag },
-          });
+          await Task.findOneAndUpdate(
+            { _id: task._id || task.id, organizationId },
+            { $pull: { tags: action.config.tag } }
+          );
         }
         break;
 
@@ -292,9 +316,10 @@ class AutomationService {
         break;
 
       case "create_task":
-        if (action.config.taskTemplate) {
+        if (action.config.taskTemplate && organizationId) {
           await Task.create({
             ...action.config.taskTemplate,
+            organizationId,
             createdAt: Date.now(),
             updatedAt: Date.now(),
           });
@@ -322,10 +347,13 @@ class AutomationService {
 
       case "move_to_context":
         if (task && action.config.contextType && action.config.contextId) {
-          await Task.findByIdAndUpdate(task._id || task.id, {
-            contextType: action.config.contextType,
-            contextId: action.config.contextId,
-          });
+          await Task.findOneAndUpdate(
+            { _id: task._id || task.id, organizationId },
+            {
+              contextType: action.config.contextType,
+              contextId: action.config.contextId,
+            }
+          );
         }
         break;
 

@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface ITimeEntry {
   id: string;
+  organizationId: string; // Added for multi-tenancy
   taskId: string;
   userId: string;
   description?: string;
@@ -20,6 +21,11 @@ export interface TimeEntryDocument extends Omit<ITimeEntry, "id">, Document {}
 
 const timeEntrySchema = new Schema<TimeEntryDocument>(
   {
+    organizationId: {
+      type: String,
+      required: [true, "Organization ID is required"],
+      index: true,
+    },
     taskId: {
       type: String,
       ref: "Task",
@@ -93,6 +99,10 @@ const timeEntrySchema = new Schema<TimeEntryDocument>(
 );
 
 // Indexes
+timeEntrySchema.index({ organizationId: 1, taskId: 1, userId: 1 });
+timeEntrySchema.index({ organizationId: 1, startTime: -1 });
+timeEntrySchema.index({ organizationId: 1, userId: 1, startTime: -1 });
+timeEntrySchema.index({ organizationId: 1, userId: 1, isRunning: 1 });
 timeEntrySchema.index({ taskId: 1, userId: 1 });
 timeEntrySchema.index({ startTime: -1 });
 timeEntrySchema.index({ userId: 1, startTime: -1 });

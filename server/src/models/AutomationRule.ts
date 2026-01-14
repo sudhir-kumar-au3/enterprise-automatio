@@ -46,6 +46,7 @@ export interface AutomationActionConfig {
 
 export interface IAutomationRule {
   id: string;
+  organizationId: string; // Added for multi-tenancy
   name: string;
   description?: string;
   trigger: AutomationTrigger;
@@ -116,6 +117,11 @@ const automationActionSchema = new Schema(
 
 const automationRuleSchema = new Schema<AutomationRuleDocument>(
   {
+    organizationId: {
+      type: String,
+      required: [true, "Organization ID is required"],
+      index: true,
+    },
     name: {
       type: String,
       required: [true, "Rule name is required"],
@@ -190,8 +196,8 @@ const automationRuleSchema = new Schema<AutomationRuleDocument>(
 );
 
 // Indexes
-automationRuleSchema.index({ trigger: 1, isActive: 1 });
-automationRuleSchema.index({ createdBy: 1 });
+automationRuleSchema.index({ organizationId: 1, trigger: 1, isActive: 1 });
+automationRuleSchema.index({ organizationId: 1, createdBy: 1 });
 
 automationRuleSchema.pre("save", function (next) {
   this.updatedAt = Date.now();

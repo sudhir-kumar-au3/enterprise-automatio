@@ -93,6 +93,9 @@ export interface IAuditLog extends Document {
   category: string;
   description: string;
 
+  // Organization for multi-tenancy (SECURITY: Required for data isolation)
+  organizationId: Types.ObjectId;
+
   // Actor information
   actorId: Types.ObjectId | null;
   actorEmail: string;
@@ -149,6 +152,14 @@ const auditLogSchema = new Schema<IAuditLog>(
     description: {
       type: String,
       required: true,
+    },
+
+    // Organization for multi-tenancy (SECURITY: Required for data isolation)
+    organizationId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
     },
 
     actorId: {
@@ -222,10 +233,16 @@ const auditLogSchema = new Schema<IAuditLog>(
 );
 
 // Compound indexes for common queries
-auditLogSchema.index({ teamId: 1, timestamp: -1 });
-auditLogSchema.index({ entityType: 1, entityId: 1, timestamp: -1 });
-auditLogSchema.index({ actorId: 1, timestamp: -1 });
-auditLogSchema.index({ action: 1, timestamp: -1 });
+auditLogSchema.index({ organizationId: 1, timestamp: -1 }); // Add org index
+auditLogSchema.index({ organizationId: 1, teamId: 1, timestamp: -1 });
+auditLogSchema.index({
+  organizationId: 1,
+  entityType: 1,
+  entityId: 1,
+  timestamp: -1,
+});
+auditLogSchema.index({ organizationId: 1, actorId: 1, timestamp: -1 });
+auditLogSchema.index({ organizationId: 1, action: 1, timestamp: -1 });
 
 // Make the collection append-only (no updates allowed)
 auditLogSchema.pre("updateOne", function () {
@@ -244,6 +261,7 @@ const AuditLog = model<IAuditLog>("AuditLog", auditLogSchema);
 
 // Query filter interface
 export interface AuditLogFilter {
+  organizationId: string; // Required for multi-tenancy
   actions?: AuditAction[];
   categories?: string[];
   actorId?: string;
@@ -273,6 +291,7 @@ class AuditService {
    */
   async log(params: {
     action: AuditAction;
+    organizationId: string | Types.ObjectId; // Required for multi-tenancy
     actorId?: string | Types.ObjectId | null;
     actorEmail?: string;
     actorName?: string;
@@ -298,6 +317,7 @@ class AuditService {
       action: params.action,
       category,
       description,
+      organizationId: params.organizationId, // Required for multi-tenancy
       actorId: params.actorId || null,
       actorEmail: params.actorEmail || "system",
       actorName: params.actorName || "System",
@@ -321,6 +341,7 @@ class AuditService {
 
     logger.debug("Audit log created", {
       action: params.action,
+      organizationId: params.organizationId,
       entityType: params.entityType,
       entityId: params.entityId,
     });
@@ -391,7 +412,10 @@ class AuditService {
       sortOrder = "desc",
     } = pagination;
 
-    const query: any = { isArchived: false };
+    const query: any = {
+      isArchived: false,
+      organizationId: new Types.ObjectId(filter.organizationId), // Required for multi-tenancy
+    };
 
     if (filter.actions?.length) {
       query.action = { $in: filter.actions };
@@ -454,8 +478,14 @@ class AuditService {
   /**
    * Get entity history (all changes to a specific entity)
    */
-  async getEntityHistory(entityType: string, entityId: string, limit = 100) {
+  async getEntityHistory(
+    organizationId: string,
+    entityType: string,
+    entityId: string,
+    limit = 100
+  ) {
     return AuditLog.find({
+      organizationId: new Types.ObjectId(organizationId),
       entityType,
       entityId,
       isArchived: false,
@@ -469,10 +499,12 @@ class AuditService {
    * Get user activity history
    */
   async getUserActivity(
+    organizationId: string,
     userId: string,
     options: { startDate?: Date; endDate?: Date; limit?: number } = {}
   ) {
     const query: any = {
+      organizationId: new Types.ObjectId(organizationId),
       actorId: new Types.ObjectId(userId),
       isArchived: false,
     };
@@ -493,10 +525,12 @@ class AuditService {
    * Get activity feed for a team
    */
   async getTeamActivityFeed(
+    organizationId: string,
     teamId: string,
     options: { limit?: number; before?: Date } = {}
   ) {
     const query: any = {
+      organizationId: new Types.ObjectId(organizationId),
       teamId: new Types.ObjectId(teamId),
       isArchived: false,
       // Exclude sensitive actions from feed
@@ -524,6 +558,7 @@ class AuditService {
    * Get security events
    */
   async getSecurityEvents(
+    organizationId: string,
     teamId?: string,
     options: { startDate?: Date; endDate?: Date } = {}
   ) {
@@ -542,6 +577,7 @@ class AuditService {
     ];
 
     const query: any = {
+      organizationId: new Types.ObjectId(organizationId),
       action: { $in: securityActions },
       isArchived: false,
     };
@@ -605,6 +641,7 @@ class AuditService {
    * Get audit statistics
    */
   async getStatistics(
+    organizationId: string,
     teamId?: string,
     days = 30
   ): Promise<{
@@ -618,6 +655,7 @@ class AuditService {
     startDate.setDate(startDate.getDate() - days);
 
     const matchStage: any = {
+      organizationId: new Types.ObjectId(organizationId),
       timestamp: { $gte: startDate },
       isArchived: false,
     };

@@ -3,6 +3,7 @@ import Task from "../models/Task";
 import logger from "../utils/logger";
 
 export interface TimeEntryFilters {
+  organizationId: string; // Required for multi-tenancy
   taskId?: string;
   userId?: string;
   startDate?: number;
@@ -38,6 +39,7 @@ class TimeTrackingService {
    * Start a new time entry (timer)
    */
   async startTimer(data: {
+    organizationId: string;
     taskId: string;
     userId: string;
     description?: string;
@@ -46,9 +48,10 @@ class TimeTrackingService {
     tags?: string[];
   }): Promise<TimeEntryDocument> {
     // Stop any running timer for this user first
-    await this.stopRunningTimers(data.userId);
+    await this.stopRunningTimers(data.organizationId, data.userId);
 
     const timeEntry = new TimeEntry({
+      organizationId: data.organizationId,
       taskId: data.taskId,
       userId: data.userId,
       description: data.description || "",
@@ -70,10 +73,12 @@ class TimeTrackingService {
    */
   async stopTimer(
     timeEntryId: string,
+    organizationId: string,
     userId: string
   ): Promise<TimeEntryDocument | null> {
     const timeEntry = await TimeEntry.findOne({
       _id: timeEntryId,
+      organizationId,
       userId,
       isRunning: true,
     });
@@ -98,8 +103,15 @@ class TimeTrackingService {
   /**
    * Stop all running timers for a user
    */
-  async stopRunningTimers(userId: string): Promise<number> {
-    const runningEntries = await TimeEntry.find({ userId, isRunning: true });
+  async stopRunningTimers(
+    organizationId: string,
+    userId: string
+  ): Promise<number> {
+    const runningEntries = await TimeEntry.find({
+      organizationId,
+      userId,
+      isRunning: true,
+    });
 
     for (const entry of runningEntries) {
       entry.endTime = Date.now();
@@ -114,14 +126,18 @@ class TimeTrackingService {
   /**
    * Get the currently running timer for a user
    */
-  async getRunningTimer(userId: string): Promise<TimeEntryDocument | null> {
-    return TimeEntry.findOne({ userId, isRunning: true });
+  async getRunningTimer(
+    organizationId: string,
+    userId: string
+  ): Promise<TimeEntryDocument | null> {
+    return TimeEntry.findOne({ organizationId, userId, isRunning: true });
   }
 
   /**
    * Create a manual time entry
    */
   async createManualEntry(data: {
+    organizationId: string;
     taskId: string;
     userId: string;
     startTime: number;
@@ -148,6 +164,7 @@ class TimeTrackingService {
    */
   async updateEntry(
     timeEntryId: string,
+    organizationId: string,
     userId: string,
     updates: Partial<
       Pick<
@@ -161,7 +178,11 @@ class TimeTrackingService {
       >
     >
   ): Promise<TimeEntryDocument | null> {
-    const timeEntry = await TimeEntry.findOne({ _id: timeEntryId, userId });
+    const timeEntry = await TimeEntry.findOne({
+      _id: timeEntryId,
+      organizationId,
+      userId,
+    });
 
     if (!timeEntry) {
       return null;
@@ -184,8 +205,16 @@ class TimeTrackingService {
   /**
    * Delete a time entry
    */
-  async deleteEntry(timeEntryId: string, userId: string): Promise<boolean> {
-    const result = await TimeEntry.deleteOne({ _id: timeEntryId, userId });
+  async deleteEntry(
+    timeEntryId: string,
+    organizationId: string,
+    userId: string
+  ): Promise<boolean> {
+    const result = await TimeEntry.deleteOne({
+      _id: timeEntryId,
+      organizationId,
+      userId,
+    });
     return result.deletedCount > 0;
   }
 
@@ -198,7 +227,9 @@ class TimeTrackingService {
     page: number;
     totalPages: number;
   }> {
-    const query: Record<string, any> = {};
+    const query: Record<string, any> = {
+      organizationId: filters.organizationId,
+    };
 
     if (filters.taskId) query.taskId = filters.taskId;
     if (filters.userId) query.userId = filters.userId;
@@ -232,12 +263,14 @@ class TimeTrackingService {
    * Get time statistics for a user or task
    */
   async getTimeStats(filters: {
+    organizationId: string;
     userId?: string;
     taskId?: string;
     startDate: number;
     endDate: number;
   }): Promise<TimeStats> {
     const matchQuery: Record<string, any> = {
+      organizationId: filters.organizationId,
       startTime: { $gte: filters.startDate, $lte: filters.endDate },
       isRunning: false,
     };
@@ -283,9 +316,12 @@ class TimeTrackingService {
       }
     }
 
-    // Get task titles
+    // Get task titles - also scope by organization
     const taskIds = Object.keys(taskTimes);
-    const tasks = await Task.find({ _id: { $in: taskIds } }).select("title");
+    const tasks = await Task.find({
+      _id: { $in: taskIds },
+      organizationId: filters.organizationId,
+    }).select("title");
     const taskTitleMap = new Map(tasks.map((t) => [t._id.toString(), t.title]));
 
     const taskBreakdown = Object.entries(taskTimes)
@@ -321,9 +357,12 @@ class TimeTrackingService {
   /**
    * Get total time logged for a specific task
    */
-  async getTaskTotalTime(taskId: string): Promise<number> {
+  async getTaskTotalTime(
+    organizationId: string,
+    taskId: string
+  ): Promise<number> {
     const result = await TimeEntry.aggregate([
-      { $match: { taskId, isRunning: false } },
+      { $match: { organizationId, taskId, isRunning: false } },
       { $group: { _id: null, totalDuration: { $sum: "$duration" } } },
     ]);
 
