@@ -11,11 +11,12 @@ import config from "../config";
 import logger from "../utils/logger";
 import { JobType } from "../services/jobQueue.service";
 
-// Redis connection
+// Redis connection with TLS support for Azure Redis Cache
 const connection = new IORedis({
   host: config.redis?.host || "localhost",
   port: config.redis?.port || 6379,
   password: config.redis?.password || undefined,
+  tls: config.redis?.tls ? { rejectUnauthorized: false } : undefined,
   maxRetriesPerRequest: null,
 });
 

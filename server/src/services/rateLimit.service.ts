@@ -114,16 +114,24 @@ class RateLimitService {
   /**
    * Initialize Redis connection
    */
-  async initialize(redisUrl?: string): Promise<void> {
+  async initialize(redisConfig?: { host: string; port: number; password: string; tls?: boolean }): Promise<void> {
     try {
-      this.redis = new Redis(
-        redisUrl || process.env.REDIS_URL || "redis://localhost:6379",
-        {
-          maxRetriesPerRequest: 3,
-          enableReadyCheck: true,
-          lazyConnect: true,
-        }
-      );
+      const config = redisConfig || {
+        host: process.env.REDIS_HOST || "127.0.0.1",
+        port: parseInt(process.env.REDIS_PORT || "6379", 10),
+        password: process.env.REDIS_PASSWORD || "",
+        tls: process.env.REDIS_TLS === "true",
+      };
+
+      this.redis = new Redis({
+        host: config.host,
+        port: config.port,
+        password: config.password || undefined,
+        tls: config.tls ? { rejectUnauthorized: false } : undefined,
+        maxRetriesPerRequest: 3,
+        enableReadyCheck: true,
+        lazyConnect: true,
+      });
 
       await this.redis.connect();
       this.isRedisAvailable = true;

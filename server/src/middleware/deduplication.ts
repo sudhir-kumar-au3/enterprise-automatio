@@ -69,6 +69,7 @@ class RequestDeduplicationService {
         socket: {
           host: config.redis?.host || "localhost",
           port: config.redis?.port || 6379,
+          tls: config.redis?.tls ? true : undefined,
         },
         password: config.redis?.password || undefined,
       });

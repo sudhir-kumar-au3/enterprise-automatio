@@ -101,11 +101,12 @@ class ScalableWebSocketService {
    */
   async initialize(httpServer: HTTPServer): Promise<void> {
     try {
-      // Create Redis clients for pub/sub
+      // Create Redis clients for pub/sub with TLS support for Azure Redis Cache
       this.pubClient = createClient({
         socket: {
           host: config.redis.host,
           port: config.redis.port,
+          tls: config.redis.tls ? true : undefined,
         },
         password: config.redis.password || undefined,
       });

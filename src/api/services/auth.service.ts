@@ -101,15 +101,24 @@ export const authService = {
     return apiClient.put("/auth/change-password", data);
   },
 
-  async forgotPassword(data: ForgotPasswordData): Promise<ApiResponse<ForgotPasswordResponse>> {
-    return apiClient.post<ForgotPasswordResponse>("/auth/forgot-password", data);
+  async forgotPassword(
+    data: ForgotPasswordData
+  ): Promise<ApiResponse<ForgotPasswordResponse>> {
+    return apiClient.post<ForgotPasswordResponse>(
+      "/auth/forgot-password",
+      data
+    );
   },
 
-  async verifyResetCode(data: VerifyResetCodeData): Promise<ApiResponse<{ valid: boolean }>> {
+  async verifyResetCode(
+    data: VerifyResetCodeData
+  ): Promise<ApiResponse<{ valid: boolean }>> {
     return apiClient.post<{ valid: boolean }>("/auth/verify-reset-code", data);
   },
 
-  async resetPassword(data: ResetPasswordData): Promise<ApiResponse<ForgotPasswordResponse>> {
+  async resetPassword(
+    data: ResetPasswordData
+  ): Promise<ApiResponse<ForgotPasswordResponse>> {
     return apiClient.post<ForgotPasswordResponse>("/auth/reset-password", data);
   },
 

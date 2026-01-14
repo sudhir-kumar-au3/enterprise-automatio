@@ -18,6 +18,7 @@ interface Config {
     host: string;
     port: number;
     password: string;
+    tls: boolean;
   };
   email: {
     host: string;
@@ -68,6 +69,7 @@ const config: Config = {
     host: process.env.REDIS_HOST || "127.0.0.1",
     port: parseInt(process.env.REDIS_PORT || "6379", 10),
     password: process.env.REDIS_PASSWORD || "",
+    tls: process.env.REDIS_TLS === "true",
   },
   email: {
     host: process.env.EMAIL_HOST || "smtp.gmail.com",
