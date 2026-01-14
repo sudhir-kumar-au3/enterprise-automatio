@@ -114,7 +114,12 @@ class RateLimitService {
   /**
    * Initialize Redis connection
    */
-  async initialize(redisConfig?: { host: string; port: number; password: string; tls?: boolean }): Promise<void> {
+  async initialize(redisConfig?: {
+    host: string;
+    port: number;
+    password: string;
+    tls?: boolean;
+  }): Promise<void> {
     try {
       const config = redisConfig || {
         host: process.env.REDIS_HOST || "127.0.0.1",
