@@ -908,7 +908,11 @@ export function PrivacyPolicy({ onBack }: { onBack: () => void }) {
   );
 }
 
-export function AuthPage() {
+interface AuthPageProps {
+  onCreateOrganization?: () => void;
+}
+
+export function AuthPage({ onCreateOrganization }: AuthPageProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
@@ -1073,6 +1077,18 @@ export function AuthPage() {
         <div className="flex-1 flex items-center justify-center p-4 sm:p-6 py-6 sm:py-8">
           {renderForm()}
         </div>
+        
+        {/* Organization signup link */}
+        {onCreateOrganization && (
+          <div className="px-4 sm:px-6 pb-2 text-center">
+            <button
+              onClick={onCreateOrganization}
+              className="text-sm text-primary hover:text-primary/80 font-medium transition-colors"
+            >
+              Create a new organization →
+            </button>
+          </div>
+        )}
         
         {/* Bottom links */}
         <div className="p-4 sm:p-6 text-center text-xs sm:text-sm text-muted-foreground">

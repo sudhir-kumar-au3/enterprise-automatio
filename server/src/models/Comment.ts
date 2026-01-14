@@ -24,6 +24,11 @@ const reactionSchema = new Schema<IReaction>(
 
 const commentSchema = new Schema<CommentDocument>(
   {
+    organizationId: {
+      type: String,
+      required: [true, "Organization ID is required"],
+      index: true,
+    },
     authorId: {
       type: String,
       required: [true, "Author ID is required"],
@@ -81,10 +86,10 @@ const commentSchema = new Schema<CommentDocument>(
 );
 
 // Indexes for faster queries
-commentSchema.index({ authorId: 1 });
-commentSchema.index({ contextType: 1, contextId: 1 });
-commentSchema.index({ timestamp: -1 });
-commentSchema.index({ isResolved: 1 });
+commentSchema.index({ organizationId: 1, authorId: 1 });
+commentSchema.index({ organizationId: 1, contextType: 1, contextId: 1 });
+commentSchema.index({ organizationId: 1, timestamp: -1 });
+commentSchema.index({ organizationId: 1, isResolved: 1 });
 
 // Text index for search
 commentSchema.index({ content: "text" });

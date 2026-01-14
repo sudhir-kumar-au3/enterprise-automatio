@@ -29,7 +29,7 @@ const transformLeanDocs = <T extends { _id?: any; id?: string }>(
   return docs.map(transformLeanDoc);
 };
 
-// Get all tasks with filtering, pagination, and caching
+// Get all tasks with filtering, pagination, and caching - UPDATED for multi-tenancy
 export const getTasks = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const {
@@ -47,12 +47,18 @@ export const getTasks = asyncHandler(
       search,
     } = req.query as TaskFilterQuery;
 
-    // Create cache key from filters
-    const cacheKey = `tasks:${JSON.stringify(req.query)}`;
+    // Get organizationId from authenticated user
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
 
-    // Try to get from cache first
+    // Create cache key from filters including organizationId
+    const cacheKey = `tasks:${organizationId}:${JSON.stringify(req.query)}`;
+
     const cached = await cacheService.getTaskList(cacheKey, async () => {
-      const query: any = {};
+      // Always scope by organizationId
+      const query: any = { organizationId };
 
       // Apply filters
       if (status) query.status = status;
@@ -111,13 +117,17 @@ export const getTasks = asyncHandler(
   }
 );
 
-// Get single task with caching
+// Get single task with caching - UPDATED for multi-tenancy
 export const getTask = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const taskId = req.params.id;
+    const organizationId = req.user?.organizationId;
 
     const task = await cacheService.getTask(taskId, async () => {
-      const found = await Task.findById(taskId).lean();
+      const found = await Task.findOne({
+        _id: taskId,
+        organizationId, // Ensure task belongs to user's organization
+      }).lean();
       if (!found) {
         throw new AppError("Task not found", 404);
       }
@@ -131,13 +141,15 @@ export const getTask = asyncHandler(
   }
 );
 
-// Get current user's tasks
+// Get current user's tasks - UPDATED for multi-tenancy
 export const getMyTasks = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const userId = req.user?.userId;
+    const organizationId = req.user?.organizationId;
     const { status, priority, page = 1, limit = 50 } = req.query;
 
-    const query: any = { assigneeId: userId };
+    // Scope by organization and assignee
+    const query: any = { organizationId, assigneeId: userId };
     if (status) query.status = status;
     if (priority) query.priority = priority;
 
@@ -165,7 +177,7 @@ export const getMyTasks = asyncHandler(
   }
 );
 
-// Create task with WebSocket broadcast and notifications
+// Create task - UPDATED for multi-tenancy
 export const createTask = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
@@ -176,8 +188,14 @@ export const createTask = asyncHandler(
       } as ApiResponse);
     }
 
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
     const taskData = {
       ...req.body,
+      organizationId, // Add organizationId to task
       creatorId: req.user?.userId,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -186,8 +204,9 @@ export const createTask = asyncHandler(
     const task = await Task.create(taskData);
     const taskObj = task.toJSON();
 
-    // Create activity log
+    // Create activity log with organizationId
     await Activity.create({
+      organizationId, // Add organizationId for multi-tenancy
       userId: req.user?.userId,
       type: "task-created",
       timestamp: Date.now(),
@@ -231,7 +250,9 @@ export const createTask = asyncHandler(
       }
     }
 
-    logger.info(`Task created: ${task.title} by ${req.user?.email}`);
+    logger.info(
+      `Task created: ${task.title} by ${req.user?.email} in org: ${organizationId}`
+    );
 
     res.status(201).json({
       success: true,
@@ -241,7 +262,7 @@ export const createTask = asyncHandler(
   }
 );
 
-// Update task with optimistic locking and broadcasting
+// Update task - UPDATED for multi-tenancy
 export const updateTask = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
@@ -253,7 +274,10 @@ export const updateTask = asyncHandler(
     }
 
     const taskId = req.params.id;
-    const task = await Task.findById(taskId);
+    const organizationId = req.user?.organizationId;
+
+    // Find task within organization scope
+    const task = await Task.findOne({ _id: taskId, organizationId });
     if (!task) {
       throw new AppError("Task not found", 404);
     }
@@ -276,6 +300,7 @@ export const updateTask = asyncHandler(
     // Create activity for status change
     if (req.body.status && req.body.status !== oldStatus) {
       await Activity.create({
+        organizationId, // Add organizationId for multi-tenancy
         userId: req.user?.userId,
         type: req.body.status === "done" ? "task-completed" : "status-changed",
         timestamp: Date.now(),
@@ -293,6 +318,7 @@ export const updateTask = asyncHandler(
     // Create activity and notify for assignment change
     if (req.body.assigneeId && req.body.assigneeId !== oldAssignee) {
       await Activity.create({
+        organizationId, // Add organizationId for multi-tenancy
         userId: req.user?.userId,
         type: "task-assigned",
         timestamp: Date.now(),
@@ -337,12 +363,14 @@ export const updateTask = asyncHandler(
   }
 );
 
-// Delete task
+// Delete task - UPDATED for multi-tenancy
 export const deleteTask = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const taskId = req.params.id;
-    const task = await Task.findById(taskId);
+    const organizationId = req.user?.organizationId;
 
+    // Find task within organization scope
+    const task = await Task.findOne({ _id: taskId, organizationId });
     if (!task) {
       throw new AppError("Task not found", 404);
     }
@@ -367,17 +395,19 @@ export const deleteTask = asyncHandler(
   }
 );
 
-// Update task status with WebSocket broadcast
+// Update task status with WebSocket broadcast - UPDATED for multi-tenancy
 export const updateTaskStatus = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const { status } = req.body;
     const taskId = req.params.id;
+    const organizationId = req.user?.organizationId;
 
     if (!["todo", "in-progress", "review", "done"].includes(status)) {
       throw new AppError("Invalid status", 400);
     }
 
-    const task = await Task.findById(taskId);
+    // Scope by organization
+    const task = await Task.findOne({ _id: taskId, organizationId });
     if (!task) {
       throw new AppError("Task not found", 404);
     }
@@ -390,6 +420,7 @@ export const updateTaskStatus = asyncHandler(
     const taskObj = task.toJSON();
 
     await Activity.create({
+      organizationId, // Add organizationId for multi-tenancy
       userId: req.user?.userId,
       type: status === "done" ? "task-completed" : "status-changed",
       timestamp: Date.now(),
@@ -418,23 +449,25 @@ export const updateTaskStatus = asyncHandler(
   }
 );
 
-// Update task dependencies
+// Update task dependencies - UPDATED for multi-tenancy
 export const updateTaskDependencies = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const { dependencies } = req.body;
     const taskId = req.params.id;
+    const organizationId = req.user?.organizationId;
 
     if (!Array.isArray(dependencies)) {
       throw new AppError("Dependencies must be an array", 400);
     }
 
-    // Validate dependencies exist and check for circular dependencies
+    // Validate dependencies exist within organization and check for circular dependencies
     const validDeps: string[] = [];
     for (const depId of dependencies) {
       if (depId === taskId) {
         throw new AppError("Task cannot depend on itself", 400);
       }
-      const depTask = await Task.findById(depId);
+      // Scope dependency check by organization
+      const depTask = await Task.findOne({ _id: depId, organizationId });
       if (!depTask) {
         throw new AppError(`Dependency task ${depId} not found`, 404);
       }
@@ -448,8 +481,8 @@ export const updateTaskDependencies = asyncHandler(
       validDeps.push(depId);
     }
 
-    const task = await Task.findByIdAndUpdate(
-      taskId,
+    const task = await Task.findOneAndUpdate(
+      { _id: taskId, organizationId },
       { dependencies: validDeps, updatedAt: Date.now() },
       { new: true }
     );
@@ -469,10 +502,15 @@ export const updateTaskDependencies = asyncHandler(
   }
 );
 
-// Bulk update tasks with transaction support
+// Bulk update tasks with transaction support - UPDATED for multi-tenancy
 export const bulkUpdateTasks = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const { updates } = req.body;
+    const organizationId = req.user?.organizationId;
+
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
 
     if (!Array.isArray(updates) || updates.length === 0) {
       throw new AppError("Updates array is required", 400);
@@ -494,8 +532,9 @@ export const bulkUpdateTasks = asyncHandler(
         const { id, data } = update;
         if (!id || !data) continue;
 
-        const updatedTask = await Task.findByIdAndUpdate(
-          id,
+        // Scope by organization
+        const updatedTask = await Task.findOneAndUpdate(
+          { _id: id, organizationId },
           { ...data, updatedAt: Date.now() },
           { new: true, session }
         );

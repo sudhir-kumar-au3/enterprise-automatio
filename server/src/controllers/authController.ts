@@ -8,10 +8,11 @@ import { AuthenticatedRequest, ApiResponse } from "../types";
 import { asyncHandler, AppError } from "../middleware";
 import logger from "../utils/logger";
 
-// Generate JWT tokens
+// Generate JWT tokens - updated to include organizationId
 const generateTokens = (user: any) => {
   const payload = {
     userId: user._id.toString(),
+    organizationId: user.organizationId || null, // Include organizationId for multi-tenancy
     email: user.email,
     role: user.role,
     accessLevel: user.accessLevel,
@@ -28,7 +29,7 @@ const generateTokens = (user: any) => {
   return { accessToken, refreshToken };
 };
 
-// Register new user
+// Register new user - updated to require organizationId
 export const register = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
@@ -39,16 +40,29 @@ export const register = asyncHandler(
       } as ApiResponse);
     }
 
-    const { name, email, password, role, accessLevel } = req.body;
+    const { name, email, password, role, accessLevel, organizationId } =
+      req.body;
 
-    // Check if user exists
-    const existingUser = await TeamMember.findOne({ email });
-    if (existingUser) {
-      throw new AppError("Email already registered", 409);
+    // Organization ID is required for multi-tenant registration
+    // Unless registering through org signup flow (handled by organizationController)
+    if (!organizationId && !req.organization?.id) {
+      throw new AppError("Organization context required for registration", 400);
     }
 
-    // Create user
+    const orgId = organizationId || req.organization?.id;
+
+    // Check if user exists within the organization
+    const existingUser = await TeamMember.findOne({
+      email,
+      organizationId: orgId,
+    });
+    if (existingUser) {
+      throw new AppError("Email already registered in this organization", 409);
+    }
+
+    // Create user with organizationId
     const user = await TeamMember.create({
+      organizationId: orgId,
       name,
       email,
       password,
@@ -65,7 +79,7 @@ export const register = asyncHandler(
       lastSeen: new Date(),
     });
 
-    logger.info(`New user registered: ${email}`);
+    logger.info(`New user registered: ${email} in org: ${orgId}`);
 
     res.status(201).json({
       success: true,
@@ -78,7 +92,7 @@ export const register = asyncHandler(
   }
 );
 
-// Login user
+// Login user - updated to scope by organization
 export const login = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
@@ -89,10 +103,19 @@ export const login = asyncHandler(
       } as ApiResponse);
     }
 
-    const { email, password } = req.body;
+    const { email, password, organizationId } = req.body;
+
+    // Build query - optionally scope by organization
+    const query: any = { email };
+
+    // If organization context is provided (from subdomain, header, or body)
+    const orgId = organizationId || req.organization?.id;
+    if (orgId) {
+      query.organizationId = orgId;
+    }
 
     // Find user with password
-    const user = await TeamMember.findOne({ email }).select("+password");
+    const user = await TeamMember.findOne(query).select("+password");
     if (!user) {
       throw new AppError("Invalid credentials", 401);
     }
@@ -111,7 +134,7 @@ export const login = asyncHandler(
       lastSeen: new Date(),
     });
 
-    logger.info(`User logged in: ${email}`);
+    logger.info(`User logged in: ${email} (org: ${user.organizationId})`);
 
     res.json({
       success: true,

@@ -1,3 +1,8 @@
+export {
+  default as Organization,
+  OrganizationDocument,
+  PLAN_LIMITS,
+} from "./Organization";
 export { default as TeamMember, TeamMemberDocument } from "./TeamMember";
 export { default as Task, TaskDocument } from "./Task";
 export { default as Comment, CommentDocument } from "./Comment";

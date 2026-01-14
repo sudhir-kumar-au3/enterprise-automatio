@@ -5,6 +5,11 @@ export interface ActivityDocument extends Omit<IActivity, "id">, Document {}
 
 const activitySchema = new Schema<ActivityDocument>(
   {
+    organizationId: {
+      type: String,
+      required: [true, "Organization ID is required"],
+      index: true,
+    },
     userId: {
       type: String,
       required: [true, "User ID is required"],
@@ -60,10 +65,10 @@ const activitySchema = new Schema<ActivityDocument>(
 );
 
 // Indexes for faster queries
-activitySchema.index({ userId: 1 });
-activitySchema.index({ type: 1 });
-activitySchema.index({ timestamp: -1 });
-activitySchema.index({ contextType: 1, contextId: 1 });
+activitySchema.index({ organizationId: 1, userId: 1 });
+activitySchema.index({ organizationId: 1, type: 1 });
+activitySchema.index({ organizationId: 1, timestamp: -1 });
+activitySchema.index({ organizationId: 1, contextType: 1, contextId: 1 });
 
 // TTL index to automatically delete old activities after 90 days
 activitySchema.index(

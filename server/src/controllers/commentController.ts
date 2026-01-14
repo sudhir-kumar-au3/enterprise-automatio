@@ -32,7 +32,7 @@ const transformLeanDocs = <T extends { _id?: any; id?: string }>(
   return docs.map(transformLeanDoc);
 };
 
-// Get all comments with filtering and caching
+// Get all comments with filtering and caching - UPDATED for multi-tenancy
 export const getComments = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const {
@@ -46,13 +46,20 @@ export const getComments = asyncHandler(
       isResolved,
     } = req.query as CommentFilterQuery;
 
-    // Create cache key from filters
-    const cacheKey = `comments:${JSON.stringify(req.query)}`;
+    // Get organizationId from authenticated user
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
+    // Create cache key from filters including organizationId
+    const cacheKey = `comments:${organizationId}:${JSON.stringify(req.query)}`;
 
     const result = await cacheService.getOrSet(
       cacheKey,
       async () => {
-        const query: any = {};
+        // Always scope by organizationId
+        const query: any = { organizationId };
 
         if (contextType) query.contextType = contextType;
         if (contextId) query.contextId = contextId;
@@ -89,10 +96,18 @@ export const getComments = asyncHandler(
   }
 );
 
-// Get single comment
+// Get single comment - UPDATED for multi-tenancy
 export const getComment = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const comment = await Comment.findById(req.params.id).lean();
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
+    const comment = await Comment.findOne({
+      _id: req.params.id,
+      organizationId,
+    }).lean();
 
     if (!comment) {
       throw new AppError("Comment not found", 404);
@@ -105,7 +120,7 @@ export const getComment = asyncHandler(
   }
 );
 
-// Create comment with WebSocket broadcast and notifications
+// Create comment with WebSocket broadcast and notifications - UPDATED for multi-tenancy
 export const createComment = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
@@ -116,8 +131,14 @@ export const createComment = asyncHandler(
       } as ApiResponse);
     }
 
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
     const commentData = {
       ...req.body,
+      organizationId, // Add organizationId to comment
       authorId: req.user?.userId,
       timestamp: Date.now(),
     };
@@ -125,8 +146,9 @@ export const createComment = asyncHandler(
     const comment = await Comment.create(commentData);
     const commentObj = comment.toJSON();
 
-    // Create activity log
+    // Create activity log with organizationId
     await Activity.create({
+      organizationId,
       userId: req.user?.userId,
       type: "comment",
       timestamp: Date.now(),
@@ -146,8 +168,9 @@ export const createComment = asyncHandler(
     if (comment.mentions && comment.mentions.length > 0) {
       await Promise.all(
         comment.mentions.map(async (mentionedUserId: string) => {
-          // Create activity
+          // Create activity with organizationId
           await Activity.create({
+            organizationId,
             userId: mentionedUserId,
             type: "mention",
             timestamp: Date.now(),
@@ -188,7 +211,9 @@ export const createComment = asyncHandler(
       );
     }
 
-    logger.info(`Comment created by ${req.user?.email}`);
+    logger.info(
+      `Comment created by ${req.user?.email} in org: ${organizationId}`
+    );
 
     res.status(201).json({
       success: true,
@@ -198,10 +223,18 @@ export const createComment = asyncHandler(
   }
 );
 
-// Update comment
+// Update comment - UPDATED for multi-tenancy
 export const updateComment = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const comment = await Comment.findById(req.params.id);
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
+    const comment = await Comment.findOne({
+      _id: req.params.id,
+      organizationId,
+    });
 
     if (!comment) {
       throw new AppError("Comment not found", 404);
@@ -237,10 +270,18 @@ export const updateComment = asyncHandler(
   }
 );
 
-// Delete comment
+// Delete comment - UPDATED for multi-tenancy
 export const deleteComment = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const comment = await Comment.findById(req.params.id);
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
+    const comment = await Comment.findOne({
+      _id: req.params.id,
+      organizationId,
+    });
 
     if (!comment) {
       throw new AppError("Comment not found", 404);
@@ -270,10 +311,18 @@ export const deleteComment = asyncHandler(
   }
 );
 
-// Toggle resolve status with broadcast
+// Toggle resolve status with broadcast - UPDATED for multi-tenancy
 export const toggleResolve = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const comment = await Comment.findById(req.params.id);
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
+    const comment = await Comment.findOne({
+      _id: req.params.id,
+      organizationId,
+    });
 
     if (!comment) {
       throw new AppError("Comment not found", 404);
@@ -300,7 +349,7 @@ export const toggleResolve = asyncHandler(
   }
 );
 
-// Add reaction with real-time update
+// Add reaction with real-time update - UPDATED for multi-tenancy
 export const addReaction = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const { emoji } = req.body;
@@ -309,7 +358,15 @@ export const addReaction = asyncHandler(
       throw new AppError("Emoji is required", 400);
     }
 
-    const comment = await Comment.findById(req.params.id);
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
+    const comment = await Comment.findOne({
+      _id: req.params.id,
+      organizationId,
+    });
 
     if (!comment) {
       throw new AppError("Comment not found", 404);
@@ -340,10 +397,18 @@ export const addReaction = asyncHandler(
   }
 );
 
-// Remove reaction
+// Remove reaction - UPDATED for multi-tenancy
 export const removeReaction = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const comment = await Comment.findById(req.params.id);
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
+    const comment = await Comment.findOne({
+      _id: req.params.id,
+      organizationId,
+    });
 
     if (!comment) {
       throw new AppError("Comment not found", 404);
@@ -370,7 +435,7 @@ export const removeReaction = asyncHandler(
   }
 );
 
-// Add reply with notification
+// Add reply with notification - UPDATED for multi-tenancy
 export const addReply = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
@@ -381,15 +446,24 @@ export const addReply = asyncHandler(
       } as ApiResponse);
     }
 
-    const parentComment = await Comment.findById(req.params.id);
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
+    const parentComment = await Comment.findOne({
+      _id: req.params.id,
+      organizationId,
+    });
 
     if (!parentComment) {
       throw new AppError("Parent comment not found", 404);
     }
 
-    // Create reply as a new comment
+    // Create reply as a new comment with organizationId
     const reply = await Comment.create({
       ...req.body,
+      organizationId,
       authorId: req.user?.userId,
       timestamp: Date.now(),
       contextType: parentComment.contextType,

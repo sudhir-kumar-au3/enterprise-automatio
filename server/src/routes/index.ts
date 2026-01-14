@@ -4,6 +4,7 @@ import taskRoutes from "./taskRoutes";
 import commentRoutes from "./commentRoutes";
 import teamRoutes from "./teamRoutes";
 import dataRoutes from "./dataRoutes";
+import organizationRoutes from "./organization";
 import {
   livenessProbe,
   readinessProbe,
@@ -16,6 +17,7 @@ const router = Router();
 
 // Mount routes
 router.use("/auth", authRoutes);
+router.use("/organizations", organizationRoutes);
 router.use("/tasks", taskRoutes);
 router.use("/comments", commentRoutes);
 router.use("/team", teamRoutes);

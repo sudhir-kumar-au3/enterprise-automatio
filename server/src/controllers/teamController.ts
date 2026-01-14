@@ -9,7 +9,7 @@ import {
 import { asyncHandler, AppError } from "../middleware";
 import logger from "../utils/logger";
 
-// Get all team members
+// Get all team members - UPDATED for multi-tenancy
 export const getTeamMembers = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const {
@@ -23,7 +23,14 @@ export const getTeamMembers = asyncHandler(
       search,
     } = req.query as TeamMemberFilterQuery;
 
-    const query: any = {};
+    // Get organizationId from authenticated user
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
+    // Always scope by organizationId
+    const query: any = { organizationId };
 
     if (role) query.role = role;
     if (accessLevel) query.accessLevel = accessLevel;
@@ -58,10 +65,16 @@ export const getTeamMembers = asyncHandler(
   }
 );
 
-// Get single team member
+// Get single team member - UPDATED for multi-tenancy
 export const getTeamMember = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const member = await TeamMember.findById(req.params.id);
+    const organizationId = req.user?.organizationId;
+
+    // Find member within organization scope
+    const member = await TeamMember.findOne({
+      _id: req.params.id,
+      organizationId,
+    });
 
     if (!member) {
       throw new AppError("Team member not found", 404);
@@ -74,7 +87,7 @@ export const getTeamMember = asyncHandler(
   }
 );
 
-// Create team member (admin only)
+// Create team member (admin only) - UPDATED for multi-tenancy
 export const createTeamMember = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
@@ -85,15 +98,24 @@ export const createTeamMember = asyncHandler(
       } as ApiResponse);
     }
 
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
     const { name, email, password, role, accessLevel } = req.body;
 
-    // Check if email already exists
-    const existingMember = await TeamMember.findOne({ email });
+    // Check if email already exists within the organization
+    const existingMember = await TeamMember.findOne({
+      email,
+      organizationId,
+    });
     if (existingMember) {
-      throw new AppError("Email already registered", 409);
+      throw new AppError("Email already registered in this organization", 409);
     }
 
     const member = await TeamMember.create({
+      organizationId, // Add organizationId
       name,
       email,
       password,
@@ -102,7 +124,9 @@ export const createTeamMember = asyncHandler(
       avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
     });
 
-    logger.info(`Team member created: ${email} by ${req.user?.email}`);
+    logger.info(
+      `Team member created: ${email} by ${req.user?.email} in org: ${organizationId}`
+    );
 
     res.status(201).json({
       success: true,
@@ -112,7 +136,7 @@ export const createTeamMember = asyncHandler(
   }
 );
 
-// Update team member
+// Update team member - UPDATED for multi-tenancy
 export const updateTeamMember = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
@@ -123,7 +147,13 @@ export const updateTeamMember = asyncHandler(
       } as ApiResponse);
     }
 
-    const member = await TeamMember.findById(req.params.id);
+    const organizationId = req.user?.organizationId;
+
+    // Find member within organization scope
+    const member = await TeamMember.findOne({
+      _id: req.params.id,
+      organizationId,
+    });
     if (!member) {
       throw new AppError("Team member not found", 404);
     }
@@ -138,7 +168,8 @@ export const updateTeamMember = asyncHandler(
     }
 
     const updateData = { ...req.body };
-    delete updateData.password; // Don't allow password update through this endpoint
+    delete updateData.password;
+    delete updateData.organizationId; // Prevent changing organization
 
     const updatedMember = await TeamMember.findByIdAndUpdate(
       req.params.id,
@@ -156,10 +187,16 @@ export const updateTeamMember = asyncHandler(
   }
 );
 
-// Delete team member
+// Delete team member - UPDATED for multi-tenancy
 export const deleteTeamMember = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const member = await TeamMember.findById(req.params.id);
+    const organizationId = req.user?.organizationId;
+
+    // Find member within organization scope
+    const member = await TeamMember.findOne({
+      _id: req.params.id,
+      organizationId,
+    });
 
     if (!member) {
       throw new AppError("Team member not found", 404);
@@ -186,17 +223,18 @@ export const deleteTeamMember = asyncHandler(
   }
 );
 
-// Update online status
+// Update online status - UPDATED for multi-tenancy
 export const updateOnlineStatus = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const { isOnline } = req.body;
+    const organizationId = req.user?.organizationId;
 
     if (typeof isOnline !== "boolean") {
       throw new AppError("isOnline must be a boolean", 400);
     }
 
-    const member = await TeamMember.findByIdAndUpdate(
-      req.params.id,
+    const member = await TeamMember.findOneAndUpdate(
+      { _id: req.params.id, organizationId },
       { isOnline, lastSeen: new Date() },
       { new: true }
     );
@@ -213,17 +251,18 @@ export const updateOnlineStatus = asyncHandler(
   }
 );
 
-// Update member role
+// Update member role - UPDATED for multi-tenancy
 export const updateMemberRole = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const { role } = req.body;
+    const organizationId = req.user?.organizationId;
 
     if (!["architect", "developer", "devops", "product"].includes(role)) {
       throw new AppError("Invalid role", 400);
     }
 
-    const member = await TeamMember.findByIdAndUpdate(
-      req.params.id,
+    const member = await TeamMember.findOneAndUpdate(
+      { _id: req.params.id, organizationId },
       { role },
       { new: true }
     );
@@ -244,16 +283,20 @@ export const updateMemberRole = asyncHandler(
   }
 );
 
-// Update member access level
+// Update member access level - UPDATED for multi-tenancy
 export const updateAccessLevel = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const { accessLevel } = req.body;
+    const organizationId = req.user?.organizationId;
 
     if (!["owner", "admin", "member", "viewer"].includes(accessLevel)) {
       throw new AppError("Invalid access level", 400);
     }
 
-    const member = await TeamMember.findById(req.params.id);
+    const member = await TeamMember.findOne({
+      _id: req.params.id,
+      organizationId,
+    });
     if (!member) {
       throw new AppError("Team member not found", 404);
     }
@@ -283,17 +326,18 @@ export const updateAccessLevel = asyncHandler(
   }
 );
 
-// Update custom permissions
+// Update custom permissions - UPDATED for multi-tenancy
 export const updateCustomPermissions = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const { customPermissions } = req.body;
+    const organizationId = req.user?.organizationId;
 
     if (!Array.isArray(customPermissions)) {
       throw new AppError("customPermissions must be an array", 400);
     }
 
-    const member = await TeamMember.findByIdAndUpdate(
-      req.params.id,
+    const member = await TeamMember.findOneAndUpdate(
+      { _id: req.params.id, organizationId },
       { customPermissions },
       { new: true, runValidators: true }
     );

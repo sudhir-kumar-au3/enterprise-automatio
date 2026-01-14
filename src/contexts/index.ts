@@ -17,3 +17,14 @@ export type {
   ProductivitySettings,
   PrivacySettings,
 } from "./SettingsContext";
+export { OrganizationProvider, useOrganization } from "./OrganizationContext";
+export type {
+  Organization,
+  OrganizationBranding,
+  OrganizationLegal,
+  OrganizationSupport,
+  OrganizationSubscription,
+  OrganizationLimits,
+  OrganizationSettings,
+  UsageStats,
+} from "./OrganizationContext";

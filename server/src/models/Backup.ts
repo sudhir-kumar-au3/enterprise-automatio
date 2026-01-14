@@ -5,6 +5,11 @@ export interface BackupDocument extends Omit<IBackup, "id">, Document {}
 
 const backupSchema = new Schema<BackupDocument>(
   {
+    organizationId: {
+      type: String,
+      required: [true, "Organization ID is required"],
+      index: true,
+    },
     timestamp: {
       type: Number,
       default: () => Date.now(),
@@ -39,6 +44,9 @@ const backupSchema = new Schema<BackupDocument>(
 );
 
 // Indexes
+backupSchema.index({ organizationId: 1, userId: 1 });
+backupSchema.index({ organizationId: 1, timestamp: -1 });
+backupSchema.index({ organizationId: 1, type: 1 });
 backupSchema.index({ userId: 1 });
 backupSchema.index({ timestamp: -1 });
 backupSchema.index({ type: 1 });

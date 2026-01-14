@@ -42,15 +42,93 @@ export type ActivityType =
   | "task-completed"
   | "status-changed";
 
+// Subscription plans
+export type SubscriptionPlan =
+  | "free"
+  | "starter"
+  | "professional"
+  | "enterprise";
+
+// Subscription status
+export type SubscriptionStatus =
+  | "active"
+  | "trialing"
+  | "past_due"
+  | "canceled"
+  | "suspended";
+
 // Reaction interface
 export interface IReaction {
   emoji: string;
   userId: string;
 }
 
+// Organization interface
+export interface IOrganization {
+  id: string;
+  name: string;
+  slug: string;
+  domain?: string;
+  branding: {
+    logo?: string;
+    logoLight?: string;
+    favicon?: string;
+    primaryColor: string;
+    accentColor: string;
+    companyName: string;
+    tagline?: string;
+  };
+  legal: {
+    termsOfServiceUrl?: string;
+    privacyPolicyUrl?: string;
+    customTermsOfService?: string;
+    customPrivacyPolicy?: string;
+    cookiePolicyUrl?: string;
+  };
+  support: {
+    email?: string;
+    phone?: string;
+    websiteUrl?: string;
+    documentationUrl?: string;
+    chatEnabled?: boolean;
+  };
+  subscription: {
+    plan: SubscriptionPlan;
+    status: SubscriptionStatus;
+    trialEndsAt?: Date;
+    currentPeriodStart?: Date;
+    currentPeriodEnd?: Date;
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+  };
+  limits: {
+    maxUsers: number;
+    maxTasks: number;
+    maxStorage: number;
+    maxApiCalls: number;
+    features: string[];
+  };
+  settings: {
+    defaultTimezone: string;
+    defaultLanguage: string;
+    dateFormat: string;
+    allowPublicSignup: boolean;
+    requireEmailVerification: boolean;
+    allowedEmailDomains?: string[];
+    ssoEnabled: boolean;
+    ssoProvider?: string;
+    ssoConfig?: Record<string, any>;
+  };
+  ownerId: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Team member interface
 export interface ITeamMember {
   id: string;
+  organizationId: string; // Added for multi-tenancy
   name: string;
   email: string;
   password?: string;
@@ -67,6 +145,7 @@ export interface ITeamMember {
 // Comment interface
 export interface IComment {
   id: string;
+  organizationId: string; // Added for multi-tenancy
   authorId: string;
   content: string;
   timestamp: number;
@@ -83,6 +162,7 @@ export interface IComment {
 // Task interface
 export interface ITask {
   id: string;
+  organizationId: string; // Added for multi-tenancy
   title: string;
   description: string;
   status: TaskStatus;
@@ -102,6 +182,7 @@ export interface ITask {
 // Activity interface
 export interface IActivity {
   id: string;
+  organizationId: string; // Added for multi-tenancy
   userId: string;
   type: ActivityType;
   timestamp: number;
@@ -114,6 +195,7 @@ export interface IActivity {
 // Backup interface
 export interface IBackup {
   id: string;
+  organizationId: string; // Added for multi-tenancy
   timestamp: number;
   data: string;
   userId: string;
@@ -184,6 +266,7 @@ export interface TeamMemberFilterQuery extends PaginationQuery {
 // JWT Payload
 export interface JwtPayload {
   userId: string;
+  organizationId: string; // Added for multi-tenancy
   email: string;
   role: TeamRole;
   accessLevel: AccessLevel;
@@ -196,6 +279,17 @@ import { Request } from "express";
 
 export interface AuthenticatedRequest extends Request {
   user?: JwtPayload;
+  organization?: {
+    id: string;
+    slug: string;
+    name: string;
+    branding: IOrganization["branding"];
+    legal: IOrganization["legal"];
+    support: IOrganization["support"];
+    subscription: IOrganization["subscription"];
+    limits: IOrganization["limits"];
+    settings: IOrganization["settings"];
+  };
 }
 
 // Workload statistics

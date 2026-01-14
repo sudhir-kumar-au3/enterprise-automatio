@@ -5,6 +5,13 @@ export interface TaskDocument extends Omit<ITask, "id">, Document {}
 
 const taskSchema = new Schema<TaskDocument>(
   {
+    // Organization reference for multi-tenancy
+    organizationId: {
+      type: String,
+      ref: "Organization",
+      required: [true, "Organization ID is required"],
+      index: true,
+    },
     title: {
       type: String,
       required: [true, "Task title is required"],
@@ -103,6 +110,11 @@ taskSchema.index({ contextType: 1, contextId: 1 });
 
 // Text index for search
 taskSchema.index({ title: "text", description: "text" });
+
+// Compound indexes for multi-tenant queries
+taskSchema.index({ organizationId: 1, status: 1 });
+taskSchema.index({ organizationId: 1, assigneeId: 1 });
+taskSchema.index({ organizationId: 1, createdAt: -1 });
 
 // Update updatedAt before saving
 taskSchema.pre("save", function (next) {

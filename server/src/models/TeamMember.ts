@@ -12,6 +12,13 @@ export interface TeamMemberDocument extends Omit<ITeamMember, "id">, Document {
 
 const teamMemberSchema = new Schema<TeamMemberDocument>(
   {
+    // Organization reference for multi-tenancy
+    organizationId: {
+      type: String,
+      ref: "Organization",
+      required: [true, "Organization ID is required"],
+      index: true,
+    },
     name: {
       type: String,
       required: [true, "Name is required"],
@@ -100,6 +107,9 @@ const teamMemberSchema = new Schema<TeamMemberDocument>(
     },
   }
 );
+
+// Update unique index to be scoped to organization
+teamMemberSchema.index({ organizationId: 1, email: 1 }, { unique: true });
 
 // Index for faster queries
 teamMemberSchema.index({ email: 1 });

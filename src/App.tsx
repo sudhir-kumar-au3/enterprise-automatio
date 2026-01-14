@@ -1,9 +1,9 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
-import { Activity, LogOut, User, Settings, Bell, Keyboard, Sparkles } from 'lucide-react';
+import { Activity, LogOut, User, Settings, Bell, Keyboard, Sparkles, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { AuthProvider, DataProvider, useAuth, PowerFeaturesProvider, useCommandPalette, useShortcuts, useNotifications, useNavigation, SettingsProvider } from '@/contexts';
-import { AuthPage, TermsOfService, PrivacyPolicy } from '@/components/auth';
+import { AuthProvider, DataProvider, useAuth, PowerFeaturesProvider, useCommandPalette, useShortcuts, useNotifications, useNavigation, SettingsProvider, OrganizationProvider, useOrganization } from '@/contexts';
+import { AuthPage, TermsOfService, PrivacyPolicy, OrganizationSignup } from '@/components/auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
@@ -56,9 +56,10 @@ function ContentSkeleton() {
   );
 }
 
-// Modern header component
+// Modern header component - updated to show organization branding
 function AppHeader() {
   const { user, logout } = useAuth();
+  const { organization } = useOrganization();
   const { open: openCommandPalette, registerCommand } = useCommandPalette();
   const { openShortcutsModal, registerShortcut } = useShortcuts();
   const { addNotification } = useNotifications();
@@ -70,6 +71,10 @@ function AppHeader() {
     .join('')
     .toUpperCase()
     .slice(0, 2) || 'U';
+
+  // Use organization branding if available
+  const brandName = organization?.branding?.companyName || 'Pulsework.io';
+  const brandTagline = organization?.branding?.tagline || 'Your team\'s rhythm';
 
   // Register commands
   useEffect(() => {
@@ -232,14 +237,22 @@ function AppHeader() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4 md:px-6">
-        {/* Logo & Brand */}
+        {/* Logo & Brand - Updated to use organization branding */}
         <div className="flex items-center gap-2.5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Activity className="h-5 w-5" />
-          </div>
+          {organization?.branding?.logo ? (
+            <img 
+              src={organization.branding.logo} 
+              alt={brandName} 
+              className="h-10 w-10 rounded-xl object-contain"
+            />
+          ) : (
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <Activity className="h-5 w-5" />
+            </div>
+          )}
           <div className="hidden sm:flex flex-col justify-center h-10">
-            <span className="text-lg font-bold leading-tight">Pulsework.io</span>
-            <span className="text-[10px] text-muted-foreground leading-tight">Your team's rhythm</span>
+            <span className="text-lg font-bold leading-tight">{brandName}</span>
+            <span className="text-[10px] text-muted-foreground leading-tight">{brandTagline}</span>
           </div>
         </div>
 
@@ -528,16 +541,34 @@ function AppLoading() {
 
 function AppContent() {
   const { user, isAuthenticated, isLoading } = useAuth();
-  const [showPage, setShowPage] = useState<'main' | 'privacy' | 'terms' | 'support'>('main');
+  const { organization, fetchOrganization } = useOrganization();
+  const [showPage, setShowPage] = useState<'main' | 'privacy' | 'terms' | 'support' | 'org-signup'>('main');
+
+  // Fetch organization data when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchOrganization();
+    }
+  }, [isAuthenticated, fetchOrganization]);
 
   // Show loading spinner while checking auth state
   if (isLoading) {
     return <AppLoading />;
   }
 
+  // Show organization signup page
+  if (showPage === 'org-signup') {
+    return (
+      <OrganizationSignup 
+        onSuccess={() => setShowPage('main')}
+        onBackToLogin={() => setShowPage('main')}
+      />
+    );
+  }
+
   // Show auth page if not authenticated
   if (!isAuthenticated) {
-    return <AuthPage />;
+    return <AuthPage onCreateOrganization={() => setShowPage('org-signup')} />;
   }
 
   // Show Privacy Policy page
@@ -567,29 +598,32 @@ function AppContent() {
         </Suspense>
       </main>
 
-      {/* Footer */}
+      {/* Footer - Updated to use organization legal links */}
       <footer className="border-t bg-muted/30">
         <div className="container flex flex-col items-center justify-between gap-4 py-6 md:h-16 md:flex-row md:py-0 px-4 md:px-6">
           <p className="text-center text-sm text-muted-foreground md:text-left">
-            © 2026 Pulsework.io. Built with precision.
+            © 2026 {organization?.branding?.companyName || 'Pulsework.io'}. Built with precision.
           </p>
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
-            <button 
-              onClick={() => setShowPage('privacy')}
-              className="hover:text-foreground transition-colors duration-200"
-            >
-              Privacy
-            </button>
-            <button 
-              onClick={() => setShowPage('terms')}
-              className="hover:text-foreground transition-colors duration-200"
-            >
-              Terms
-            </button>
-            <button 
-              onClick={() => setShowPage('support')}
-              className="hover:text-foreground transition-colors duration-200"
-            >
+            {organization?.legal?.privacyPolicyUrl ? (
+              <a href={organization.legal.privacyPolicyUrl} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors duration-200">
+                Privacy
+              </a>
+            ) : (
+              <button onClick={() => setShowPage('privacy')} className="hover:text-foreground transition-colors duration-200">
+                Privacy
+              </button>
+            )}
+            {organization?.legal?.termsOfServiceUrl ? (
+              <a href={organization.legal.termsOfServiceUrl} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors duration-200">
+                Terms
+              </a>
+            ) : (
+              <button onClick={() => setShowPage('terms')} className="hover:text-foreground transition-colors duration-200">
+                Terms
+              </button>
+            )}
+            <button onClick={() => setShowPage('support')} className="hover:text-foreground transition-colors duration-200">
               Support
             </button>
           </div>
@@ -602,13 +636,15 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <SettingsProvider>
-        <DataProvider>
-          <PowerFeaturesProvider>
-            <AppContent />
-          </PowerFeaturesProvider>
-        </DataProvider>
-      </SettingsProvider>
+      <OrganizationProvider>
+        <SettingsProvider>
+          <DataProvider>
+            <PowerFeaturesProvider>
+              <AppContent />
+            </PowerFeaturesProvider>
+          </DataProvider>
+        </SettingsProvider>
+      </OrganizationProvider>
     </AuthProvider>
   );
 }

@@ -1,8 +1,56 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import config from "../config";
-import { AuthenticatedRequest, JwtPayload, ApiResponse } from "../types";
+import {
+  AuthenticatedRequest,
+  JwtPayload,
+  ApiResponse,
+  Permission,
+  AccessLevel,
+} from "../types";
 import logger from "../utils/logger";
+
+// Access level permissions mapping
+const ACCESS_LEVEL_PERMISSIONS: Record<AccessLevel, Permission[]> = {
+  owner: [
+    "manage_team",
+    "manage_roles",
+    "manage_permissions",
+    "create_tasks",
+    "assign_tasks",
+    "delete_tasks",
+    "edit_all_tasks",
+    "create_comments",
+    "delete_comments",
+    "manage_services",
+    "manage_workflows",
+    "manage_roadmap",
+    "view_analytics",
+    "export_data",
+  ],
+  admin: [
+    "manage_team",
+    "create_tasks",
+    "assign_tasks",
+    "delete_tasks",
+    "edit_all_tasks",
+    "create_comments",
+    "delete_comments",
+    "manage_services",
+    "manage_workflows",
+    "manage_roadmap",
+    "view_analytics",
+    "export_data",
+  ],
+  member: [
+    "create_tasks",
+    "assign_tasks",
+    "create_comments",
+    "view_analytics",
+    "export_data",
+  ],
+  viewer: ["create_comments"],
+};
 
 export const authenticate = (
   req: AuthenticatedRequest,
@@ -70,4 +118,72 @@ export const optionalAuth = (
     // Continue without user context
     next();
   }
+};
+
+/**
+ * Require specific permission to access route
+ */
+export const requirePermission = (permission: Permission) => {
+  return (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): void => {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        error: "Authentication required",
+      } as ApiResponse);
+      return;
+    }
+
+    const userPermissions =
+      ACCESS_LEVEL_PERMISSIONS[req.user.accessLevel] || [];
+
+    if (!userPermissions.includes(permission)) {
+      res.status(403).json({
+        success: false,
+        error: `Permission denied. Required: ${permission}`,
+        code: "PERMISSION_DENIED",
+      } as ApiResponse);
+      return;
+    }
+
+    next();
+  };
+};
+
+/**
+ * Require specific access level or higher
+ */
+export const requireAccessLevel = (minLevel: AccessLevel) => {
+  const levelHierarchy: AccessLevel[] = ["viewer", "member", "admin", "owner"];
+
+  return (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): void => {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        error: "Authentication required",
+      } as ApiResponse);
+      return;
+    }
+
+    const userLevelIndex = levelHierarchy.indexOf(req.user.accessLevel);
+    const requiredLevelIndex = levelHierarchy.indexOf(minLevel);
+
+    if (userLevelIndex < requiredLevelIndex) {
+      res.status(403).json({
+        success: false,
+        error: `Access denied. Required access level: ${minLevel}`,
+        code: "ACCESS_LEVEL_DENIED",
+      } as ApiResponse);
+      return;
+    }
+
+    next();
+  };
 };

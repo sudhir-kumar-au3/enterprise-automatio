@@ -30,19 +30,25 @@ const transformLeanDocs = <T extends { _id?: any; id?: string }>(
   return docs.map(transformLeanDoc);
 };
 
-// Get dashboard statistics with caching
+// Get dashboard statistics with caching - UPDATED for multi-tenancy
 export const getStatistics = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
     const statistics = await cacheService.getStatistics(
-      "dashboard",
+      `dashboard:${organizationId}`,
       async () => {
         const now = Date.now();
         const oneDayMs = 24 * 60 * 60 * 1000;
         const sevenDaysMs = 7 * oneDayMs;
 
-        // Use aggregation pipeline for better performance
+        // Use aggregation pipeline for better performance - scoped by organization
         const [taskStats, commentStats, teamStats] = await Promise.all([
           Task.aggregate([
+            { $match: { organizationId } }, // Filter by organization
             {
               $facet: {
                 total: [{ $count: "count" }],
@@ -86,6 +92,7 @@ export const getStatistics = asyncHandler(
             },
           ]),
           Comment.aggregate([
+            { $match: { organizationId } }, // Filter by organization
             {
               $facet: {
                 total: [{ $count: "count" }],
@@ -100,6 +107,7 @@ export const getStatistics = asyncHandler(
             },
           ]),
           TeamMember.aggregate([
+            { $match: { organizationId } }, // Filter by organization
             {
               $facet: {
                 total: [{ $count: "count" }],
@@ -201,17 +209,22 @@ export const getStatistics = asyncHandler(
   }
 );
 
-// Get workload statistics per team member with caching
+// Get workload statistics per team member with caching - UPDATED for multi-tenancy
 export const getWorkloadStats = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
     const workloadStats = await cacheService.getOrSet(
-      "workload:stats",
+      `workload:stats:${organizationId}`,
       async () => {
         const now = Date.now();
 
-        // Use aggregation for better performance
+        // Use aggregation for better performance - scoped by organization
         const workload = await Task.aggregate([
-          { $match: { status: { $ne: "done" } } },
+          { $match: { organizationId, status: { $ne: "done" } } },
           {
             $group: {
               _id: "$assigneeId",
@@ -240,7 +253,8 @@ export const getWorkloadStats = asyncHandler(
           },
         ]);
 
-        const teamMembers = await TeamMember.find().lean();
+        // Only get team members from this organization
+        const teamMembers = await TeamMember.find({ organizationId }).lean();
 
         const workloadStats: WorkloadStats[] = teamMembers.map((member) => {
           const memberWorkload = workload.find(
@@ -290,17 +304,23 @@ export const getWorkloadStats = asyncHandler(
   }
 );
 
-// Get activity timeline with caching
+// Get activity timeline with caching - UPDATED for multi-tenancy
 export const getActivityTimeline = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const { page = 1, limit = 50, userId, type } = req.query;
 
-    const cacheKey = `activity:${JSON.stringify(req.query)}`;
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
+    const cacheKey = `activity:${organizationId}:${JSON.stringify(req.query)}`;
 
     const result = await cacheService.getOrSet(
       cacheKey,
       async () => {
-        const query: any = {};
+        // Always scope by organization
+        const query: any = { organizationId };
         if (userId) query.userId = userId;
         if (type) query.type = type;
 
@@ -336,18 +356,25 @@ export const getActivityTimeline = asyncHandler(
   }
 );
 
-// Export all data
+// Export all data - UPDATED for multi-tenancy
 export const exportData = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
+    // Only export data from user's organization
     const [tasks, comments, teamMembers] = await Promise.all([
-      Task.find().lean(),
-      Comment.find().lean(),
-      TeamMember.find().lean(),
+      Task.find({ organizationId }).lean(),
+      Comment.find({ organizationId }).lean(),
+      TeamMember.find({ organizationId }).lean(),
     ]);
 
     const exportData = {
       version: "1.0.0",
       exportDate: Date.now(),
+      organizationId,
       tasks: transformLeanDocs(tasks),
       comments: transformLeanDocs(comments),
       teamMembers: transformLeanDocs(teamMembers).map((m) => {
@@ -357,7 +384,9 @@ export const exportData = asyncHandler(
       settings: {},
     };
 
-    logger.info(`Data exported by ${req.user?.email}`);
+    logger.info(
+      `Data exported by ${req.user?.email} for org: ${organizationId}`
+    );
 
     res.json({
       success: true,
@@ -366,13 +395,22 @@ export const exportData = asyncHandler(
   }
 );
 
-// Import data
+// Import data - UPDATED for multi-tenancy
 export const importData = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const { tasks, comments, teamMembers, clearExisting } = req.body;
 
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
+    // Only clear data from user's organization
     if (clearExisting) {
-      await Promise.all([Task.deleteMany({}), Comment.deleteMany({})]);
+      await Promise.all([
+        Task.deleteMany({ organizationId }),
+        Comment.deleteMany({ organizationId }),
+      ]);
     }
 
     const results = {
@@ -380,13 +418,14 @@ export const importData = asyncHandler(
       comments: { imported: 0, errors: 0 },
     };
 
-    // Import tasks
+    // Import tasks with organizationId
     if (tasks && Array.isArray(tasks)) {
       for (const task of tasks) {
         try {
           const { id, _id, ...taskData } = task;
           await Task.create({
             ...taskData,
+            organizationId, // Ensure task belongs to this organization
             creatorId: taskData.creatorId || req.user?.userId,
           });
           results.tasks.imported++;
@@ -396,13 +435,14 @@ export const importData = asyncHandler(
       }
     }
 
-    // Import comments
+    // Import comments with organizationId
     if (comments && Array.isArray(comments)) {
       for (const comment of comments) {
         try {
           const { id, _id, replies, ...commentData } = comment;
           await Comment.create({
             ...commentData,
+            organizationId, // Ensure comment belongs to this organization
             authorId: commentData.authorId || req.user?.userId,
             replies: [],
           });
@@ -419,7 +459,9 @@ export const importData = asyncHandler(
     await cacheService.invalidateByTag("statistics");
 
     logger.info(
-      `Data imported by ${req.user?.email}: ${JSON.stringify(results)}`
+      `Data imported by ${
+        req.user?.email
+      } for org ${organizationId}: ${JSON.stringify(results)}`
     );
 
     res.json({
@@ -430,20 +472,27 @@ export const importData = asyncHandler(
   }
 );
 
-// Create backup
+// Create backup - UPDATED for multi-tenancy
 export const createBackup = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
     const { type = "manual" } = req.body;
 
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
+    // Only backup data from user's organization
     const [tasks, comments, teamMembers] = await Promise.all([
-      Task.find().lean(),
-      Comment.find().lean(),
-      TeamMember.find().lean(),
+      Task.find({ organizationId }).lean(),
+      Comment.find({ organizationId }).lean(),
+      TeamMember.find({ organizationId }).lean(),
     ]);
 
     const backupData = {
       version: "1.0.0",
       exportDate: Date.now(),
+      organizationId,
       tasks: transformLeanDocs(tasks),
       comments: transformLeanDocs(comments),
       teamMembers: transformLeanDocs(teamMembers).map((m) => {
@@ -453,23 +502,26 @@ export const createBackup = asyncHandler(
     };
 
     const backup = await Backup.create({
+      organizationId,
       timestamp: Date.now(),
       data: JSON.stringify(backupData),
       userId: req.user?.userId,
       type,
     });
 
-    // Keep only 10 most recent backups per user
-    const userBackups = await Backup.find({ userId: req.user?.userId }).sort({
+    // Keep only 10 most recent backups per organization
+    const orgBackups = await Backup.find({ organizationId }).sort({
       timestamp: -1,
     });
 
-    if (userBackups.length > 10) {
-      const toDelete = userBackups.slice(10);
+    if (orgBackups.length > 10) {
+      const toDelete = orgBackups.slice(10);
       await Backup.deleteMany({ _id: { $in: toDelete.map((b) => b._id) } });
     }
 
-    logger.info(`Backup created by ${req.user?.email}`);
+    logger.info(
+      `Backup created by ${req.user?.email} for org: ${organizationId}`
+    );
 
     res.status(201).json({
       success: true,
@@ -479,10 +531,16 @@ export const createBackup = asyncHandler(
   }
 );
 
-// Get backups list
+// Get backups list - UPDATED for multi-tenancy
 export const getBackups = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const backups = await Backup.find({ userId: req.user?.userId })
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
+    // Only show backups from user's organization
+    const backups = await Backup.find({ organizationId })
       .sort({ timestamp: -1 })
       .select("-data")
       .lean();
@@ -494,29 +552,36 @@ export const getBackups = asyncHandler(
   }
 );
 
-// Restore from backup
+// Restore from backup - UPDATED for multi-tenancy
 export const restoreBackup = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const backup = await Backup.findById(req.params.id);
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
+    const backup = await Backup.findOne({
+      _id: req.params.id,
+      organizationId, // Ensure backup belongs to this organization
+    });
 
     if (!backup) {
       throw new AppError("Backup not found", 404);
     }
 
-    if (backup.userId !== req.user?.userId) {
-      throw new AppError("Not authorized to restore this backup", 403);
-    }
-
     const data = JSON.parse(backup.data);
 
-    // Clear existing data and restore
-    await Promise.all([Task.deleteMany({}), Comment.deleteMany({})]);
+    // Clear existing data only for this organization and restore
+    await Promise.all([
+      Task.deleteMany({ organizationId }),
+      Comment.deleteMany({ organizationId }),
+    ]);
 
     if (data.tasks) {
       await Task.insertMany(
         data.tasks.map((t: any) => {
           const { id, _id, ...rest } = t;
-          return rest;
+          return { ...rest, organizationId };
         })
       );
     }
@@ -525,7 +590,7 @@ export const restoreBackup = asyncHandler(
       await Comment.insertMany(
         data.comments.map((c: any) => {
           const { id, _id, ...rest } = c;
-          return { ...rest, replies: [] };
+          return { ...rest, organizationId, replies: [] };
         })
       );
     }
@@ -535,7 +600,9 @@ export const restoreBackup = asyncHandler(
     await cacheService.invalidateByTag("comments");
     await cacheService.invalidateByTag("statistics");
 
-    logger.info(`Backup restored by ${req.user?.email}`);
+    logger.info(
+      `Backup restored by ${req.user?.email} for org: ${organizationId}`
+    );
 
     res.json({
       success: true,
@@ -544,17 +611,21 @@ export const restoreBackup = asyncHandler(
   }
 );
 
-// Delete backup
+// Delete backup - UPDATED for multi-tenancy
 export const deleteBackup = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const backup = await Backup.findById(req.params.id);
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      throw new AppError("Organization context required", 400);
+    }
+
+    const backup = await Backup.findOne({
+      _id: req.params.id,
+      organizationId, // Ensure backup belongs to this organization
+    });
 
     if (!backup) {
       throw new AppError("Backup not found", 404);
-    }
-
-    if (backup.userId !== req.user?.userId) {
-      throw new AppError("Not authorized to delete this backup", 403);
     }
 
     await Backup.findByIdAndDelete(req.params.id);
