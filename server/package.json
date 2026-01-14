@@ -29,6 +29,7 @@
         "@aws-sdk/lib-dynamodb": "^3.478.0",
         "@aws-sdk/s3-request-presigner": "^3.478.0",
         "@socket.io/redis-adapter": "^8.3.0",
+        "axios": "^1.13.2",
         "bcryptjs": "^2.4.3",
         "bullmq": "^5.66.5",
         "compression": "^1.7.4",

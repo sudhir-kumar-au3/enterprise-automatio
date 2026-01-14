@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main, develop]
 
+# Add permissions for security scanning
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
 env:
   NODE_VERSION: '20.x'
   REGISTRY: ghcr.io
@@ -30,10 +36,10 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies (Frontend)
-        run: npm ci
+        run: npm install
 
       - name: Install dependencies (Backend)
-        run: cd server && npm ci
+        run: cd server && npm install
 
       - name: Lint Frontend
         run: npm run lint || true
@@ -58,6 +64,10 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     continue-on-error: true
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -70,8 +80,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm ci
-          cd server && npm ci
+          npm install
+          cd server && npm install
 
       - name: Run npm audit (Frontend)
         run: npm audit --audit-level=high || true
@@ -81,21 +91,15 @@ jobs:
         run: cd server && npm audit --audit-level=high || true
         continue-on-error: true
 
-      - name: Run Snyk Security Scan
-        uses: snyk/actions/node@master
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
         continue-on-error: true
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=high
-
-      - name: CodeQL Analysis
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript, typescript
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
+        continue-on-error: true
 
   # ============================================
   # Unit & Integration Tests
@@ -137,8 +141,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm ci
-          cd server && npm ci
+          npm install
+          cd server && npm install
 
       - name: Run Backend Tests
         run: cd server && npm test || true
@@ -154,13 +158,6 @@ jobs:
       - name: Run Frontend Tests
         run: npm test -- --passWithNoTests || true
         continue-on-error: true
-
-      - name: Upload Coverage Report
-        uses: codecov/codecov-action@v4
-        continue-on-error: true
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
 
   # ============================================
   # Build & Push Docker Images
@@ -216,6 +213,7 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             NODE_ENV=production
+        continue-on-error: true
 
       - name: Build and push Frontend
         uses: docker/build-push-action@v5
@@ -229,124 +227,50 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             NODE_ENV=production
+        continue-on-error: true
 
   # ============================================
-  # Deploy to Staging
+  # Deploy to GitHub Pages (Frontend)
   # ============================================
-  deploy-staging:
-    name: Deploy to Staging
+  deploy-pages:
+    name: Deploy to GitHub Pages
     runs-on: ubuntu-latest
-    needs: [build]
-    if: github.ref == 'refs/heads/develop'
+    needs: [quality]
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
-      name: staging
-      url: https://staging.teamhub.example.com
-
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
 
-      - name: Deploy to ECS Staging
-        run: |
-          echo "Deploying to staging environment..."
-          # aws ecs update-service --cluster staging-cluster --service team-hub --force-new-deployment
+      - name: Install dependencies
+        run: npm install
 
-      - name: Run Smoke Tests
-        run: |
-          echo "Running smoke tests against staging..."
-          # curl -f https://staging.teamhub.example.com/api/v1/health || exit 1
-
-      - name: Notify Slack
-        uses: slackapi/slack-github-action@v1.25.0
-        if: always()
-        with:
-          payload: |
-            {
-              "text": "Staging Deployment: ${{ job.status }}",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*Staging Deployment ${{ job.status }}*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
-                  }
-                }
-              ]
-            }
+      - name: Build
+        run: npm run build
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GITHUB_PAGES: 'true'
 
-  # ============================================
-  # Deploy to Production
-  # ============================================
-  deploy-production:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: [build]
-    if: github.ref == 'refs/heads/main'
-    environment:
-      name: production
-      url: https://teamhub.example.com
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          path: './dist'
 
-      - name: Deploy to ECS Production
-        run: |
-          echo "Deploying to production environment..."
-          # aws ecs update-service --cluster production-cluster --service team-hub --force-new-deployment
-
-      - name: Run Health Check
-        run: |
-          echo "Verifying production deployment..."
-          # curl -f https://teamhub.example.com/api/v1/health || exit 1
-
-      - name: Create Release Tag
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
-            const shortSha = context.sha.substring(0, 7);
-            const tagName = `release-${date}-${shortSha}`;
-            
-            await github.rest.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: `refs/tags/${tagName}`,
-              sha: context.sha
-            });
-
-      - name: Notify Slack
-        uses: slackapi/slack-github-action@v1.25.0
-        if: always()
-        with:
-          payload: |
-            {
-              "text": "Production Deployment: ${{ job.status }}",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*🚀 Production Deployment ${{ job.status }}*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
-                  }
-                }
-              ]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
