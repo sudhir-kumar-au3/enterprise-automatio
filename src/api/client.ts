@@ -1,6 +1,8 @@
 /**
  * Enhanced API Client with Retry Logic, Circuit Breaker, and Offline Support
  * Enterprise-grade HTTP client for resilient API communication
+ *
+ * Security: Uses HTTP-only cookies for refresh tokens (XSS protection)
  */
 
 import config from "./config";
@@ -210,13 +212,19 @@ class ApiClient {
     return localStorage.getItem(config.tokenKey);
   }
 
+  // Refresh token is now stored in HTTP-only cookie, not accessible via JS
+  // This method is kept for backwards compatibility during migration
   private getRefreshToken(): string | null {
     return localStorage.getItem(config.refreshTokenKey);
   }
 
-  private setTokens(accessToken: string, refreshToken: string): void {
+  private setTokens(accessToken: string, refreshToken?: string): void {
     localStorage.setItem(config.tokenKey, accessToken);
-    localStorage.setItem(config.refreshTokenKey, refreshToken);
+    // Only store refresh token in localStorage if provided (legacy support)
+    // New auth flow uses HTTP-only cookies for refresh tokens
+    if (refreshToken) {
+      localStorage.setItem(config.refreshTokenKey, refreshToken);
+    }
   }
 
   private clearTokens(): void {
@@ -226,14 +234,19 @@ class ApiClient {
   }
 
   private async refreshAccessToken(): Promise<boolean> {
+    // Get refresh token from localStorage for backwards compatibility
+    // The server will also check HTTP-only cookie
     const refreshToken = this.getRefreshToken();
-    if (!refreshToken) return false;
 
     try {
       const response = await fetch(`${this.baseUrl}/auth/refresh-token`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
+        credentials: "include", // Include HTTP-only cookies
+        // Only send body if we have a legacy refresh token in localStorage
+        body: refreshToken
+          ? JSON.stringify({ refreshToken })
+          : JSON.stringify({}),
       });
 
       if (!response.ok) {
@@ -243,6 +256,7 @@ class ApiClient {
 
       const data = await response.json();
       if (data.success && data.data) {
+        // Store access token; refresh token is now in HTTP-only cookie
         this.setTokens(data.data.accessToken, data.data.refreshToken);
         return true;
       }
@@ -324,7 +338,11 @@ class ApiClient {
     const startTime = performance.now();
 
     try {
-      const response = await fetch(url, { ...options, headers });
+      const response = await fetch(url, {
+        ...options,
+        headers,
+        credentials: "include", // Include HTTP-only cookies for all requests
+      });
       const latency = performance.now() - startTime;
 
       // Log slow requests
@@ -440,13 +458,27 @@ class ApiClient {
     return this.request<T>(endpoint, { method: "DELETE" });
   }
 
-  // Auth helpers
-  setAuthTokens(accessToken: string, refreshToken: string): void {
+  // Auth helpers - updated for HTTP-only cookie support
+  setAuthTokens(accessToken: string, refreshToken?: string): void {
+    // Access token is stored in localStorage for Authorization header
+    // Refresh token is now set as HTTP-only cookie by the server
     this.setTokens(accessToken, refreshToken);
   }
 
   clearAuth(): void {
     this.clearTokens();
+    // Note: HTTP-only cookie will be cleared by calling /auth/logout endpoint
+  }
+
+  // Logout method that properly clears the HTTP-only cookie
+  async logout(): Promise<void> {
+    try {
+      await this.post("/auth/logout", {});
+    } catch {
+      // Ignore errors during logout
+    } finally {
+      this.clearTokens();
+    }
   }
 
   isAuthenticated(): boolean {

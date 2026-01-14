@@ -7,6 +7,38 @@ import config from "../config";
 import { AuthenticatedRequest, ApiResponse } from "../types";
 import { asyncHandler, AppError } from "../middleware";
 import logger from "../utils/logger";
+import { securityConfig } from "../config/security.config";
+
+// Cookie configuration for refresh token (HTTP-only for security)
+const REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
+const getRefreshTokenCookieOptions = (isProduction: boolean) => ({
+  httpOnly: true, // Prevents JavaScript access (XSS protection)
+  secure: isProduction, // HTTPS only in production
+  sameSite: isProduction ? ("strict" as const) : ("lax" as const), // CSRF protection
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+  path: "/", // Available for all routes
+});
+
+// Helper to set refresh token cookie
+const setRefreshTokenCookie = (res: Response, refreshToken: string) => {
+  const isProduction = process.env.NODE_ENV === "production";
+  res.cookie(
+    REFRESH_TOKEN_COOKIE_NAME,
+    refreshToken,
+    getRefreshTokenCookieOptions(isProduction)
+  );
+};
+
+// Helper to clear refresh token cookie
+const clearRefreshTokenCookie = (res: Response) => {
+  const isProduction = process.env.NODE_ENV === "production";
+  res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? ("strict" as const) : ("lax" as const),
+    path: "/",
+  });
+};
 
 // Generate JWT tokens - updated to include organizationId
 const generateTokens = (user: any) => {
@@ -73,6 +105,9 @@ export const register = asyncHandler(
 
     const tokens = generateTokens(user);
 
+    // Set refresh token as HTTP-only cookie (more secure than sending in response body)
+    setRefreshTokenCookie(res, tokens.refreshToken);
+
     // Update online status
     await TeamMember.findByIdAndUpdate(user._id, {
       isOnline: true,
@@ -85,7 +120,8 @@ export const register = asyncHandler(
       success: true,
       data: {
         user: user.toJSON(),
-        ...tokens,
+        accessToken: tokens.accessToken,
+        // Note: refreshToken is now in HTTP-only cookie, not in response body
       },
       message: "Registration successful",
     } as ApiResponse);
@@ -128,6 +164,9 @@ export const login = asyncHandler(
 
     const tokens = generateTokens(user);
 
+    // Set refresh token as HTTP-only cookie (more secure than sending in response body)
+    setRefreshTokenCookie(res, tokens.refreshToken);
+
     // Update online status
     await TeamMember.findByIdAndUpdate(user._id, {
       isOnline: true,
@@ -140,7 +179,8 @@ export const login = asyncHandler(
       success: true,
       data: {
         user: user.toJSON(),
-        ...tokens,
+        accessToken: tokens.accessToken,
+        // Note: refreshToken is now in HTTP-only cookie, not in response body
       },
       message: "Login successful",
     } as ApiResponse);
@@ -158,6 +198,9 @@ export const logout = asyncHandler(
       logger.info(`User logged out: ${req.user.email}`);
     }
 
+    // Clear the refresh token cookie
+    clearRefreshTokenCookie(res);
+
     res.json({
       success: true,
       message: "Logout successful",
@@ -165,10 +208,12 @@ export const logout = asyncHandler(
   }
 );
 
-// Refresh token
+// Refresh token - now reads from HTTP-only cookie
 export const refreshToken = asyncHandler(
   async (req: AuthenticatedRequest, res: Response) => {
-    const { refreshToken: token } = req.body;
+    // Try to get refresh token from HTTP-only cookie first, then fall back to body for backwards compatibility
+    const token =
+      req.cookies?.[REFRESH_TOKEN_COOKIE_NAME] || req.body.refreshToken;
 
     if (!token) {
       throw new AppError("Refresh token required", 400);
@@ -184,12 +229,20 @@ export const refreshToken = asyncHandler(
 
       const tokens = generateTokens(user);
 
+      // Set new refresh token as HTTP-only cookie (token rotation for security)
+      setRefreshTokenCookie(res, tokens.refreshToken);
+
       res.json({
         success: true,
-        data: tokens,
+        data: {
+          accessToken: tokens.accessToken,
+          // Note: refreshToken is now in HTTP-only cookie, not in response body
+        },
         message: "Token refreshed",
       } as ApiResponse);
     } catch (error) {
+      // Clear the invalid cookie
+      clearRefreshTokenCookie(res);
       throw new AppError("Invalid refresh token", 401);
     }
   }
@@ -255,8 +308,11 @@ export const changePassword = asyncHandler(
       throw new AppError("Current and new passwords are required", 400);
     }
 
-    if (newPassword.length < 6) {
-      throw new AppError("New password must be at least 6 characters", 400);
+    if (newPassword.length < securityConfig.password.minLength) {
+      throw new AppError(
+        `New password must be at least ${securityConfig.password.minLength} characters`,
+        400
+      );
     }
 
     const user = await TeamMember.findById(req.user?.userId).select(
@@ -338,8 +394,11 @@ export const resetPassword = asyncHandler(
       throw new AppError("Token and new password are required", 400);
     }
 
-    if (password.length < 6) {
-      throw new AppError("Password must be at least 6 characters", 400);
+    if (password.length < securityConfig.password.minLength) {
+      throw new AppError(
+        `Password must be at least ${securityConfig.password.minLength} characters`,
+        400
+      );
     }
 
     // Hash the token to compare with stored hash

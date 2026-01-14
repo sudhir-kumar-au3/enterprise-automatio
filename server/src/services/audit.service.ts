@@ -8,6 +8,9 @@
  * - Search and filter capabilities
  * - Export functionality
  * - Retention policies
+ * - Suspicious pattern detection and alerts
+ * - Failed login monitoring
+ * - Privilege escalation detection
  */
 
 import { Schema, model, Document, Types } from "mongoose";
@@ -86,6 +89,19 @@ export enum AuditAction {
   API_KEY_REVOKED = "security.api_key_revoked",
 }
 
+// Security Alert Types
+export enum SecurityAlertType {
+  MULTIPLE_FAILED_LOGINS = "multiple_failed_logins",
+  BRUTE_FORCE_ATTEMPT = "brute_force_attempt",
+  PRIVILEGE_ESCALATION = "privilege_escalation",
+  UNUSUAL_ACTIVITY = "unusual_activity",
+  ACCOUNT_LOCKOUT = "account_lockout",
+  SUSPICIOUS_IP = "suspicious_ip",
+  OFF_HOURS_ACCESS = "off_hours_access",
+  MASS_DATA_ACCESS = "mass_data_access",
+  RAPID_ACTIONS = "rapid_actions",
+}
+
 // Audit Log Entry Interface
 export interface IAuditLog extends Document {
   // Core fields
@@ -132,8 +148,28 @@ export interface IAuditLog extends Document {
   isArchived: boolean;
 }
 
+// Security Alert Interface
+export interface ISecurityAlert extends Document {
+  alertType: SecurityAlertType;
+  severity: "low" | "medium" | "high" | "critical";
+  organizationId: Types.ObjectId;
+  userId?: Types.ObjectId;
+  userEmail?: string;
+  ipAddress?: string;
+  description: string;
+  details: Record<string, any>;
+  relatedAuditLogs: Types.ObjectId[];
+  status: "new" | "investigating" | "resolved" | "dismissed";
+  resolvedBy?: Types.ObjectId;
+  resolvedAt?: Date;
+  resolution?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Plain object type for lean queries (without Mongoose Document methods)
 export type AuditLogData = Omit<IAuditLog, keyof Document>;
+export type SecurityAlertData = Omit<ISecurityAlert, keyof Document>;
 
 // Mongoose Schema
 const auditLogSchema = new Schema<IAuditLog>(
@@ -232,6 +268,67 @@ const auditLogSchema = new Schema<IAuditLog>(
   }
 );
 
+// Security Alert Schema
+const securityAlertSchema = new Schema<ISecurityAlert>(
+  {
+    alertType: {
+      type: String,
+      required: true,
+      enum: Object.values(SecurityAlertType),
+      index: true,
+    },
+    severity: {
+      type: String,
+      required: true,
+      enum: ["low", "medium", "high", "critical"],
+      index: true,
+    },
+    organizationId: {
+      type: Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      index: true,
+    },
+    userEmail: String,
+    ipAddress: String,
+    description: {
+      type: String,
+      required: true,
+    },
+    details: {
+      type: Schema.Types.Mixed,
+      default: {},
+    },
+    relatedAuditLogs: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "AuditLog",
+      },
+    ],
+    status: {
+      type: String,
+      enum: ["new", "investigating", "resolved", "dismissed"],
+      default: "new",
+      index: true,
+    },
+    resolvedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    resolvedAt: Date,
+    resolution: String,
+  },
+  {
+    timestamps: true,
+    collection: "security_alerts",
+  }
+);
+
 // Compound indexes for common queries
 auditLogSchema.index({ organizationId: 1, timestamp: -1 }); // Add org index
 auditLogSchema.index({ organizationId: 1, teamId: 1, timestamp: -1 });
@@ -243,6 +340,11 @@ auditLogSchema.index({
 });
 auditLogSchema.index({ organizationId: 1, actorId: 1, timestamp: -1 });
 auditLogSchema.index({ organizationId: 1, action: 1, timestamp: -1 });
+
+// Indexes for security alerts
+securityAlertSchema.index({ organizationId: 1, status: 1, createdAt: -1 });
+securityAlertSchema.index({ organizationId: 1, alertType: 1, createdAt: -1 });
+securityAlertSchema.index({ organizationId: 1, severity: 1, status: 1 });
 
 // Make the collection append-only (no updates allowed)
 auditLogSchema.pre("updateOne", function () {
@@ -258,6 +360,10 @@ auditLogSchema.pre("findOneAndUpdate", function () {
 });
 
 const AuditLog = model<IAuditLog>("AuditLog", auditLogSchema);
+const SecurityAlert = model<ISecurityAlert>(
+  "SecurityAlert",
+  securityAlertSchema
+);
 
 // Query filter interface
 export interface AuditLogFilter {
@@ -283,8 +389,47 @@ export interface PaginationOptions {
   sortOrder?: "asc" | "desc";
 }
 
+// Configuration for suspicious pattern detection
+interface SuspiciousPatternConfig {
+  failedLoginThreshold: number;
+  failedLoginWindowMinutes: number;
+  bruteForceThreshold: number;
+  bruteForceWindowMinutes: number;
+  rapidActionsThreshold: number;
+  rapidActionsWindowMinutes: number;
+  offHoursStart: number; // Hour in 24h format
+  offHoursEnd: number;
+}
+
+const defaultPatternConfig: SuspiciousPatternConfig = {
+  failedLoginThreshold: 5,
+  failedLoginWindowMinutes: 15,
+  bruteForceThreshold: 10,
+  bruteForceWindowMinutes: 5,
+  rapidActionsThreshold: 100,
+  rapidActionsWindowMinutes: 1,
+  offHoursStart: 22, // 10 PM
+  offHoursEnd: 6, // 6 AM
+};
+
 class AuditService {
   private defaultRetentionDays = 365; // 1 year retention
+  private patternConfig: SuspiciousPatternConfig = defaultPatternConfig;
+  private alertCallbacks: ((alert: ISecurityAlert) => void)[] = [];
+
+  /**
+   * Register a callback for security alerts
+   */
+  onSecurityAlert(callback: (alert: ISecurityAlert) => void): void {
+    this.alertCallbacks.push(callback);
+  }
+
+  /**
+   * Configure suspicious pattern detection thresholds
+   */
+  configurePatternDetection(config: Partial<SuspiciousPatternConfig>): void {
+    this.patternConfig = { ...this.patternConfig, ...config };
+  }
 
   /**
    * Log an audit event
@@ -346,6 +491,11 @@ class AuditService {
       entityId: params.entityId,
     });
 
+    // Check for suspicious patterns asynchronously
+    this.checkSuspiciousPatterns(auditEntry, params).catch((err) => {
+      logger.error("Error checking suspicious patterns", { error: err });
+    });
+
     return auditEntry;
   }
 
@@ -391,6 +541,414 @@ class AuditService {
     };
 
     return descriptions[action] || `${actor} performed ${action} on ${entity}`;
+  }
+
+  /**
+   * Check for suspicious patterns after logging an event
+   */
+  private async checkSuspiciousPatterns(
+    auditEntry: IAuditLog,
+    params: any
+  ): Promise<void> {
+    const checks: Promise<void>[] = [];
+
+    // Check for failed login patterns
+    if (params.action === AuditAction.LOGIN_FAILED) {
+      checks.push(this.checkFailedLoginPattern(auditEntry, params));
+    }
+
+    // Check for privilege escalation
+    if (
+      params.action === AuditAction.ROLE_CHANGED ||
+      params.action === AuditAction.PERMISSION_GRANTED
+    ) {
+      checks.push(this.checkPrivilegeEscalation(auditEntry, params));
+    }
+
+    // Check for rapid actions (potential automated attacks)
+    if (params.actorId) {
+      checks.push(this.checkRapidActions(auditEntry, params));
+    }
+
+    // Check for off-hours access
+    if (params.action === AuditAction.LOGIN) {
+      checks.push(this.checkOffHoursAccess(auditEntry, params));
+    }
+
+    await Promise.all(checks);
+  }
+
+  /**
+   * Check for multiple failed login attempts
+   */
+  private async checkFailedLoginPattern(
+    auditEntry: IAuditLog,
+    params: any
+  ): Promise<void> {
+    const windowStart = new Date();
+    windowStart.setMinutes(
+      windowStart.getMinutes() - this.patternConfig.failedLoginWindowMinutes
+    );
+
+    // Count failed logins by IP address
+    const failedLoginsByIP = await AuditLog.countDocuments({
+      organizationId: auditEntry.organizationId,
+      action: AuditAction.LOGIN_FAILED,
+      ipAddress: params.ipAddress,
+      timestamp: { $gte: windowStart },
+    });
+
+    // Count failed logins by email
+    const failedLoginsByEmail = await AuditLog.countDocuments({
+      organizationId: auditEntry.organizationId,
+      action: AuditAction.LOGIN_FAILED,
+      actorEmail: params.actorEmail,
+      timestamp: { $gte: windowStart },
+    });
+
+    // Check for brute force (higher threshold, shorter window)
+    const bruteForceWindowStart = new Date();
+    bruteForceWindowStart.setMinutes(
+      bruteForceWindowStart.getMinutes() -
+        this.patternConfig.bruteForceWindowMinutes
+    );
+
+    const bruteForceAttempts = await AuditLog.countDocuments({
+      organizationId: auditEntry.organizationId,
+      action: AuditAction.LOGIN_FAILED,
+      ipAddress: params.ipAddress,
+      timestamp: { $gte: bruteForceWindowStart },
+    });
+
+    // Create alerts based on thresholds
+    if (bruteForceAttempts >= this.patternConfig.bruteForceThreshold) {
+      await this.createSecurityAlert({
+        alertType: SecurityAlertType.BRUTE_FORCE_ATTEMPT,
+        severity: "critical",
+        organizationId: auditEntry.organizationId,
+        userEmail: params.actorEmail,
+        ipAddress: params.ipAddress,
+        description: `Potential brute force attack detected: ${bruteForceAttempts} failed login attempts from IP ${params.ipAddress} in ${this.patternConfig.bruteForceWindowMinutes} minutes`,
+        details: {
+          attemptCount: bruteForceAttempts,
+          windowMinutes: this.patternConfig.bruteForceWindowMinutes,
+          targetEmail: params.actorEmail,
+        },
+        relatedAuditLogs: [auditEntry._id],
+      });
+    } else if (failedLoginsByIP >= this.patternConfig.failedLoginThreshold) {
+      await this.createSecurityAlert({
+        alertType: SecurityAlertType.MULTIPLE_FAILED_LOGINS,
+        severity: "high",
+        organizationId: auditEntry.organizationId,
+        userEmail: params.actorEmail,
+        ipAddress: params.ipAddress,
+        description: `Multiple failed login attempts detected: ${failedLoginsByIP} attempts from IP ${params.ipAddress} in ${this.patternConfig.failedLoginWindowMinutes} minutes`,
+        details: {
+          attemptsByIP: failedLoginsByIP,
+          attemptsByEmail: failedLoginsByEmail,
+          windowMinutes: this.patternConfig.failedLoginWindowMinutes,
+        },
+        relatedAuditLogs: [auditEntry._id],
+      });
+    } else if (failedLoginsByEmail >= this.patternConfig.failedLoginThreshold) {
+      await this.createSecurityAlert({
+        alertType: SecurityAlertType.MULTIPLE_FAILED_LOGINS,
+        severity: "medium",
+        organizationId: auditEntry.organizationId,
+        userEmail: params.actorEmail,
+        ipAddress: params.ipAddress,
+        description: `Multiple failed login attempts for account ${params.actorEmail}: ${failedLoginsByEmail} attempts in ${this.patternConfig.failedLoginWindowMinutes} minutes`,
+        details: {
+          attemptsByEmail: failedLoginsByEmail,
+          windowMinutes: this.patternConfig.failedLoginWindowMinutes,
+          ipAddresses: await this.getRecentIPsForEmail(
+            auditEntry.organizationId,
+            params.actorEmail,
+            windowStart
+          ),
+        },
+        relatedAuditLogs: [auditEntry._id],
+      });
+    }
+  }
+
+  /**
+   * Get recent IP addresses used for login attempts by email
+   */
+  private async getRecentIPsForEmail(
+    organizationId: Types.ObjectId,
+    email: string,
+    since: Date
+  ): Promise<string[]> {
+    const logs = await AuditLog.find({
+      organizationId,
+      action: AuditAction.LOGIN_FAILED,
+      actorEmail: email,
+      timestamp: { $gte: since },
+    }).distinct("ipAddress");
+
+    return logs;
+  }
+
+  /**
+   * Check for privilege escalation attempts
+   */
+  private async checkPrivilegeEscalation(
+    auditEntry: IAuditLog,
+    params: any
+  ): Promise<void> {
+    const changes = params.changes || [];
+
+    // Check if role was changed to admin/owner
+    const roleChange = changes.find((c: any) => c.field === "role");
+    if (roleChange) {
+      const sensitiveRoles = ["admin", "owner", "super_admin"];
+      const isEscalation = sensitiveRoles.includes(
+        roleChange.newValue?.toLowerCase()
+      );
+
+      if (isEscalation) {
+        // Check if the actor is changing their own role (self-escalation)
+        const isSelfEscalation =
+          params.actorId?.toString() === params.entityId?.toString();
+
+        await this.createSecurityAlert({
+          alertType: SecurityAlertType.PRIVILEGE_ESCALATION,
+          severity: isSelfEscalation ? "critical" : "high",
+          organizationId: auditEntry.organizationId,
+          userId: params.actorId
+            ? new Types.ObjectId(params.actorId)
+            : undefined,
+          userEmail: params.actorEmail,
+          ipAddress: params.ipAddress,
+          description: isSelfEscalation
+            ? `Self privilege escalation attempt: User ${params.actorEmail} attempted to change their own role to ${roleChange.newValue}`
+            : `Privilege escalation: User ${
+                params.actorEmail
+              } changed role of ${params.entityName || params.entityId} from ${
+                roleChange.oldValue
+              } to ${roleChange.newValue}`,
+          details: {
+            isSelfEscalation,
+            targetUserId: params.entityId,
+            targetUserName: params.entityName,
+            oldRole: roleChange.oldValue,
+            newRole: roleChange.newValue,
+            changedBy: params.actorEmail,
+          },
+          relatedAuditLogs: [auditEntry._id],
+        });
+      }
+    }
+
+    // Check for sensitive permission grants
+    if (params.action === AuditAction.PERMISSION_GRANTED) {
+      const sensitivePermissions = [
+        "admin",
+        "delete",
+        "manage_users",
+        "manage_billing",
+        "api_access",
+      ];
+      const grantedPermission =
+        params.metadata?.permission || params.entityName;
+
+      if (
+        sensitivePermissions.some((p) =>
+          grantedPermission?.toLowerCase().includes(p)
+        )
+      ) {
+        await this.createSecurityAlert({
+          alertType: SecurityAlertType.PRIVILEGE_ESCALATION,
+          severity: "medium",
+          organizationId: auditEntry.organizationId,
+          userId: params.actorId
+            ? new Types.ObjectId(params.actorId)
+            : undefined,
+          userEmail: params.actorEmail,
+          ipAddress: params.ipAddress,
+          description: `Sensitive permission granted: ${params.actorEmail} granted ${grantedPermission} permission`,
+          details: {
+            permission: grantedPermission,
+            targetUserId: params.entityId,
+            grantedBy: params.actorEmail,
+          },
+          relatedAuditLogs: [auditEntry._id],
+        });
+      }
+    }
+  }
+
+  /**
+   * Check for rapid/automated actions (potential bot activity)
+   */
+  private async checkRapidActions(
+    auditEntry: IAuditLog,
+    params: any
+  ): Promise<void> {
+    const windowStart = new Date();
+    windowStart.setMinutes(
+      windowStart.getMinutes() - this.patternConfig.rapidActionsWindowMinutes
+    );
+
+    const actionCount = await AuditLog.countDocuments({
+      organizationId: auditEntry.organizationId,
+      actorId: new Types.ObjectId(params.actorId),
+      timestamp: { $gte: windowStart },
+    });
+
+    if (actionCount >= this.patternConfig.rapidActionsThreshold) {
+      // Check if we already have an active alert for this user
+      const existingAlert = await SecurityAlert.findOne({
+        organizationId: auditEntry.organizationId,
+        userId: new Types.ObjectId(params.actorId),
+        alertType: SecurityAlertType.RAPID_ACTIONS,
+        status: { $in: ["new", "investigating"] },
+        createdAt: { $gte: windowStart },
+      });
+
+      if (!existingAlert) {
+        await this.createSecurityAlert({
+          alertType: SecurityAlertType.RAPID_ACTIONS,
+          severity: "medium",
+          organizationId: auditEntry.organizationId,
+          userId: new Types.ObjectId(params.actorId),
+          userEmail: params.actorEmail,
+          ipAddress: params.ipAddress,
+          description: `Unusual activity detected: User ${params.actorEmail} performed ${actionCount} actions in ${this.patternConfig.rapidActionsWindowMinutes} minute(s)`,
+          details: {
+            actionCount,
+            windowMinutes: this.patternConfig.rapidActionsWindowMinutes,
+            threshold: this.patternConfig.rapidActionsThreshold,
+          },
+          relatedAuditLogs: [auditEntry._id],
+        });
+      }
+    }
+  }
+
+  /**
+   * Check for off-hours access
+   */
+  private async checkOffHoursAccess(
+    auditEntry: IAuditLog,
+    params: any
+  ): Promise<void> {
+    const currentHour = new Date().getHours();
+    const isOffHours =
+      currentHour >= this.patternConfig.offHoursStart ||
+      currentHour < this.patternConfig.offHoursEnd;
+
+    if (isOffHours && params.actorId) {
+      // Check if this user typically logs in during off-hours
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const offHoursLogins = await AuditLog.countDocuments({
+        organizationId: auditEntry.organizationId,
+        actorId: new Types.ObjectId(params.actorId),
+        action: AuditAction.LOGIN,
+        timestamp: { $gte: thirtyDaysAgo },
+        $expr: {
+          $or: [
+            {
+              $gte: [{ $hour: "$timestamp" }, this.patternConfig.offHoursStart],
+            },
+            { $lt: [{ $hour: "$timestamp" }, this.patternConfig.offHoursEnd] },
+          ],
+        },
+      });
+
+      // If this is unusual behavior (less than 3 off-hours logins in 30 days)
+      if (offHoursLogins < 3) {
+        await this.createSecurityAlert({
+          alertType: SecurityAlertType.OFF_HOURS_ACCESS,
+          severity: "low",
+          organizationId: auditEntry.organizationId,
+          userId: new Types.ObjectId(params.actorId),
+          userEmail: params.actorEmail,
+          ipAddress: params.ipAddress,
+          description: `Off-hours login detected: User ${
+            params.actorEmail
+          } logged in at ${new Date().toISOString()} (outside normal hours)`,
+          details: {
+            loginTime: new Date().toISOString(),
+            localHour: currentHour,
+            previousOffHoursLogins: offHoursLogins,
+            offHoursRange: `${this.patternConfig.offHoursStart}:00 - ${this.patternConfig.offHoursEnd}:00`,
+          },
+          relatedAuditLogs: [auditEntry._id],
+        });
+      }
+    }
+  }
+
+  /**
+   * Create a security alert
+   */
+  async createSecurityAlert(params: {
+    alertType: SecurityAlertType;
+    severity: "low" | "medium" | "high" | "critical";
+    organizationId: Types.ObjectId;
+    userId?: Types.ObjectId;
+    userEmail?: string;
+    ipAddress?: string;
+    description: string;
+    details: Record<string, any>;
+    relatedAuditLogs?: Types.ObjectId[];
+  }): Promise<ISecurityAlert> {
+    const alert = new SecurityAlert({
+      alertType: params.alertType,
+      severity: params.severity,
+      organizationId: params.organizationId,
+      userId: params.userId,
+      userEmail: params.userEmail,
+      ipAddress: params.ipAddress,
+      description: params.description,
+      details: params.details,
+      relatedAuditLogs: params.relatedAuditLogs || [],
+      status: "new",
+    });
+
+    await alert.save();
+
+    logger.warn("Security alert created", {
+      alertType: params.alertType,
+      severity: params.severity,
+      organizationId: params.organizationId,
+      description: params.description,
+    });
+
+    // Also log to audit trail
+    await this.log({
+      action: AuditAction.SUSPICIOUS_ACTIVITY,
+      organizationId: params.organizationId,
+      actorId: params.userId || null,
+      actorEmail: params.userEmail || "system",
+      actorName: params.userEmail || "Security System",
+      actorType: "system",
+      entityType: "security_alert",
+      entityId: alert._id.toString(),
+      entityName: params.alertType,
+      metadata: {
+        alertType: params.alertType,
+        severity: params.severity,
+        ...params.details,
+      },
+      ipAddress: params.ipAddress,
+    });
+
+    // Notify registered callbacks
+    this.alertCallbacks.forEach((callback) => {
+      try {
+        callback(alert);
+      } catch (err) {
+        logger.error("Error in security alert callback", { error: err });
+      }
+    });
+
+    return alert;
   }
 
   /**
@@ -764,6 +1322,163 @@ class AuditService {
     logger.info(`Deleted ${result.deletedCount} archived audit logs`);
     return result.deletedCount;
   }
+
+  /**
+   * Get security alerts for an organization
+   */
+  async getSecurityAlerts(
+    organizationId: string,
+    options: {
+      status?: ("new" | "investigating" | "resolved" | "dismissed")[];
+      severity?: ("low" | "medium" | "high" | "critical")[];
+      alertTypes?: SecurityAlertType[];
+      startDate?: Date;
+      endDate?: Date;
+      limit?: number;
+      page?: number;
+    } = {}
+  ): Promise<{
+    alerts: SecurityAlertData[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const { limit = 50, page = 1 } = options;
+    const query: any = {
+      organizationId: new Types.ObjectId(organizationId),
+    };
+
+    if (options.status?.length) {
+      query.status = { $in: options.status };
+    }
+    if (options.severity?.length) {
+      query.severity = { $in: options.severity };
+    }
+    if (options.alertTypes?.length) {
+      query.alertType = { $in: options.alertTypes };
+    }
+    if (options.startDate || options.endDate) {
+      query.createdAt = {};
+      if (options.startDate) query.createdAt.$gte = options.startDate;
+      if (options.endDate) query.createdAt.$lte = options.endDate;
+    }
+
+    const [alerts, total] = await Promise.all([
+      SecurityAlert.find(query)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      SecurityAlert.countDocuments(query),
+    ]);
+
+    return {
+      alerts: alerts as SecurityAlertData[],
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  /**
+   * Update security alert status
+   */
+  async updateAlertStatus(
+    alertId: string,
+    status: "investigating" | "resolved" | "dismissed",
+    resolvedBy?: string,
+    resolution?: string
+  ): Promise<ISecurityAlert | null> {
+    const update: any = { status };
+
+    if (status === "resolved" || status === "dismissed") {
+      update.resolvedAt = new Date();
+      if (resolvedBy) update.resolvedBy = new Types.ObjectId(resolvedBy);
+      if (resolution) update.resolution = resolution;
+    }
+
+    const alert = await SecurityAlert.findByIdAndUpdate(alertId, update, {
+      new: true,
+    });
+
+    if (alert) {
+      logger.info("Security alert status updated", {
+        alertId,
+        newStatus: status,
+        resolvedBy,
+      });
+    }
+
+    return alert;
+  }
+
+  /**
+   * Get alert statistics
+   */
+  async getAlertStatistics(
+    organizationId: string,
+    days = 30
+  ): Promise<{
+    totalAlerts: number;
+    alertsBySeverity: Record<string, number>;
+    alertsByType: Record<string, number>;
+    alertsByStatus: Record<string, number>;
+    alertsOverTime: { date: string; count: number }[];
+  }> {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const matchStage = {
+      organizationId: new Types.ObjectId(organizationId),
+      createdAt: { $gte: startDate },
+    };
+
+    const [totalAlerts, bySeverity, byType, byStatus, overTime] =
+      await Promise.all([
+        SecurityAlert.countDocuments(matchStage),
+        SecurityAlert.aggregate([
+          { $match: matchStage },
+          { $group: { _id: "$severity", count: { $sum: 1 } } },
+        ]),
+        SecurityAlert.aggregate([
+          { $match: matchStage },
+          { $group: { _id: "$alertType", count: { $sum: 1 } } },
+        ]),
+        SecurityAlert.aggregate([
+          { $match: matchStage },
+          { $group: { _id: "$status", count: { $sum: 1 } } },
+        ]),
+        SecurityAlert.aggregate([
+          { $match: matchStage },
+          {
+            $group: {
+              _id: {
+                $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+              },
+              count: { $sum: 1 },
+            },
+          },
+          { $sort: { _id: 1 } },
+        ]),
+      ]);
+
+    return {
+      totalAlerts,
+      alertsBySeverity: Object.fromEntries(
+        bySeverity.map((e: any) => [e._id, e.count])
+      ),
+      alertsByType: Object.fromEntries(
+        byType.map((e: any) => [e._id, e.count])
+      ),
+      alertsByStatus: Object.fromEntries(
+        byStatus.map((e: any) => [e._id, e.count])
+      ),
+      alertsOverTime: overTime.map((e: any) => ({
+        date: e._id,
+        count: e.count,
+      })),
+    };
+  }
 }
 
 // Middleware helper to extract request context
@@ -807,5 +1522,5 @@ export function calculateChanges(
 
 // Export singleton
 export const auditService = new AuditService();
-export { AuditLog };
+export { AuditLog, SecurityAlert };
 export default auditService;
