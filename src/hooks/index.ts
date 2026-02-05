@@ -5,3 +5,4 @@ export { useApi, usePaginatedApi, useMutation } from "./useApi";
 export { useTasks } from "./useTasks";
 export { useComments } from "./useComments";
 export { useTeamMembers } from "./useTeamMembers";
+export { useMeetings } from "./useMeetings";

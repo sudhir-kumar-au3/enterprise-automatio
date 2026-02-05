@@ -205,8 +205,6 @@ const organizationSchema = new Schema<OrganizationDocument>(
 );
 
 // Indexes
-organizationSchema.index({ slug: 1 }, { unique: true });
-organizationSchema.index({ domain: 1 }, { unique: true, sparse: true });
 organizationSchema.index({ ownerId: 1 });
 organizationSchema.index({ "subscription.status": 1 });
 organizationSchema.index({ isActive: 1 });

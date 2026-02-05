@@ -5,6 +5,7 @@ import commentRoutes from "./commentRoutes";
 import teamRoutes from "./teamRoutes";
 import dataRoutes from "./dataRoutes";
 import organizationRoutes from "./organization";
+import meetingRoutes from "./meetingRoutes";
 import {
   livenessProbe,
   readinessProbe,
@@ -22,6 +23,7 @@ router.use("/tasks", taskRoutes);
 router.use("/comments", commentRoutes);
 router.use("/team", teamRoutes);
 router.use("/data", dataRoutes);
+router.use("/meetings", meetingRoutes);
 
 // Health & Observability endpoints
 router.get("/health", healthCheck); // Detailed health status

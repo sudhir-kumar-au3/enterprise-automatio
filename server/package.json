@@ -11,6 +11,7 @@
         "test": "jest --coverage",
         "seed": "ts-node src/utils/seed.ts",
         "seed:owner": "ts-node scripts/seed-owner.ts",
+        "seed:users-tasks": "ts-node scripts/seed-users-tasks.ts",
         "worker": "ts-node-dev --respawn --transpile-only src/workers/index.ts"
     },
     "keywords": [

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -23,7 +23,8 @@ import {
   CheckCircle,
   Warning,
   Trophy,
-  Rocket
+  Rocket,
+  VideoCamera
 } from '@phosphor-icons/react'
 import { Comment, Task, TeamMember, ACCESS_LEVEL_PERMISSIONS } from '@/lib/collaboration-data'
 import { cn } from '@/lib/utils'
@@ -31,6 +32,7 @@ import ActivityTimeline from '@/components/ActivityTimeline'
 import TaskCard from './TaskCard'
 import { accessLevelColors, accessLevelIcons, roleColors } from './constants'
 import { useNavigation } from '@/contexts'
+import { CreateMeetingDialog } from '@/components/CreateMeetingDialog'
 
 export interface OverviewTabProps {
   currentUser: TeamMember
@@ -208,6 +210,7 @@ const TaskDistribution = ({ tasks }: { tasks: Task[] }) => {
 
 const OverviewTab = ({ currentUser, allMembers, tasks, comments }: OverviewTabProps) => {
   const { setActiveTab, setIsCreateTaskOpen } = useNavigation()
+  const [isMeetingDialogOpen, setIsMeetingDialogOpen] = useState(false)
   const onlineMembers = allMembers.filter(m => m.isOnline)
   
   // Calculate statistics
@@ -379,6 +382,12 @@ const OverviewTab = ({ currentUser, allMembers, tasks, comments }: OverviewTabPr
                 label="Team Workload"
                 description="Balance team assignments"
                 onClick={() => setActiveTab('workload')}
+              />
+              <QuickAction
+                icon={VideoCamera}
+                label="Schedule Meeting"
+                description="Plan a team meeting"
+                onClick={() => setIsMeetingDialogOpen(true)}
               />
             </CardContent>
           </Card>
@@ -581,6 +590,13 @@ const OverviewTab = ({ currentUser, allMembers, tasks, comments }: OverviewTabPr
         tasks={tasks} 
         comments={comments} 
         teamMembers={allMembers} 
+      />
+
+      {/* Meeting Dialog */}
+      <CreateMeetingDialog 
+        isOpen={isMeetingDialogOpen} 
+        onClose={() => setIsMeetingDialogOpen(false)}
+        teamMembers={allMembers}
       />
     </div>
   )

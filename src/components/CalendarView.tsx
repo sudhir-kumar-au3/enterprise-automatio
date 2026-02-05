@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,7 +19,10 @@ import {
   Circle,
   ArrowRight,
   User,
-  ListChecks
+  ListChecks,
+  VideoCamera,
+  Trash,
+  PencilSimple
 } from '@phosphor-icons/react'
 import { Task, TeamMember } from '@/lib/collaboration-data'
 import { cn } from '@/lib/utils'
@@ -39,6 +42,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { CreateMeetingDialog } from '@/components/CreateMeetingDialog'
+import { useMeetings, Meeting } from '@/hooks/useMeetings'
 
 interface CalendarViewProps {
   tasks: Task[]
@@ -50,6 +55,7 @@ interface CalendarDay {
   isCurrentMonth: boolean
   isToday: boolean
   tasks: Task[]
+  meetings: Meeting[]
 }
 
 const priorityColors = {
@@ -85,6 +91,16 @@ const CalendarView = ({ tasks, teamMembers }: CalendarViewProps) => {
   const [selectedDay, setSelectedDay] = useState<Date | null>(new Date())
   const [filterAssignee, setFilterAssignee] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'calendar' | 'agenda'>('calendar')
+  const [isMeetingDialogOpen, setIsMeetingDialogOpen] = useState(false)
+
+  // Fetch meetings from database
+  const { 
+    meetings, 
+    isLoading: meetingsLoading, 
+    createMeeting, 
+    deleteMeeting,
+    refetch: refetchMeetings 
+  } = useMeetings()
 
   const tasksWithDueDate = tasks.filter(t => t.dueDate)
 
@@ -97,6 +113,23 @@ const CalendarView = ({ tasks, teamMembers }: CalendarViewProps) => {
       return true
     })
   }, [tasksWithDueDate, filterAssignee])
+
+  // Filter meetings by assignee
+  const filteredMeetings = useMemo(() => {
+    if (filterAssignee === 'all') return meetings
+    if (filterAssignee === 'unassigned') return meetings.filter(m => m.attendeeIds.length === 0)
+    return meetings.filter(m => 
+      m.organizerId === filterAssignee || m.attendeeIds.includes(filterAssignee)
+    )
+  }, [meetings, filterAssignee])
+
+  // Helper to get meetings for a specific date
+  const getMeetingsForDate = (date: Date): Meeting[] => {
+    return filteredMeetings.filter(meeting => {
+      const meetingDate = new Date(meeting.startTime)
+      return isSameDay(meetingDate, date)
+    })
+  }
 
   const getDaysInMonth = (date: Date): CalendarDay[] => {
     const year = date.getFullYear()
@@ -118,7 +151,8 @@ const CalendarView = ({ tasks, teamMembers }: CalendarViewProps) => {
         date,
         isCurrentMonth: false,
         isToday: isToday(date),
-        tasks: getTasksForDate(date)
+        tasks: getTasksForDate(date),
+        meetings: getMeetingsForDate(date)
       })
     }
     
@@ -128,7 +162,8 @@ const CalendarView = ({ tasks, teamMembers }: CalendarViewProps) => {
         date,
         isCurrentMonth: true,
         isToday: isToday(date),
-        tasks: getTasksForDate(date)
+        tasks: getTasksForDate(date),
+        meetings: getMeetingsForDate(date)
       })
     }
     
@@ -139,7 +174,8 @@ const CalendarView = ({ tasks, teamMembers }: CalendarViewProps) => {
         date,
         isCurrentMonth: false,
         isToday: isToday(date),
-        tasks: getTasksForDate(date)
+        tasks: getTasksForDate(date),
+        meetings: getMeetingsForDate(date)
       })
     }
     
@@ -295,6 +331,15 @@ const CalendarView = ({ tasks, teamMembers }: CalendarViewProps) => {
           </div>
           
           <div className="flex items-center gap-2 flex-wrap">
+            <Button 
+              variant="default" 
+              className="gap-2"
+              onClick={() => setIsMeetingDialogOpen(true)}
+            >
+              <VideoCamera size={18} weight="duotone" />
+              Schedule Meeting
+            </Button>
+
             <Select value={filterAssignee} onValueChange={setFilterAssignee}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="All Assignees" />
@@ -442,6 +487,8 @@ const CalendarView = ({ tasks, teamMembers }: CalendarViewProps) => {
                   {calendarDays.map((day, index) => {
                     const isSelected = selectedDay ? isSameDay(day.date, selectedDay) : false
                     const hasTasks = day.tasks.length > 0
+                    const hasMeetings = day.meetings.length > 0
+                    const hasItems = hasTasks || hasMeetings
                     const hasOverdue = day.tasks.some(t => t.dueDate && t.dueDate < Date.now() && t.status !== 'done')
                     const dayAssignees = getAssigneesForDay(day.tasks)
                     
@@ -462,43 +509,48 @@ const CalendarView = ({ tasks, teamMembers }: CalendarViewProps) => {
                           >
                             {/* Date Number */}
                             <div className={cn(
-                              "text-sm font-medium mb-1",
+                              "text-sm font-medium mb-1 flex items-center justify-between",
                               day.isToday && "text-primary font-bold",
                               isSelected && "text-primary"
                             )}>
-                              {day.date.getDate()}
+                              <span>{day.date.getDate()}</span>
+                              {hasMeetings && (
+                                <VideoCamera size={12} weight="fill" className="text-purple-500" />
+                              )}
                             </div>
                             
-                            {/* Task Indicators & Assignee Avatars */}
-                            {hasTasks && (
+                            {/* Content */}
+                            {hasItems && (
                               <div className="flex-1 flex flex-col justify-between">
-                                {/* Assignee Avatars */}
-                                <div className="flex flex-wrap gap-0.5 justify-start">
-                                  {dayAssignees.slice(0, 4).map((assignee, idx) => (
-                                    assignee ? (
-                                      <Avatar key={assignee.id} className="h-5 w-5 border border-background">
-                                        <AvatarImage src={assignee.avatarUrl} alt={assignee.name} />
-                                        <AvatarFallback className="text-[8px] bg-primary/10">
-                                          {assignee.name.split(' ').map(n => n[0]).join('')}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                    ) : (
-                                      <div key={`unassigned-${idx}`} className="h-5 w-5 rounded-full bg-muted border border-background flex items-center justify-center">
-                                        <User size={10} className="text-muted-foreground" />
+                                {/* Assignee Avatars for tasks */}
+                                {hasTasks && (
+                                  <div className="flex flex-wrap gap-0.5 justify-start">
+                                    {dayAssignees.slice(0, 3).map((assignee, idx) => (
+                                      assignee ? (
+                                        <Avatar key={assignee.id} className="h-5 w-5 border border-background">
+                                          <AvatarImage src={assignee.avatarUrl} alt={assignee.name} />
+                                          <AvatarFallback className="text-[8px] bg-primary/10">
+                                            {assignee.name.split(' ').map(n => n[0]).join('')}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                      ) : (
+                                        <div key={`unassigned-${idx}`} className="h-5 w-5 rounded-full bg-muted border border-background flex items-center justify-center">
+                                          <User size={10} className="text-muted-foreground" />
+                                        </div>
+                                      )
+                                    ))}
+                                    {dayAssignees.length > 3 && (
+                                      <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold">
+                                        +{dayAssignees.length - 3}
                                       </div>
-                                    )
-                                  ))}
-                                  {dayAssignees.length > 4 && (
-                                    <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold">
-                                      +{dayAssignees.length - 4}
-                                    </div>
-                                  )}
-                                </div>
+                                    )}
+                                  </div>
+                                )}
                                 
-                                {/* Task Count & Priority Dots */}
-                                <div className="flex items-center justify-between mt-1">
+                                {/* Task & Meeting Count */}
+                                <div className="flex items-center justify-between mt-1 gap-1">
                                   <div className="flex gap-0.5">
-                                    {day.tasks.slice(0, 4).map((task, idx) => (
+                                    {day.tasks.slice(0, 3).map((task, idx) => (
                                       <div
                                         key={idx}
                                         className={cn(
@@ -509,23 +561,40 @@ const CalendarView = ({ tasks, teamMembers }: CalendarViewProps) => {
                                         )}
                                       />
                                     ))}
+                                    {day.meetings.slice(0, 2).map((_, idx) => (
+                                      <div key={`m-${idx}`} className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                                    ))}
                                   </div>
-                                  <Badge variant="secondary" className="text-[9px] h-4 px-1">
-                                    {day.tasks.length}
-                                  </Badge>
+                                  <div className="flex gap-1">
+                                    {hasTasks && (
+                                      <Badge variant="secondary" className="text-[9px] h-4 px-1">
+                                        {day.tasks.length}
+                                      </Badge>
+                                    )}
+                                    {hasMeetings && (
+                                      <Badge className="text-[9px] h-4 px-1 bg-purple-500">
+                                        {day.meetings.length}
+                                      </Badge>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             )}
                           </button>
                         </TooltipTrigger>
-                        {hasTasks && (
+                        {hasItems && (
                           <TooltipContent side="top" className="max-w-[250px]">
                             <p className="font-semibold mb-1">
                               {day.date.toLocaleDateString('default', { weekday: 'short', month: 'short', day: 'numeric' })}
                             </p>
-                            <p className="text-xs text-muted-foreground">
-                              {day.tasks.length} task{day.tasks.length !== 1 ? 's' : ''} • {dayAssignees.length} assignee{dayAssignees.length !== 1 ? 's' : ''}
-                            </p>
+                            <div className="text-xs text-muted-foreground space-y-1">
+                              {hasTasks && (
+                                <p>{day.tasks.length} task{day.tasks.length !== 1 ? 's' : ''}</p>
+                              )}
+                              {hasMeetings && (
+                                <p className="text-purple-400">{day.meetings.length} meeting{day.meetings.length !== 1 ? 's' : ''}</p>
+                              )}
+                            </div>
                           </TooltipContent>
                         )}
                       </Tooltip>
@@ -810,6 +879,15 @@ const CalendarView = ({ tasks, teamMembers }: CalendarViewProps) => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Meeting Dialog */}
+        <CreateMeetingDialog 
+          isOpen={isMeetingDialogOpen} 
+          onClose={() => setIsMeetingDialogOpen(false)}
+          teamMembers={teamMembers}
+          createMeeting={createMeeting}
+          onMeetingCreated={() => refetchMeetings()}
+        />
       </div>
     </TooltipProvider>
   )

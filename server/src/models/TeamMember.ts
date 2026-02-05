@@ -112,7 +112,6 @@ const teamMemberSchema = new Schema<TeamMemberDocument>(
 teamMemberSchema.index({ organizationId: 1, email: 1 }, { unique: true });
 
 // Index for faster queries
-teamMemberSchema.index({ email: 1 });
 teamMemberSchema.index({ role: 1 });
 teamMemberSchema.index({ accessLevel: 1 });
 teamMemberSchema.index({ isOnline: 1 });
